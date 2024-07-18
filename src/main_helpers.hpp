@@ -113,6 +113,9 @@ namespace test
     class CMDInterface
     {
     public:
+        std::shared_ptr<Avionics> avncs;
+
+
         CMDInterface()
         {
             earth_nav_path = "";
@@ -176,7 +179,6 @@ namespace test
         }
     
     private:
-        std::shared_ptr<Avionics> avncs;
         std::shared_ptr<StratosphereAvionics::NDData> nd_data;
         std::shared_ptr<StratosphereAvionics::NDDisplay> nd_display;
 

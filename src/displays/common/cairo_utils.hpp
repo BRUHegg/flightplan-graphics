@@ -46,6 +46,7 @@ namespace cairo_utils
         cairo_move_to(cr, start.x, start.y);
         cairo_line_to(cr, end.x, end.y);
 
+        cairo_set_line_cap(cr, CAIRO_LINE_CAP_ROUND);
         cairo_stroke(cr);
     }
 

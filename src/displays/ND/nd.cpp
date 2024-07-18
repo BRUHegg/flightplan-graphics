@@ -54,6 +54,12 @@ namespace StratosphereAvionics
             fetch_legs();
         }
 
+        update_ctr(&m_ctr_cap, false);
+        update_ctr(&m_ctr_fo, true);
+
+        project_legs(false);
+        project_legs(true);
+
         m_fpl_id_last = id_curr;
     }
 
@@ -130,13 +136,7 @@ namespace StratosphereAvionics
 
     void NDData::fetch_legs()
     {
-        update_ctr(&m_ctr_cap, false);
-        update_ctr(&m_ctr_fo, true);
-        
         m_n_act_leg_data = m_fpl_sys_ptr->get_nd_seg(m_leg_data, N_LEG_PROJ_CACHE_SZ);
-
-        project_legs(false);
-        project_legs(true);
     }
 
     // NDDisplay member functions:
