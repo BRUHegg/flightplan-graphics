@@ -21,6 +21,9 @@ namespace test
     const std::string PREFS_APT_DIR = "APTDIR";
     const std::string PREFS_FPL_DIR = "FPLDIR";
 
+    constexpr geom::vect2_t ND_POS = {0, 0};
+    constexpr geom::vect2_t ND_SZ = {900, 900};
+
 
     class Avionics
     {
@@ -147,6 +150,11 @@ namespace test
             }
         }
 
+        void draw(cairo_t *cr)
+        {
+            nd_display->draw(cr);
+        }
+
         void update()
         {
             avncs->update();
@@ -170,6 +178,7 @@ namespace test
     private:
         std::shared_ptr<Avionics> avncs;
         std::shared_ptr<StratosphereAvionics::NDData> nd_data;
+        std::shared_ptr<StratosphereAvionics::NDDisplay> nd_display;
 
         std::string earth_nav_path;
 	    std::string apt_dat_dir;
@@ -290,6 +299,8 @@ namespace test
                 earth_nav_path+"earth_hold.dat", earth_nav_path+"CIFP", fpl_dir);
 
             nd_data = std::make_shared<StratosphereAvionics::NDData>(avncs->fpl_sys);
+            nd_display = std::make_shared<StratosphereAvionics::NDDisplay>(
+                nd_data, ND_POS, ND_SZ);
 
             std::cout << "Avionics loaded\n";
         }
