@@ -13,9 +13,17 @@ std::shared_ptr<test::CMDInterface> cmdint;
 gboolean keypress_handler(GtkWidget *widget, GdkEventKey *event, gpointer data) {
     //UNUSED(widget);
     UNUSED(data);
-    if (event->keyval == GDK_KEY_space){
-        std::cout << "Right arrow\n";
+    if (event->keyval == GDK_KEY_Right)
+    {
         cmdint->avncs->fpl_sys->step_ctr(false, false);
+        cmdint->update();
+
+        gtk_widget_queue_draw(widget);
+        return TRUE;
+    }
+    else if(event->keyval == GDK_KEY_Left)
+    {
+        cmdint->avncs->fpl_sys->step_ctr(true, false);
         cmdint->update();
 
         gtk_widget_queue_draw(widget);
@@ -61,9 +69,9 @@ int main(int argc, char *argv[])
     g_signal_connect (G_OBJECT (window), "key_press_event",
         G_CALLBACK (keypress_handler), NULL);
     g_signal_connect(G_OBJECT(darea), "draw",
-                     G_CALLBACK(on_draw_event), NULL);
+        G_CALLBACK(on_draw_event), NULL);
     g_signal_connect(window, "destroy",
-                     G_CALLBACK(gtk_main_quit), NULL);
+        G_CALLBACK(gtk_main_quit), NULL);
 
     gtk_window_set_position(GTK_WINDOW(window), GTK_WIN_POS_CENTER);
     gtk_window_set_default_size(GTK_WINDOW(window), test::ND_SZ.x, test::ND_SZ.y);
