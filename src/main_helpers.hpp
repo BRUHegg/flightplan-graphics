@@ -21,6 +21,8 @@ namespace test
     const std::string PREFS_APT_DIR = "APTDIR";
     const std::string PREFS_FPL_DIR = "FPLDIR";
 
+    const std::string BOEING_FONT_NAME = "BoeingFont.ttf";
+
     constexpr geom::vect2_t ND_POS = {0, 0};
     constexpr geom::vect2_t ND_SZ = {900, 900};
 
@@ -188,6 +190,10 @@ namespace test
 
         std::vector<std::string> pre_exec;
 
+        FT_Library lib;
+        FT_Face font;
+        cairo_font_face_t* boeing_font_face;
+
 
         void fetch_prefs_data()
         {
@@ -292,8 +298,32 @@ namespace test
             }
         }
 
+        void load_fonts()
+        {
+            FT_Init_FreeType(&lib);
+
+            bool font_loaded = false;
+            if(libnav::does_file_exist(BOEING_FONT_NAME))
+            {
+                font_loaded = cairo_utils::load_font(BOEING_FONT_NAME, lib, &font, 
+                    &boeing_font_face);
+            }
+            else
+            {
+                std::cout << "Font file " << BOEING_FONT_NAME << " was not found.\n";
+            }
+
+            if(!font_loaded)
+            {
+                std::cout << "Failed to load font: " << BOEING_FONT_NAME << " . Aborting\n";
+                exit(0);
+            }
+        }
+
         void create_avionics()
         {
+            load_fonts();
+
             avncs = std::make_shared<Avionics>(apt_dat_dir+"apt.dat", "777_arpt.dat", 
                 "777_rnw.dat", earth_nav_path+"earth_fix.dat", 
                 earth_nav_path+"earth_nav.dat", 
@@ -302,7 +332,7 @@ namespace test
 
             nd_data = std::make_shared<StratosphereAvionics::NDData>(avncs->fpl_sys);
             nd_display = std::make_shared<StratosphereAvionics::NDDisplay>(
-                nd_data, ND_POS, ND_SZ, false);
+                nd_data, boeing_font_face, ND_POS, ND_SZ, false);
 
             std::cout << "Avionics loaded\n";
         }

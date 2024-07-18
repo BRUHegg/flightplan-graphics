@@ -22,6 +22,8 @@ namespace StratosphereAvionics
     // Percentage of resolution that translates into full range:
     constexpr double ND_RNG_FULL_RES_COEFF = 0.4;  
 
+    constexpr geom::vect2_t FIX_NAME_OFFS = {0.01, 0.03};
+
 
     struct leg_proj_t
     {
@@ -71,13 +73,15 @@ namespace StratosphereAvionics
     class NDDisplay
     {
     public:
-        NDDisplay(std::shared_ptr<NDData> data, geom::vect2_t pos, 
+        NDDisplay(std::shared_ptr<NDData> data, cairo_font_face_t *ff, geom::vect2_t pos, 
             geom::vect2_t sz, bool fo_sd);
 
         void draw(cairo_t *cr);
 
     private:
         std::shared_ptr<NDData> nd_data;
+
+        cairo_font_face_t* font_face;
 
         geom::vect2_t scr_pos;
         geom::vect2_t size;

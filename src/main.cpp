@@ -5,14 +5,9 @@
 #define UNUSED(x) (void)(x)
 
 const std::string WINDOW_TITLE = "ND Display";
-const std::string BOEING_FONT_NAME = "BoeingFont.ttf";
 
 
 std::shared_ptr<test::CMDInterface> cmdint;
-
-FT_Library lib;
-FT_Face font;
-cairo_font_face_t* boeing_font_face;
 
 
 gboolean keypress_handler(GtkWidget *widget, GdkEventKey *event, gpointer data) {
@@ -49,25 +44,6 @@ static void do_drawing(cairo_t *cr)
 int main(int argc, char *argv[])
 {
     cmdint = std::make_shared<test::CMDInterface>();
-
-    FT_Init_FreeType(&lib);
-
-    bool font_loaded = false;
-    if(libnav::does_file_exist(BOEING_FONT_NAME))
-    {
-        font_loaded = cairo_utils::load_font(BOEING_FONT_NAME, lib, &font, 
-            &boeing_font_face);
-    }
-    else
-    {
-        std::cout << "Font file " << BOEING_FONT_NAME << " was not found.\n";
-    }
-
-    if(!font_loaded)
-    {
-        std::cout << "Failed to load font: " << BOEING_FONT_NAME << " . Aborting\n";
-        exit(0);
-    }
 
     GtkWidget *window;
     GtkWidget *darea;

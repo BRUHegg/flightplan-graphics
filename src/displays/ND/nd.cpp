@@ -143,10 +143,12 @@ namespace StratosphereAvionics
 
     // Public member functions:
 
-    NDDisplay::NDDisplay(std::shared_ptr<NDData> data, geom::vect2_t pos, 
-        geom::vect2_t sz, bool fo_sd)
+    NDDisplay::NDDisplay(std::shared_ptr<NDData> data, cairo_font_face_t *ff, 
+        geom::vect2_t pos, geom::vect2_t sz, bool fo_sd)
     {
         nd_data = data;
+
+        font_face = ff;
 
         scr_pos = pos;
         size = sz;
@@ -180,6 +182,10 @@ namespace StratosphereAvionics
                 e_trans.y = size.y - e_trans.y;
                 cairo_utils::draw_line(cr, s_trans, e_trans, 
                     cairo_utils::MAGENTA, 5);
+
+                geom::vect2_t text_pos = e_trans + size * FIX_NAME_OFFS;
+                cairo_utils::draw_left_text(cr, font_face, buf[i].end_nm, text_pos, 
+                    cairo_utils::WHITE, 20);
             }
         }
     }
