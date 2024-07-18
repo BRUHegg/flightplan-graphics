@@ -1659,17 +1659,28 @@ namespace test
 
             double brng_rad = curr_start.get_gc_bearing_rad(curr_end);
             double dist_nm = curr_start.get_gc_dist_nm(curr_end);
-
-            double rnp_nm = get_rnp(leg);
             double turn_rad_nm = TURN_RADIUS_NM;
-            double turn_offs_nm = sqrt((turn_rad_nm + rnp_nm) * 
-                (turn_rad_nm + rnp_nm) - turn_rad_nm * turn_rad_nm);
 
-            if(turn_offs_nm < dist_nm)
+            if(leg->next != &leg_list.tail)
             {
-                dist_nm -= turn_offs_nm;
-                curr_end = geo::get_pos_from_brng_dist(curr_start, brng_rad, dist_nm);
+                std::string next_tp = leg->next->data.leg.leg_type;
+
+                if(TURN_OFFS_LEGS.find(next_tp) == TURN_OFFS_LEGS.end())
+                {
+                    double rnp_nm = get_rnp(leg);
+                    
+                    double turn_offs_nm = sqrt((turn_rad_nm + rnp_nm) * 
+                        (turn_rad_nm + rnp_nm) - turn_rad_nm * turn_rad_nm);
+
+                    if(turn_offs_nm < dist_nm)
+                    {
+                        dist_nm -= turn_offs_nm;
+                        curr_end = geo::get_pos_from_brng_dist(curr_start, 
+                            brng_rad, dist_nm);
+                    }
+                }
             }
+            
 
             leg->data.misc_data.end = curr_end;
 

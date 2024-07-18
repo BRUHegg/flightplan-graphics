@@ -22,7 +22,9 @@ namespace StratosphereAvionics
     // Percentage of resolution that translates into full range:
     constexpr double ND_RNG_FULL_RES_COEFF = 0.4;  
 
-    constexpr geom::vect2_t FIX_NAME_OFFS = {0.01, 0.03};
+    constexpr double ND_WPT_FONT_SZ = 18;
+    constexpr double ND_FPL_LINE_THICK = 4;
+    constexpr geom::vect2_t FIX_NAME_OFFS = {0.03, 0.05};
 
 
     struct leg_proj_t

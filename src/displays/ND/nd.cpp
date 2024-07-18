@@ -181,11 +181,11 @@ namespace StratosphereAvionics
                 s_trans.y = size.y - s_trans.y;
                 e_trans.y = size.y - e_trans.y;
                 cairo_utils::draw_line(cr, s_trans, e_trans, 
-                    cairo_utils::MAGENTA, 5);
+                    cairo_utils::MAGENTA, ND_FPL_LINE_THICK);
 
                 geom::vect2_t text_pos = e_trans + size * FIX_NAME_OFFS;
                 cairo_utils::draw_left_text(cr, font_face, buf[i].end_nm, text_pos, 
-                    cairo_utils::WHITE, 20);
+                    cairo_utils::WHITE, ND_WPT_FONT_SZ);
             }
         }
     }
