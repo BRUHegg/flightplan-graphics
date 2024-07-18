@@ -122,6 +122,15 @@ namespace StratosphereAvionics
             double brng_start = map_ctr.get_gc_bearing_rad(m_leg_data[i].leg_data.start);
             double brng_end = map_ctr.get_gc_bearing_rad(m_leg_data[i].leg_data.end);
 
+            if(m_leg_data[i].leg_data.is_finite)
+            {
+                double dist_wpt = map_ctr.get_gc_dist_nm(m_leg_data[i].end_wpt);
+                double brng_wpt = map_ctr.get_gc_bearing_rad(m_leg_data[i].end_wpt);
+
+                dst[i].end_wpt = {dist_wpt * sin(brng_wpt), dist_wpt * cos(brng_wpt)};
+            }
+            
+
             dst[i].start = {dist_start * sin(brng_start), dist_start * cos(brng_start)};
             dst[i].end = {dist_end * sin(brng_end), dist_end * cos(brng_end)};
 

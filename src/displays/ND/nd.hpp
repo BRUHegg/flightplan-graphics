@@ -32,7 +32,7 @@ namespace StratosphereAvionics
 
     struct leg_proj_t
     {
-        geom::vect2_t start, end, arc_ctr;
+        geom::vect2_t start, end, arc_ctr, end_wpt;
         bool is_arc, is_finite;
         double turn_rad_nm;
         std::string end_nm;
@@ -95,5 +95,10 @@ namespace StratosphereAvionics
         double rng;
 
         bool fo_side;
+
+
+        void draw_magenta_line(cairo_t *cr);
+
+        void draw_wpt_labels(cairo_t *cr);
     };
 } // namespace StratosphereAvionics

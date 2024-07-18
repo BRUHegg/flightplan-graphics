@@ -70,7 +70,7 @@ namespace test
     struct nd_leg_data_t
     {
         leg_seg_t leg_data;
-        geo::point arc_ctr;
+        geo::point arc_ctr, end_wpt;
         std::string end_name;
     };
 
