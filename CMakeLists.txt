@@ -51,3 +51,9 @@ target_link_libraries(nd_display PUBLIC ${GTK3_LIBRARIES})
 target_link_libraries(fpln_graphics PUBLIC ${GTK3_LIBRARIES} fpln nd_display)
 
 target_include_directories(nd_display PUBLIC "${LIBNAV}/include" "${CMAKE_CURRENT_SOURCE_DIR}/src" "${CMAKE_CURRENT_SOURCE_DIR}/src/displays" ${GTK3_INCLUDE_DIRS})
+
+# Configure freetype
+
+find_package(Freetype REQUIRED)
+target_link_libraries(fpln_graphics PUBLIC ${FREETYPE_LIBRARIES})
+target_include_directories(fpln_graphics PUBLIC ${FREETYPE_INCLUDE_DIRS})

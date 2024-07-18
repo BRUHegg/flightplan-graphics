@@ -12,6 +12,11 @@
 #pragma once
 
 #include <cairo.h>
+#include <cairo-ft.h>
+#include <ft2build.h>
+#include FT_FREETYPE_H
+
+
 #include <string>
 #include "geom.hpp"
 
@@ -24,6 +29,19 @@ namespace cairo_utils
     constexpr geom::vect3_t DARK_BLUE = {0.01, 0.05, 0.15};
     constexpr geom::vect3_t MAGENTA = {1, 0.451, 1};
 
+
+    inline bool load_font(std::string font_path, FT_Library ft_lib, FT_Face *font_face,
+        cairo_font_face_t **cr_font)
+    {
+        FT_Error err = FT_New_Face(ft_lib, font_path.c_str(), 0, font_face);
+
+        if (err)
+            return false;
+        
+        *cr_font = cairo_ft_font_face_create_for_ft_face(*font_face, 0);
+
+        return true;
+    }
 
     inline void prepare_cairo_context(cairo_t* cr, geom::vect3_t color, int line_width)
     {
