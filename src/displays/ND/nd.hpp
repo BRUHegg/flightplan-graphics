@@ -26,6 +26,9 @@ namespace StratosphereAvionics
     constexpr double ND_FPL_LINE_THICK = 4;
     constexpr geom::vect2_t FIX_NAME_OFFS = {0.03, 0.05};
 
+    const std::string WPT_INACT_NAME = "wpt_inact";
+    const std::string WPT_ACT_NAME = "wpt_act";
+
 
     struct leg_proj_t
     {
@@ -75,13 +78,15 @@ namespace StratosphereAvionics
     class NDDisplay
     {
     public:
-        NDDisplay(std::shared_ptr<NDData> data, cairo_font_face_t *ff, geom::vect2_t pos, 
-            geom::vect2_t sz, bool fo_sd);
+        NDDisplay(std::shared_ptr<NDData> data, 
+            std::shared_ptr<cairo_utils::texture_manager_t> mngr,
+            cairo_font_face_t *ff, geom::vect2_t pos, geom::vect2_t sz, bool fo_sd);
 
         void draw(cairo_t *cr);
 
     private:
         std::shared_ptr<NDData> nd_data;
+        std::shared_ptr<cairo_utils::texture_manager_t> tex_mngr;
 
         cairo_font_face_t* font_face;
 

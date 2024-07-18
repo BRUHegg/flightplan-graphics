@@ -13,7 +13,7 @@
 
 namespace StratosphereAvionics
 {
-    // NDData member funcrion definitions
+    // NDData member funcrion definitions:
 
     // Public member functions:
 
@@ -143,10 +143,12 @@ namespace StratosphereAvionics
 
     // Public member functions:
 
-    NDDisplay::NDDisplay(std::shared_ptr<NDData> data, cairo_font_face_t *ff, 
-        geom::vect2_t pos, geom::vect2_t sz, bool fo_sd)
+    NDDisplay::NDDisplay(std::shared_ptr<NDData> data, 
+        std::shared_ptr<cairo_utils::texture_manager_t> mngr,
+        cairo_font_face_t *ff, geom::vect2_t pos, geom::vect2_t sz, bool fo_sd)
     {
         nd_data = data;
+        tex_mngr = mngr;
 
         font_face = ff;
 

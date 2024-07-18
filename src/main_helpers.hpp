@@ -22,6 +22,7 @@ namespace test
     const std::string PREFS_FPL_DIR = "FPLDIR";
 
     const std::string BOEING_FONT_NAME = "BoeingFont.ttf";
+    const std::string TEXTURES_PATH = "textures/";
 
     constexpr geom::vect2_t ND_POS = {0, 0};
     constexpr geom::vect2_t ND_SZ = {900, 900};
@@ -181,6 +182,7 @@ namespace test
         }
     
     private:
+        std::shared_ptr<cairo_utils::texture_manager_t> tex_mngr;
         std::shared_ptr<StratosphereAvionics::NDData> nd_data;
         std::shared_ptr<StratosphereAvionics::NDDisplay> nd_display;
 
@@ -320,6 +322,23 @@ namespace test
             }
         }
 
+        void load_textures()
+        {
+            std::vector<std::string> tgt_names = {
+                StratosphereAvionics::WPT_ACT_NAME,
+                StratosphereAvionics::WPT_INACT_NAME
+                };
+            
+            tex_mngr = std::make_shared<cairo_utils::texture_manager_t>();
+
+            if(!tex_mngr->load(tgt_names, TEXTURES_PATH))
+            {
+                std::cout << "Failed to load textures. Aborting\n";
+                tex_mngr->destroy();
+                exit(0);
+            }
+        }
+
         void create_avionics()
         {
             load_fonts();
@@ -332,7 +351,7 @@ namespace test
 
             nd_data = std::make_shared<StratosphereAvionics::NDData>(avncs->fpl_sys);
             nd_display = std::make_shared<StratosphereAvionics::NDDisplay>(
-                nd_data, boeing_font_face, ND_POS, ND_SZ, false);
+                nd_data, tex_mngr, boeing_font_face, ND_POS, ND_SZ, false);
 
             std::cout << "Avionics loaded\n";
         }
