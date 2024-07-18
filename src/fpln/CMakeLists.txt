@@ -1,0 +1,11 @@
+file(GLOB FPLN_SRC "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp")
+FILE(GLOB FPLN_HDR "${CMAKE_CURRENT_SOURCE_DIR}/*.hpp")
+
+
+add_library(fpln STATIC ${FPLN_SRC} ${FPLN_HDR})
+target_include_directories(fpln INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
+
+
+if(UNIX AND NOT APPLE)
+    set_property(TARGET fpln PROPERTY POSITION_INDEPENDENT_CODE ON)
+endif()
