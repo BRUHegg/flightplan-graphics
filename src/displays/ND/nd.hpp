@@ -9,6 +9,7 @@
 */
 
 #include <fpln/fpln_sys.hpp>
+#include <common/cairo_utils.hpp>
 #include <geom.hpp>
 #include <memory>
 
@@ -17,6 +18,9 @@ namespace StratosphereAvionics
 {
     constexpr size_t N_LEG_PROJ_CACHE_SZ = 200;
     constexpr double N_MAX_DIST_NM = 600;
+    constexpr double ND_DEFAULT_RNG_NM = 10;
+    // Percentage of resolution that translates into full range:
+    constexpr double ND_RNG_FULL_RES_COEFF = 0.4;  
 
 
     struct leg_proj_t
@@ -62,5 +66,20 @@ namespace StratosphereAvionics
         void project_legs(bool fo_side);
 
         void fetch_legs();
+    };
+
+    class NDDisplay
+    {
+    public:
+        NDDisplay(std::shared_ptr<NDData> data, geom::vect2_t pos, geom::vect2_t sz);
+
+        void draw(cairo_t *cr);
+
+    private:
+        std::shared_ptr<NDData> nd_data;
+
+        geom::vect2_t scr_pos;
+        geom::vect2_t size;
+        double rng;
     };
 } // namespace StratosphereAvionics

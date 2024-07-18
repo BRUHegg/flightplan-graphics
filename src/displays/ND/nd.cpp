@@ -138,4 +138,23 @@ namespace StratosphereAvionics
         project_legs(false);
         project_legs(true);
     }
+
+    // NDDisplay member functions:
+
+    // Public member functions:
+
+    NDDisplay::NDDisplay(std::shared_ptr<NDData> data, geom::vect2_t pos, geom::vect2_t sz)
+    {
+        nd_data = data;
+
+        scr_pos = pos;
+        size = sz;
+
+        rng = ND_DEFAULT_RNG_NM;
+    }
+
+    void NDDisplay::draw(cairo_t *cr)
+    {
+        cairo_utils::draw_rect(cr, scr_pos, size, cairo_utils::DARK_BLUE);
+    }
 } // namespace StratosphereAvionics
