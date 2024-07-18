@@ -171,4 +171,21 @@ namespace cairo_utils
         cairo_move_to(cr, x, y);
         cairo_show_text(cr, txt_cstr);
     }
+
+    inline void draw_image(cairo_t* cr, cairo_surface_t *surf, geom::vect2_t pos, 
+        bool centered)
+    {
+        geom::vect2_t offset = {0, 0};
+
+        if(centered)
+        {
+            offset.x = -cairo_image_surface_get_width(surf) / 2;
+            offset.y = -cairo_image_surface_get_height(surf) / 2;
+        }
+
+        pos = pos + offset;
+
+        cairo_set_source_surface(cr, surf, pos.x, pos.y);
+        cairo_paint(cr);
+    }
 }

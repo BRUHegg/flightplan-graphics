@@ -342,6 +342,7 @@ namespace test
         void create_avionics()
         {
             load_fonts();
+            load_textures();
 
             avncs = std::make_shared<Avionics>(apt_dat_dir+"apt.dat", "777_arpt.dat", 
                 "777_rnw.dat", earth_nav_path+"earth_fix.dat", 

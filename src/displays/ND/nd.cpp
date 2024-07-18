@@ -188,6 +188,8 @@ namespace StratosphereAvionics
                 geom::vect2_t text_pos = e_trans + size * FIX_NAME_OFFS;
                 cairo_utils::draw_left_text(cr, font_face, buf[i].end_nm, text_pos, 
                     cairo_utils::WHITE, ND_WPT_FONT_SZ);
+
+                cairo_utils::draw_image(cr, tex_mngr->data[WPT_INACT_NAME], e_trans, true);
             }
         }
     }
