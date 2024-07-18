@@ -12,12 +12,18 @@
 #pragma once
 
 #include <cairo.h>
-#include "geom.hpp"
 #include <string>
+#include "geom.hpp"
 
 
 namespace cairo_utils
 {
+    // Colors:
+
+    constexpr geom::vect3_t WHITE = {1, 1, 1};
+    constexpr geom::vect3_t DARK_BLUE = {0.01, 0.05, 0.15};
+
+
     inline void prepare_cairo_context(cairo_t* cr, geom::vect3_t color, int line_width)
     {
         cairo_set_source_rgb(cr, color.x, color.y, color.z);
@@ -45,12 +51,15 @@ namespace cairo_utils
     inline void draw_rect(cairo_t* cr, geom::vect2_t pos, geom::vect2_t sz, 
         geom::vect3_t color, double line_width=-1)
     {
-        prepare_cairo_context(cr, color, line_width);
+        if(line_width > 0)
+            prepare_cairo_context(cr, color, line_width);
 
         cairo_rectangle(cr, pos.x, pos.y, sz.x, sz.y);
-        cairo_stroke(cr);
 
-        if(line_width < 0)
+        if(line_width > 0)
+            cairo_stroke(cr);
+
+        if(line_width <= 0)
         {
             cairo_fill(cr);
         }
