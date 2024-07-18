@@ -30,6 +30,9 @@ namespace StratosphereAvionics
         m_n_act_proj_legs_cap = 0;
         m_n_act_proj_legs_fo = 0;
 
+        m_rng_idx_cap = 0;
+        m_rng_idx_fo = 0;
+
         m_fpl_id_last = 0;
     }
 
@@ -43,6 +46,33 @@ namespace StratosphereAvionics
 
         *out = m_proj_legs_cap;
         return m_n_act_proj_legs_cap;
+    }
+
+    void NDData::switch_range(bool down, bool fo_side)
+    {
+        size_t *tgt = &m_rng_idx_cap;
+
+        if(fo_side)
+            tgt = &m_rng_idx_fo;
+
+        if(down)
+        {
+            if(*tgt)
+                *tgt = *tgt - 1;
+        }
+        else
+        {
+            if(*tgt + 1 < ND_RANGES_NM.size())
+                *tgt = *tgt + 1;
+        }
+    }
+
+    double NDData::get_range(bool fo_side)
+    {
+        if(fo_side)
+            return ND_RANGES_NM[m_rng_idx_fo];
+        else
+            return ND_RANGES_NM[m_rng_idx_cap];
     }
 
     void NDData::update()
@@ -164,13 +194,15 @@ namespace StratosphereAvionics
         scr_pos = pos;
         size = sz;
 
-        rng = ND_DEFAULT_RNG_NM;
-
         fo_side = fo_sd;
+
+        rng = nd_data->get_range(fo_side);
     }
 
     void NDDisplay::draw(cairo_t *cr)
     {
+        rng = nd_data->get_range(fo_side);
+
         cairo_utils::draw_rect(cr, scr_pos, size, cairo_utils::DARK_BLUE);
 
         draw_flight_plan(cr, false);
@@ -182,8 +214,9 @@ namespace StratosphereAvionics
         leg_proj_t *buf;
         size_t buf_size = nd_data->get_proj_legs(&buf, fo_side);
 
+        double curr_rng = rng / 2;
         geom::vect2_t map_ctr = scr_pos + size.scmul(0.5);
-        geom::vect2_t s_fac = size.scmul(ND_RNG_FULL_RES_COEFF).scdiv(rng);
+        geom::vect2_t s_fac = size.scmul(ND_RNG_FULL_RES_COEFF).scdiv(curr_rng);
 
         for(size_t i = 0; i < buf_size; i++)
         {

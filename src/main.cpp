@@ -11,19 +11,32 @@ std::shared_ptr<test::CMDInterface> cmdint;
 
 
 gboolean keypress_handler(GtkWidget *widget, GdkEventKey *event, gpointer data) {
-    //UNUSED(widget);
     UNUSED(data);
+
+    bool update_redraw = false;
     if (event->keyval == GDK_KEY_Right)
     {
         cmdint->avncs->fpl_sys->step_ctr(false, false);
-        cmdint->update();
-
-        gtk_widget_queue_draw(widget);
-        return TRUE;
+        update_redraw = true;
     }
     else if(event->keyval == GDK_KEY_Left)
     {
         cmdint->avncs->fpl_sys->step_ctr(true, false);
+        update_redraw = true;
+    }
+    else if(event->keyval == GDK_KEY_Up)
+    {
+        cmdint->nd_data->switch_range(false, false);
+        update_redraw = true;
+    }
+    else if(event->keyval == GDK_KEY_Down)
+    {
+        cmdint->nd_data->switch_range(true, false);
+        update_redraw = true;
+    }
+
+    if(update_redraw)
+    {
         cmdint->update();
 
         gtk_widget_queue_draw(widget);

@@ -117,6 +117,9 @@ namespace test
     {
     public:
         std::shared_ptr<Avionics> avncs;
+        std::shared_ptr<cairo_utils::texture_manager_t> tex_mngr;
+        std::shared_ptr<StratosphereAvionics::NDData> nd_data;
+        std::shared_ptr<StratosphereAvionics::NDDisplay> nd_display;
 
 
         CMDInterface()
@@ -182,10 +185,6 @@ namespace test
         }
     
     private:
-        std::shared_ptr<cairo_utils::texture_manager_t> tex_mngr;
-        std::shared_ptr<StratosphereAvionics::NDData> nd_data;
-        std::shared_ptr<StratosphereAvionics::NDDisplay> nd_display;
-
         std::string earth_nav_path;
 	    std::string apt_dat_dir;
         std::string fpl_dir;

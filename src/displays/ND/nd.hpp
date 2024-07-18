@@ -29,6 +29,8 @@ namespace StratosphereAvionics
     const std::string WPT_INACT_NAME = "wpt_inact";
     const std::string WPT_ACT_NAME = "wpt_act";
 
+    const std::vector<double> ND_RANGES_NM = {10, 20, 40, 80, 160, 320, 640};
+
 
     struct leg_proj_t
     {
@@ -45,6 +47,10 @@ namespace StratosphereAvionics
         NDData(std::shared_ptr<test::FPLSys> fpl_sys);
 
         size_t get_proj_legs(leg_proj_t **out, bool fo_side);
+
+        void switch_range(bool down, bool fo_side);
+
+        double get_range(bool fo_side);
 
         void update();
 
@@ -64,6 +70,9 @@ namespace StratosphereAvionics
 
         geo::point m_ctr_cap;
         geo::point m_ctr_fo;
+
+        size_t m_rng_idx_cap;
+        size_t m_rng_idx_fo;
 
         double m_fpl_id_last;
 
