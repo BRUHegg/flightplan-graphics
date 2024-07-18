@@ -56,4 +56,6 @@ target_include_directories(nd_display PUBLIC "${LIBNAV}/include" "${CMAKE_CURREN
 
 find_package(Freetype REQUIRED)
 target_link_libraries(fpln_graphics PUBLIC ${FREETYPE_LIBRARIES})
+target_include_directories(nd_display PUBLIC ${FREETYPE_INCLUDE_DIRS})
+target_link_libraries(nd_display PUBLIC ${FREETYPE_LIBRARIES})
 target_include_directories(fpln_graphics PUBLIC ${FREETYPE_INCLUDE_DIRS})
