@@ -143,7 +143,8 @@ namespace StratosphereAvionics
 
     // Public member functions:
 
-    NDDisplay::NDDisplay(std::shared_ptr<NDData> data, geom::vect2_t pos, geom::vect2_t sz)
+    NDDisplay::NDDisplay(std::shared_ptr<NDData> data, geom::vect2_t pos, 
+        geom::vect2_t sz, bool fo_sd)
     {
         nd_data = data;
 
@@ -151,10 +152,35 @@ namespace StratosphereAvionics
         size = sz;
 
         rng = ND_DEFAULT_RNG_NM;
+
+        fo_side = fo_sd;
     }
 
     void NDDisplay::draw(cairo_t *cr)
     {
         cairo_utils::draw_rect(cr, scr_pos, size, cairo_utils::DARK_BLUE);
+
+        leg_proj_t *buf;
+        size_t buf_size = nd_data->get_proj_legs(&buf, fo_side);
+
+        geom::vect2_t map_ctr = scr_pos + size.scmul(0.5);
+        geom::vect2_t s_fac = size.scmul(ND_RNG_FULL_RES_COEFF).scdiv(rng);
+
+
+        for(size_t i = 0; i < buf_size; i++)
+        {
+            if(buf[i].is_finite && !buf[i].is_arc)
+            {
+                geom::vect2_t start = buf[i].start;
+                geom::vect2_t end = buf[i].end;
+
+                geom::vect2_t s_trans = start * s_fac + map_ctr;
+                geom::vect2_t e_trans = end * s_fac + map_ctr;
+                s_trans.y = size.y - s_trans.y;
+                e_trans.y = size.y - e_trans.y;
+                cairo_utils::draw_line(cr, s_trans, e_trans, 
+                    cairo_utils::MAGENTA, 5);
+            }
+        }
     }
 } // namespace StratosphereAvionics

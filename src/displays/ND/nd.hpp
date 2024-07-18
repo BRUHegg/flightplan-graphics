@@ -71,7 +71,8 @@ namespace StratosphereAvionics
     class NDDisplay
     {
     public:
-        NDDisplay(std::shared_ptr<NDData> data, geom::vect2_t pos, geom::vect2_t sz);
+        NDDisplay(std::shared_ptr<NDData> data, geom::vect2_t pos, 
+            geom::vect2_t sz, bool fo_sd);
 
         void draw(cairo_t *cr);
 
@@ -81,5 +82,7 @@ namespace StratosphereAvionics
         geom::vect2_t scr_pos;
         geom::vect2_t size;
         double rng;
+
+        bool fo_side;
     };
 } // namespace StratosphereAvionics

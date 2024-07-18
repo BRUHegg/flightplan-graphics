@@ -22,6 +22,7 @@ namespace cairo_utils
 
     constexpr geom::vect3_t WHITE = {1, 1, 1};
     constexpr geom::vect3_t DARK_BLUE = {0.01, 0.05, 0.15};
+    constexpr geom::vect3_t MAGENTA = {1, 0.451, 1};
 
 
     inline void prepare_cairo_context(cairo_t* cr, geom::vect3_t color, int line_width)

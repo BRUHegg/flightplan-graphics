@@ -300,7 +300,7 @@ namespace test
 
             nd_data = std::make_shared<StratosphereAvionics::NDData>(avncs->fpl_sys);
             nd_display = std::make_shared<StratosphereAvionics::NDDisplay>(
-                nd_data, ND_POS, ND_SZ);
+                nd_data, ND_POS, ND_SZ, false);
 
             std::cout << "Avionics loaded\n";
         }
