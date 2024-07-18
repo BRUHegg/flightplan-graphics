@@ -173,32 +173,47 @@ namespace StratosphereAvionics
     {
         cairo_utils::draw_rect(cr, scr_pos, size, cairo_utils::DARK_BLUE);
 
+        draw_flight_plan(cr, false);
+        draw_flight_plan(cr, true);
+    }
+
+    void NDDisplay::draw_flight_plan(cairo_t *cr, bool draw_labels)
+    {
         leg_proj_t *buf;
         size_t buf_size = nd_data->get_proj_legs(&buf, fo_side);
 
         geom::vect2_t map_ctr = scr_pos + size.scmul(0.5);
         geom::vect2_t s_fac = size.scmul(ND_RNG_FULL_RES_COEFF).scdiv(rng);
 
-
         for(size_t i = 0; i < buf_size; i++)
         {
             if(buf[i].is_finite && !buf[i].is_arc)
             {
-                geom::vect2_t start = buf[i].start;
-                geom::vect2_t end = buf[i].end;
+                if(!draw_labels)
+                {
+                    geom::vect2_t start = buf[i].start;
+                    geom::vect2_t end = buf[i].end;
 
-                geom::vect2_t s_trans = start * s_fac + map_ctr;
-                geom::vect2_t e_trans = end * s_fac + map_ctr;
-                s_trans.y = size.y - s_trans.y;
-                e_trans.y = size.y - e_trans.y;
-                cairo_utils::draw_line(cr, s_trans, e_trans, 
-                    cairo_utils::MAGENTA, ND_FPL_LINE_THICK);
+                    geom::vect2_t s_trans = start * s_fac + map_ctr;
+                    geom::vect2_t e_trans = end * s_fac + map_ctr;
+                    s_trans.y = size.y - s_trans.y;
+                    e_trans.y = size.y - e_trans.y;
+                    cairo_utils::draw_line(cr, s_trans, e_trans, 
+                        cairo_utils::MAGENTA, ND_FPL_LINE_THICK);
+                }
+                else
+                {
+                    geom::vect2_t end_wpt = buf[i].end_wpt;
 
-                geom::vect2_t text_pos = e_trans + size * FIX_NAME_OFFS;
-                cairo_utils::draw_left_text(cr, font_face, buf[i].end_nm, text_pos, 
-                    cairo_utils::WHITE, ND_WPT_FONT_SZ);
+                    geom::vect2_t ew_trans = end_wpt * s_fac + map_ctr;
+                    ew_trans.y = size.y - ew_trans.y;
+                    geom::vect2_t text_pos = ew_trans + size * FIX_NAME_OFFS;
+                    cairo_utils::draw_left_text(cr, font_face, buf[i].end_nm, text_pos, 
+                        cairo_utils::WHITE, ND_WPT_FONT_SZ);
 
-                cairo_utils::draw_image(cr, tex_mngr->data[WPT_INACT_NAME], e_trans, true);
+                    cairo_utils::draw_image(cr, tex_mngr->data[WPT_INACT_NAME], ew_trans, 
+                        true);
+                }
             }
         }
     }

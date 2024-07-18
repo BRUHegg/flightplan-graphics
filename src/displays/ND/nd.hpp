@@ -97,8 +97,6 @@ namespace StratosphereAvionics
         bool fo_side;
 
 
-        void draw_magenta_line(cairo_t *cr);
-
-        void draw_wpt_labels(cairo_t *cr);
+        void draw_flight_plan(cairo_t *cr, bool draw_labels);
     };
 } // namespace StratosphereAvionics
