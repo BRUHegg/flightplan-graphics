@@ -98,6 +98,8 @@ namespace StratosphereAvionics
         bool m_has_dep_rwy, m_has_arr_rwy;
 
 
+        bool in_view(geom::vect2_t start, geom::vect2_t , bool fo_side);
+
         void update_ctr(geo::point *ctr, bool fo_side);
 
         void project_legs(bool fo_side);

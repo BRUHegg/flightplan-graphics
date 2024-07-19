@@ -812,6 +812,7 @@ namespace test
             leg_t dir_leg{};
             dir_leg.leg_type = "TF";
             dir_leg.main_fix = wpt;
+            dir_leg.has_main_fix = true;
 
             add_direct_leg(dir_leg, next.ptr);
         }
@@ -1203,6 +1204,7 @@ namespace test
         leg_t out{};
         out.leg_type = "TF";
         out.main_fix = wpt;
+        out.has_main_fix = true;
 
         return out;
     }
