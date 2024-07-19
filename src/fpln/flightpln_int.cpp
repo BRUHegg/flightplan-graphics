@@ -108,6 +108,9 @@ namespace test
         proc_db.resize(N_PROC_DB_SZ);
 
         fpl_id_calc = 0;
+
+        has_dep_rnw_data = false;
+        has_arr_rnw_data = false;
     }
 
     libnav::DbErr FplnInt::load_from_fms(std::string& file_nm, bool set_arpts)
@@ -294,6 +297,7 @@ namespace test
             if(arrival != nullptr)
             {
                 arr_rwy = "";
+                has_arr_rnw_data = false;
                 arr_rnw.clear();
                 proc_db[N_ARR_DB_OFFSET+PROC_TYPE_STAR].clear();
                 proc_db[N_ARR_DB_OFFSET+PROC_TYPE_APPCH].clear();
@@ -325,6 +329,7 @@ namespace test
         if(err != libnav::DbErr::ERR_NONE)
         {
             arr_rwy = "";
+            has_arr_rnw_data = false;
 
             if(arrival != nullptr)
             {
@@ -393,8 +398,10 @@ namespace test
             {
                 int data_found = arpt_db->get_rnw_data(departure->icao_code, 
                     rwy, &dep_rnw_data);
+                has_dep_rnw_data = data_found;
                 if(!data_found)
                 {
+                    has_dep_rnw_data = false;
                     dep_rnw_data = {};
                 }
 
@@ -434,10 +441,16 @@ namespace test
         return "";
     }
 
-    libnav::runway_entry_t FplnInt::get_dep_rwy_data()
+    bool FplnInt::get_dep_rwy_data(libnav::runway_entry_t *out)
     {
         std::lock_guard<std::mutex> lock(fpl_mtx);
-        return dep_rnw_data;
+        if(has_dep_rnw_data)
+        {
+            *out = dep_rnw_data;
+            return true;
+        }
+            
+        return false;
     }
 
     bool FplnInt::set_arr_rwy(std::string& rwy)
@@ -450,8 +463,10 @@ namespace test
             {
                 int data_found = arpt_db->get_rnw_data(arrival->icao_code, 
                     rwy, &arr_rnw_data);
+                has_arr_rnw_data = true;
                 if(!data_found)
                 {
+                    has_arr_rnw_data = false;
                     arr_rnw_data = {};
                 }
 
@@ -489,10 +504,16 @@ namespace test
         return arr_rwy;
     }
 
-    libnav::runway_entry_t FplnInt::get_arr_rwy_data()
+    bool FplnInt::get_arr_rwy_data(libnav::runway_entry_t *out)
     {
         std::lock_guard<std::mutex> lock(fpl_mtx);
-        return arr_rnw_data;
+        if(has_arr_rnw_data)
+        {
+            *out = arr_rnw_data;
+            return true;
+        }
+            
+        return false;
     }
 
     std::vector<std::string> FplnInt::get_arpt_proc(ProcType tp, bool is_arr,
@@ -1294,6 +1315,7 @@ namespace test
                         if(reset_rwy)
                         {
                             arr_rwy = "";
+                            has_arr_rnw_data = false;
                             delete_ref(FPL_SEG_APPCH);
                             delete_ref(FPL_SEG_APPCH_TRANS);
                         }
@@ -1389,6 +1411,15 @@ namespace test
             if(added)
             {
                 arr_rwy = tmp_rwy;
+                int data_found = arpt_db->get_rnw_data(arrival->icao_code, 
+                    arr_rwy, &arr_rnw_data);
+                has_arr_rnw_data = true;
+                if(!data_found)
+                {
+                    has_arr_rnw_data = false;
+                    arr_rnw_data = {};
+                }
+
                 set_sid_star(curr_star, true, false);
                 set_proc_trans(PROC_TYPE_STAR, curr_star_trans, true);
                 set_proc_trans(PROC_TYPE_APPCH, curr_tr, true);

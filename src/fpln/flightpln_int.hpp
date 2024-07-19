@@ -133,13 +133,13 @@ namespace test
 
         std::string get_dep_rwy();
 
-        libnav::runway_entry_t get_dep_rwy_data();
+        bool get_dep_rwy_data(libnav::runway_entry_t *out);
 
         bool set_arr_rwy(std::string& rwy);
 
         std::string get_arr_rwy();
 
-        libnav::runway_entry_t get_arr_rwy_data();
+        bool get_arr_rwy_data(libnav::runway_entry_t *out);
 
         // Airport procedure functions:
 
@@ -185,6 +185,7 @@ namespace test
         std::shared_ptr<libnav::NavaidDB> navaid_db;
 
         libnav::arinc_rwy_db_t dep_rnw, arr_rnw;
+        bool has_dep_rnw_data, has_arr_rnw_data;
         libnav::runway_entry_t dep_rnw_data, arr_rnw_data;
 
         double fpl_id_calc;

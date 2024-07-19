@@ -247,18 +247,26 @@ namespace StratosphereAvionics
 
         if(m_has_dep_rwy)
         {
-            libnav::runway_entry_t rnw_data = m_fpl_ptr->get_dep_rwy_data();
+            libnav::runway_entry_t rnw_data;
+            bool has_data = m_fpl_ptr->get_dep_rwy_data(&rnw_data);
 
-            dst[DEP_RWY_PROJ_IDX].start = project_point(rnw_data.start, map_ctr);
-            dst[DEP_RWY_PROJ_IDX].end = project_point(rnw_data.end, map_ctr);
+            if(has_data)
+            {
+                dst[DEP_RWY_PROJ_IDX].start = project_point(rnw_data.start, map_ctr);
+                dst[DEP_RWY_PROJ_IDX].end = project_point(rnw_data.end, map_ctr);
+            }
         }
 
         if(m_has_arr_rwy)
         {
-            libnav::runway_entry_t rnw_data = m_fpl_ptr->get_arr_rwy_data();
+            libnav::runway_entry_t rnw_data;
+            bool has_data = m_fpl_ptr->get_arr_rwy_data(&rnw_data);
 
-            dst[ARR_RWY_PROJ_IDX].start = project_point(rnw_data.start, map_ctr);
-            dst[ARR_RWY_PROJ_IDX].end = project_point(rnw_data.end, map_ctr);
+            if(has_data)
+            {
+                dst[ARR_RWY_PROJ_IDX].start = project_point(rnw_data.start, map_ctr);
+                dst[ARR_RWY_PROJ_IDX].end = project_point(rnw_data.end, map_ctr);
+            }
         }
     }
 
