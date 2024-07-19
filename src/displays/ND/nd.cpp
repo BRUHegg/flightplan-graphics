@@ -166,6 +166,7 @@ namespace StratosphereAvionics
 
             dst[i].is_arc = false;
             dst[i].is_finite = true;
+            dst[i].is_rwy = m_leg_data[i].leg_data.is_rwy;
             dst[i].turn_rad_nm = m_leg_data[i].leg_data.turn_rad_nm;
             dst[i].end_nm = m_leg_data[i].end_name;
 
@@ -244,8 +245,9 @@ namespace StratosphereAvionics
                     cairo_utils::draw_left_text(cr, font_face, buf[i].end_nm, text_pos, 
                         cairo_utils::WHITE, ND_WPT_FONT_SZ);
 
-                    cairo_utils::draw_image(cr, tex_mngr->data[WPT_INACT_NAME], ew_trans, 
-                        true);
+                    if(!buf[i].is_rwy)
+                        cairo_utils::draw_image(cr, tex_mngr->data[WPT_INACT_NAME], ew_trans, 
+                            true);
                 }
             }
         }

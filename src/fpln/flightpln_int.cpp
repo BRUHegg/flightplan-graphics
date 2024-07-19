@@ -409,6 +409,7 @@ namespace test
                 ins_leg.leg_type = "IF";
                 ins_leg.main_fix.id = rwy;
                 ins_leg.main_fix.data.pos = rwy_data.pos;
+                ins_leg.main_fix.data.type = libnav::NavaidType::RWY;
 
                 std::vector<leg_t> legs = {};
 
@@ -1595,6 +1596,16 @@ namespace test
     {
         leg_t curr_arinc_leg = leg->data.leg;
 
+        leg->data.misc_data.is_rwy = false;
+        leg->data.misc_data.is_arc = false;
+        leg->data.misc_data.is_finite = false;
+        leg->data.misc_data.turn_rad_nm = -1;
+
+        if(leg->data.leg.main_fix.data.type == libnav::NavaidType::RWY)
+        {
+            leg->data.misc_data.is_rwy = true;
+        }
+
         if(leg->prev != &(leg_list.head) && !leg->prev->data.is_discon)
         {
             leg->data.misc_data.start = get_leg_start(leg->prev->data.misc_data, 
@@ -1696,12 +1707,6 @@ namespace test
             leg->data.misc_data.is_finite = true;
             leg->data.misc_data.end = curr_end;
             leg->data.misc_data.turn_rad_nm = turn_rad_nm;
-        }
-        else
-        {
-            leg->data.misc_data.is_arc = false;
-            leg->data.misc_data.is_finite = false;
-            leg->data.misc_data.turn_rad_nm = -1;
         }
 
         if(leg->data.misc_data.true_trk_deg > 360)
