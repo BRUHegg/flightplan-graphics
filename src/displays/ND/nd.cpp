@@ -156,7 +156,14 @@ namespace StratosphereAvionics
             if((y1 < rng && y2 >= rng) || (y1 >= rng && y2 < rng) || 
                 (y1 > -rng && y2 <= -rng) || (y2 > -rng && y1 <= -rng) ||
                 (abs(y1) <= rng && abs(y2) <= rng))
-                return true;
+            {
+                y1 = start.y;
+                y2 = end.y;
+                if((y1 < rng && y2 >= rng) || (y1 >= rng && y2 < rng) || 
+                    (y1 > -rng && y2 <= -rng) || (y2 > -rng && y1 <= -rng) ||
+                    (abs(y1) <= rng && abs(y2) <= rng))
+                    return true;
+            }
         }
         else
         {
