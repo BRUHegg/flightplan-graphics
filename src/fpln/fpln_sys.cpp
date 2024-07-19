@@ -51,8 +51,8 @@ namespace test
         n_act_seg_list_sz = 0;
         n_act_leg_list_sz = 0;
 
-        cap_ctr_idx = 0;
-        fo_ctr_idx = 0;
+        cap_ctr_idx = 1;
+        fo_ctr_idx = 1;
 
         fpl_id_last = 0;
     }
@@ -95,12 +95,12 @@ namespace test
 
     bool FPLSys::get_ctr(geo::point *out, bool fo_side)
     {
-        size_t curr_idx = cap_ctr_idx+1;
+        size_t curr_idx = cap_ctr_idx;
 
         if (fo_side)
             curr_idx = fo_ctr_idx;
 
-        if (curr_idx < n_act_leg_list_sz)
+        if (curr_idx+1 < n_act_leg_list_sz)
         {
             bool has_pos = leg_list[curr_idx].data.leg.has_main_fix;
             if (has_pos)
@@ -130,17 +130,41 @@ namespace test
 
         if (bwd)
         {
-            if (*curr_idx)
+            if ((*curr_idx)-1)
                 *curr_idx = *curr_idx - 1;
             else
                 *curr_idx = n_act_leg_list_sz-1;
+            size_t curr_v = *curr_idx;
+
+            while(leg_list[*curr_idx].data.is_discon || 
+                !leg_list[*curr_idx].data.leg.has_main_fix)
+            {
+                if(*curr_idx)
+                    *curr_idx = *curr_idx - 1;
+                else
+                    *curr_idx = n_act_leg_list_sz-1;
+                if(*curr_idx == curr_v)
+                    break;
+            }
         }
         else
         {
             if (*curr_idx < n_act_leg_list_sz-1)
                 *curr_idx = *curr_idx + 1;
             else
-                *curr_idx = 0;
+                *curr_idx = 1;
+            size_t curr_v = *curr_idx;
+
+            while(leg_list[*curr_idx].data.is_discon || 
+                !leg_list[*curr_idx].data.leg.has_main_fix)
+            {
+                if (*curr_idx < n_act_leg_list_sz-1)
+                    *curr_idx = *curr_idx + 1;
+                else
+                    *curr_idx = 1;
+                if(*curr_idx == curr_v)
+                    break;
+            }
         }
     }
 
