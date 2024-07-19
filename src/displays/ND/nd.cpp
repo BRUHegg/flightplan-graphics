@@ -143,7 +143,7 @@ namespace StratosphereAvionics
     bool NDData::in_view(geom::vect2_t start, geom::vect2_t end, bool fo_side)
     {
         double a = start.x - end.x;
-        double rng = get_range(fo_side);
+        double rng = get_range(fo_side)/2;
 
         if(a != 0)
         {
@@ -153,7 +153,9 @@ namespace StratosphereAvionics
             double y1 = k * -rng + c;
             double y2 = k * rng + c;
 
-            if(abs(y1) <= rng || abs(y2) <= rng)
+            if((y1 < rng && y2 >= rng) || (y1 >= rng && y2 < rng) || 
+                (y1 > -rng && y2 <= -rng) || (y2 > -rng && y1 <= -rng) ||
+                (abs(y1) <= rng && abs(y2) <= rng))
                 return true;
         }
         else
@@ -209,8 +211,8 @@ namespace StratosphereAvionics
             geom::vect2_t end_proj = project_point(m_leg_data[i].leg_data.end, 
                 map_ctr);
 
-            //if(!in_view(start_proj, end_proj, fo_side))
-            //    continue;
+            if(!in_view(start_proj, end_proj, fo_side))
+                continue;
 
             dst[*sz_ptr].start = start_proj;
             dst[*sz_ptr].end = end_proj;
