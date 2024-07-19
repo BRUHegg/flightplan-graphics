@@ -17,10 +17,18 @@
 namespace StratosphereAvionics
 {
     constexpr size_t N_LEG_PROJ_CACHE_SZ = 200;
+    constexpr size_t N_PROJ_CACHE_SZ = 202;
+    constexpr size_t DEP_RWY_PROJ_IDX = N_PROJ_CACHE_SZ-2;
+    constexpr size_t ARR_RWY_PROJ_IDX = N_PROJ_CACHE_SZ-1;
     constexpr double N_MAX_DIST_NM = 600;
     constexpr double ND_DEFAULT_RNG_NM = 10;
     // Percentage of resolution that translates into full range:
-    constexpr double ND_RNG_FULL_RES_COEFF = 0.4;  
+    constexpr double ND_RNG_FULL_RES_COEFF = 0.4;
+    constexpr double DEFAULT_RWY_WIDTH_NM = 0.08;
+    // Percentage of horisontal resolution that translates into thikness of runway 
+    // side line
+    constexpr double RWY_SIDE_THICK = 0.0025; 
+
 
     constexpr double ND_WPT_FONT_SZ = 18;
     constexpr double ND_FPL_LINE_THICK = 4;
@@ -41,12 +49,21 @@ namespace StratosphereAvionics
     };
 
 
+    geom::vect2_t get_projection(double brng_rad, double dist_nm);
+
+    geom::vect2_t project_point(geo::point tgt, geo::point p_ctr);
+
+
     class NDData
     {
     public:
         NDData(std::shared_ptr<test::FPLSys> fpl_sys);
 
         size_t get_proj_legs(leg_proj_t **out, bool fo_side);
+
+        bool has_dep_rwy();
+
+        bool has_arr_rwy();
 
         void switch_range(bool down, bool fo_side);
 
@@ -76,10 +93,14 @@ namespace StratosphereAvionics
 
         double m_fpl_id_last;
 
+        bool m_has_dep_rwy, m_has_arr_rwy;
+
 
         void update_ctr(geo::point *ctr, bool fo_side);
 
         void project_legs(bool fo_side);
+
+        void project_rwys(bool fo_side);
 
         void fetch_legs();
     };
@@ -106,6 +127,13 @@ namespace StratosphereAvionics
         bool fo_side;
 
 
+        geom::vect2_t get_screen_coords(geom::vect2_t src, geom::vect2_t map_ctr, 
+            geom::vect2_t sc);
+
         void draw_flight_plan(cairo_t *cr, bool draw_labels);
+
+        void draw_runway(cairo_t *cr, leg_proj_t rnw_proj);
+
+        void draw_runways(cairo_t *cr);
     };
 } // namespace StratosphereAvionics
