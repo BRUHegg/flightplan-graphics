@@ -462,7 +462,7 @@ namespace test
                     arrival->icao_code, "", nullptr}};
                 leg_t rwy_leg{};
                 rwy_leg.leg_type = "TF";
-                rwy_leg.main_fix = rwy_wpt;
+                rwy_leg.set_main_fix(rwy_wpt);
 
                 libnav::arinc_leg_seq_t legs = {};
 
@@ -811,8 +811,7 @@ namespace test
         {
             leg_t dir_leg{};
             dir_leg.leg_type = "TF";
-            dir_leg.main_fix = wpt;
-            dir_leg.has_main_fix = true;
+            dir_leg.set_main_fix(wpt);
 
             add_direct_leg(dir_leg, next.ptr);
         }
@@ -1203,8 +1202,7 @@ namespace test
         libnav::waypoint_t wpt = {uid_split[0], cand[0]};
         leg_t out{};
         out.leg_type = "TF";
-        out.main_fix = wpt;
-        out.has_main_fix = true;
+        out.set_main_fix(wpt);
 
         return out;
     }
@@ -1659,8 +1657,7 @@ namespace test
             leg->data.misc_data.end = end_pt;
             leg->data.misc_data.turn_rad_nm = TURN_RADIUS_NM;
 
-            leg->data.leg.main_fix = end_wpt;
-            leg->data.leg.has_main_fix = true;
+            leg->data.leg.set_main_fix(end_wpt);
             leg->data.leg.outbd_dist_time = curr_arinc_leg.alt1_ft / float(CLB_RATE_FT_PER_NM);
             leg->data.leg.outbd_dist_as_time = false;
         }
