@@ -201,7 +201,7 @@ namespace StratosphereAvionics
                 double dist_wpt = map_ctr.get_gc_dist_nm(m_leg_data[i].end_wpt);
                 double brng_wpt = map_ctr.get_gc_bearing_rad(m_leg_data[i].end_wpt);
 
-                dst[i].end_wpt = {dist_wpt * sin(brng_wpt), dist_wpt * cos(brng_wpt)};
+                dst[*sz_ptr].end_wpt = {dist_wpt * sin(brng_wpt), dist_wpt * cos(brng_wpt)};
             }
             
             geom::vect2_t start_proj = project_point(m_leg_data[i].leg_data.start, 
