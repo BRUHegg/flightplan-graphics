@@ -24,14 +24,16 @@ namespace StratosphereAvionics
     constexpr double ND_DEFAULT_RNG_NM = 10;
     // Percentage of resolution that translates into full range:
     constexpr double ND_RNG_FULL_RES_COEFF = 0.4;
-    constexpr double DEFAULT_RWY_WIDTH_NM = 0.08;
+    // Percentage of horisontal resolution that translates into runway width
+    constexpr double DEFAULT_RWY_WIDTH = 0.015;
     // Percentage of horisontal resolution that translates into thikness of runway 
     // side line
     constexpr double RWY_SIDE_THICK = 0.0025; 
 
 
     constexpr double ND_WPT_FONT_SZ = 18;
-    constexpr double ND_FPL_LINE_THICK = 4;
+    // Percentage of horisontal resolution that translates into magenta line width
+    constexpr double ND_FPL_LINE_THICK = 0.003;
     constexpr geom::vect2_t FIX_NAME_OFFS = {0.03, 0.05};
 
     const std::string WPT_INACT_NAME = "wpt_inact";

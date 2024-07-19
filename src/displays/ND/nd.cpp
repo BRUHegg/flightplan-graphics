@@ -310,7 +310,7 @@ namespace StratosphereAvionics
                     geom::vect2_t e_trans = get_screen_coords(end, map_ctr, s_fac);
 
                     cairo_utils::draw_line(cr, s_trans, e_trans, 
-                        cairo_utils::MAGENTA, ND_FPL_LINE_THICK);
+                        cairo_utils::MAGENTA, ND_FPL_LINE_THICK * size.x);
                 }
                 else
                 {
@@ -336,32 +336,30 @@ namespace StratosphereAvionics
         geom::vect2_t map_ctr = scr_pos + size.scmul(0.5);
         geom::vect2_t s_fac = size.scmul(ND_RNG_FULL_RES_COEFF).scdiv(curr_rng);
         
+        geom::vect2_t start_trans = get_screen_coords(rnw_proj.start, map_ctr, s_fac);
+        geom::vect2_t end_trans = get_screen_coords(rnw_proj.end, map_ctr, s_fac);
+
         geom::vect2_t r_proj_nml_vec = {
-            rnw_proj.end.y - rnw_proj.start.y,
-            rnw_proj.start.x - rnw_proj.end.x
+            end_trans.y - start_trans.y,
+            start_trans.x - end_trans.x
             };
+        r_proj_nml_vec = r_proj_nml_vec.get_unit();
         
-        double half_width = DEFAULT_RWY_WIDTH_NM / 2;
-        geom::vect2_t l_side_start = rnw_proj.start + r_proj_nml_vec.scmul(
+        double half_width = size.x * DEFAULT_RWY_WIDTH / 2;
+        geom::vect2_t l_side_start = start_trans + r_proj_nml_vec.scmul(
             half_width);
-        geom::vect2_t l_side_end = rnw_proj.end + r_proj_nml_vec.scmul(
+        geom::vect2_t l_side_end = end_trans + r_proj_nml_vec.scmul(
             half_width);
 
-        geom::vect2_t r_side_start = rnw_proj.start + r_proj_nml_vec.scmul(
+        geom::vect2_t r_side_start = start_trans + r_proj_nml_vec.scmul(
             half_width * -1);
-        geom::vect2_t r_side_end = rnw_proj.end + r_proj_nml_vec.scmul(
+        geom::vect2_t r_side_end = end_trans + r_proj_nml_vec.scmul(
             half_width * -1);
 
-        geom::vect2_t l_side_start_trans = get_screen_coords(l_side_start, map_ctr, s_fac);
-        geom::vect2_t l_side_end_trans = get_screen_coords(l_side_end, map_ctr, s_fac);
-
-        geom::vect2_t r_side_start_trans = get_screen_coords(r_side_start, map_ctr, s_fac);
-        geom::vect2_t r_side_end_trans = get_screen_coords(r_side_end, map_ctr, s_fac);
-
-        cairo_utils::draw_line(cr, l_side_start_trans, l_side_end_trans, 
+        cairo_utils::draw_line(cr, l_side_start, l_side_end, 
             cairo_utils::WHITE, RWY_SIDE_THICK * size.x);
 
-        cairo_utils::draw_line(cr, r_side_start_trans, r_side_end_trans, 
+        cairo_utils::draw_line(cr, r_side_start, r_side_end, 
             cairo_utils::WHITE, RWY_SIDE_THICK * size.x);
     }
 

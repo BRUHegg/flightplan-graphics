@@ -16,6 +16,14 @@ namespace geom
             return sqrt(x * x + y * y);
         }
 
+        vect2_t get_unit()
+        {
+            double av = absval();
+            if(av == 0)
+                return {};
+            return {x / av, y / av};
+        }
+
         vect2_t scmul(double num)
         {
             return {x * num, y * num};
