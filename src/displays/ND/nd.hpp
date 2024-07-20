@@ -28,7 +28,9 @@ namespace StratosphereAvionics
     constexpr double DEFAULT_RWY_WIDTH = 0.015;
     // Percentage of horisontal resolution that translates into thikness of runway 
     // side line
-    constexpr double RWY_SIDE_THICK = 0.0025; 
+    constexpr double RWY_SIDE_THICK = 0.0025;
+    // Length of extended runway center line in nautical miles(one direction)
+    constexpr double N_RWY_EXT_CTR_LINE_NM = 16;
 
 
     constexpr double ND_WPT_FONT_SZ = 18;
@@ -139,6 +141,9 @@ namespace StratosphereAvionics
             geom::vect2_t sc);
 
         void draw_flight_plan(cairo_t *cr, bool draw_labels);
+
+        void draw_ext_rwy_ctr_line(cairo_t *cr, leg_proj_t rnw_proj, geom::vect2_t scale,
+            geom::vect2_t map_ctr);
 
         void draw_runway(cairo_t *cr, leg_proj_t rnw_proj);
 

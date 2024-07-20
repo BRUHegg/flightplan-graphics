@@ -373,6 +373,28 @@ namespace StratosphereAvionics
         }
     }
 
+    void NDDisplay::draw_ext_rwy_ctr_line(cairo_t *cr, leg_proj_t rnw_proj, 
+        geom::vect2_t scale, geom::vect2_t map_ctr)
+    {
+        geom::vect2_t rwy_vec = {rnw_proj.start.x - rnw_proj.end.x, 
+            rnw_proj.start.y - rnw_proj.end.y};
+        rwy_vec = rwy_vec.get_unit();
+
+        geom::vect2_t end1 = rnw_proj.start + rwy_vec.scmul(N_RWY_EXT_CTR_LINE_NM);
+        geom::vect2_t end2 = rnw_proj.end + rwy_vec.scmul(-N_RWY_EXT_CTR_LINE_NM);
+
+        geom::vect2_t rwy_start_trans = get_screen_coords(rnw_proj.start, map_ctr, scale);
+        geom::vect2_t rwy_end_trans = get_screen_coords(rnw_proj.end, map_ctr, scale);
+
+        geom::vect2_t end1_trans = get_screen_coords(end1, map_ctr, scale);
+        geom::vect2_t end2_trans = get_screen_coords(end2, map_ctr, scale);
+
+        cairo_utils::draw_line(cr, end1_trans, rwy_start_trans, 
+            cairo_utils::WHITE, RWY_SIDE_THICK * size.x);
+        cairo_utils::draw_line(cr, end2_trans, rwy_end_trans, 
+            cairo_utils::WHITE, RWY_SIDE_THICK * size.x);
+    }
+
     void NDDisplay::draw_runway(cairo_t *cr, leg_proj_t rnw_proj)
     {
         double curr_rng = rng / 2;
@@ -381,6 +403,8 @@ namespace StratosphereAvionics
         
         geom::vect2_t start_trans = get_screen_coords(rnw_proj.start, map_ctr, s_fac);
         geom::vect2_t end_trans = get_screen_coords(rnw_proj.end, map_ctr, s_fac);
+
+        draw_ext_rwy_ctr_line(cr, rnw_proj, s_fac, map_ctr);
 
         geom::vect2_t r_proj_nml_vec = {
             end_trans.y - start_trans.y,
