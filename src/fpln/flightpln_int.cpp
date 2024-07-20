@@ -1637,10 +1637,33 @@ namespace test
             leg->data.misc_data.is_rwy = true;
         }
 
-        if(leg->prev != &(leg_list.head) && !leg->prev->data.is_discon)
+        leg_list_node_t *prev_leg = leg->prev;
+        if(prev_leg != &(leg_list.head) && !prev_leg->data.is_discon)
         {
-            leg->data.misc_data.start = get_leg_start(leg->prev->data.misc_data, 
-                leg->prev->data.leg, curr_arinc_leg);
+            leg->data.misc_data.start = get_leg_start(prev_leg->data.misc_data, 
+                prev_leg->data.leg, curr_arinc_leg);
+
+            if(TURN_OFFS_LEGS.find(curr_arinc_leg.leg_type) == TURN_OFFS_LEGS.end() &&
+                LEGS_CALC.find(prev_leg->data.leg.leg_type) != LEGS_CALC.end())
+            {
+                double rnp_nm = get_rnp(leg);
+                double prev_turn_rad_nm = prev_leg->data.misc_data.turn_rad_nm;
+
+                double turn_offs_nm = sqrt((prev_turn_rad_nm + rnp_nm) * 
+                    (prev_turn_rad_nm + rnp_nm) - prev_turn_rad_nm * prev_turn_rad_nm);
+
+                geo::point prev_start = prev_leg->data.misc_data.start;
+                geo::point curr_start = leg->data.misc_data.start;
+                double dist_nm = prev_start.get_gc_dist_nm(curr_start);
+
+                if(turn_offs_nm < dist_nm)
+                {
+                    dist_nm -= turn_offs_nm;
+                    double brng_rad = prev_start.get_gc_bearing_rad(curr_start);
+                    prev_leg->data.misc_data.end = geo::get_pos_from_brng_dist(prev_start, 
+                        brng_rad, dist_nm);
+                }
+            }
         }
 
         if(curr_arinc_leg.leg_type == "IF")
@@ -1701,27 +1724,6 @@ namespace test
             double brng_rad = curr_start.get_gc_bearing_rad(curr_end);
             double dist_nm = curr_start.get_gc_dist_nm(curr_end);
             double turn_rad_nm = TURN_RADIUS_NM;
-
-            if(leg->next != &leg_list.tail)
-            {
-                std::string next_tp = leg->next->data.leg.leg_type;
-
-                if(TURN_OFFS_LEGS.find(next_tp) == TURN_OFFS_LEGS.end())
-                {
-                    double rnp_nm = get_rnp(leg);
-                    
-                    double turn_offs_nm = sqrt((turn_rad_nm + rnp_nm) * 
-                        (turn_rad_nm + rnp_nm) - turn_rad_nm * turn_rad_nm);
-
-                    if(turn_offs_nm < dist_nm)
-                    {
-                        dist_nm -= turn_offs_nm;
-                        curr_end = geo::get_pos_from_brng_dist(curr_start, 
-                            brng_rad, dist_nm);
-                    }
-                }
-            }
-            
 
             leg->data.misc_data.end = curr_end;
 

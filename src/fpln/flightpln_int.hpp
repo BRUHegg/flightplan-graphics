@@ -68,7 +68,8 @@ namespace test
     // The following set contains legs that allow to be offset by a turn(onto 
     /// the current leg)
     const std::set<std::string> TURN_OFFS_LEGS = {"DF", "CI", "CA", "CD", 
-        "CR", "VA", "VI", "VR"};  
+        "CR", "VA", "VI", "VR"};
+    const std::set<std::string> LEGS_CALC = {"DF", "TF", "CF", "VA", "CA"};
     //const std::map<std::string, std::set<std::string>> ILLEGAL_NEXT_LEG = {
     //    {"AF", {"DF", "IF", "PI"}},
     //    {"CA", {"AF", "HA", "HF", "HM", "PI", "RF", "TF"}},
