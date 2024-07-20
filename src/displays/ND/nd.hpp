@@ -31,6 +31,9 @@ namespace StratosphereAvionics
     constexpr double RWY_SIDE_THICK = 0.0025;
     // Length of extended runway center line in nautical miles(one direction)
     constexpr double N_RWY_EXT_CTR_LINE_NM = 16;
+    // For extended centerline dashes:
+    const double RWY_EXT_CTR_LINE_DASH[] = {9.0, 9.0};
+    constexpr int N_RWY_DASHES  = sizeof(RWY_EXT_CTR_LINE_DASH) / sizeof(RWY_EXT_CTR_LINE_DASH[0]);
 
 
     constexpr double ND_WPT_FONT_SZ = 18;

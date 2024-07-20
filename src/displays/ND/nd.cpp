@@ -389,10 +389,13 @@ namespace StratosphereAvionics
         geom::vect2_t end1_trans = get_screen_coords(end1, map_ctr, scale);
         geom::vect2_t end2_trans = get_screen_coords(end2, map_ctr, scale);
 
+        cairo_save(cr);
+        cairo_set_dash(cr, RWY_EXT_CTR_LINE_DASH, N_RWY_DASHES, 1);
         cairo_utils::draw_line(cr, end1_trans, rwy_start_trans, 
             cairo_utils::WHITE, RWY_SIDE_THICK * size.x);
         cairo_utils::draw_line(cr, end2_trans, rwy_end_trans, 
             cairo_utils::WHITE, RWY_SIDE_THICK * size.x);
+        cairo_restore(cr);
     }
 
     void NDDisplay::draw_runway(cairo_t *cr, leg_proj_t rnw_proj)
