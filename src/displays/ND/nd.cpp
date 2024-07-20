@@ -140,6 +140,13 @@ namespace StratosphereAvionics
         }
     }
 
+    bool bound_check(double x1, double x2, double rng)
+    {
+        return (x1 < rng && x2 >= rng) || (x1 >= rng && x2 < rng) || 
+                (x1 > -rng && x2 <= -rng) || (x2 > -rng && x1 <= -rng) ||
+                (abs(x1) <= rng && abs(x2) <= rng);
+    }
+
     bool NDData::in_view(geom::vect2_t start, geom::vect2_t end, bool fo_side)
     {
         double a = start.x - end.x;
@@ -153,16 +160,10 @@ namespace StratosphereAvionics
             double y1 = k * -rng + c;
             double y2 = k * rng + c;
 
-            if((y1 < rng && y2 >= rng) || (y1 >= rng && y2 < rng) || 
-                (y1 > -rng && y2 <= -rng) || (y2 > -rng && y1 <= -rng) ||
-                (abs(y1) <= rng && abs(y2) <= rng))
+            if(bound_check(y1, y2, rng) && bound_check(start.y, end.y, rng) &&
+                bound_check(start.x, end.x, rng))
             {
-                y1 = start.y;
-                y2 = end.y;
-                if((y1 < rng && y2 >= rng) || (y1 >= rng && y2 < rng) || 
-                    (y1 > -rng && y2 <= -rng) || (y2 > -rng && y1 <= -rng) ||
-                    (abs(y1) <= rng && abs(y2) <= rng))
-                    return true;
+                return true;
             }
         }
         else
