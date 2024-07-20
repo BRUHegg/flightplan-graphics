@@ -9,6 +9,7 @@
 */
 
 #include <fpln/fpln_sys.hpp>
+#include <libnav/str_utils.hpp>
 #include <common/cairo_utils.hpp>
 #include <geom.hpp>
 #include <memory>
@@ -47,6 +48,8 @@ namespace StratosphereAvionics
     const std::string WPT_ACT_NAME = "wpt_act";
 
     const std::vector<double> ND_RANGES_NM = {10, 20, 40, 80, 160, 320, 640};
+    constexpr double RNG_DEC_1_NM = 2.5;
+    constexpr double RNG_DEC_2_NM = 1.25;
 
 
     struct leg_proj_t
@@ -135,21 +138,24 @@ namespace StratosphereAvionics
 
         geom::vect2_t scr_pos;
         geom::vect2_t size;
-        double rng;
+        geom::vect2_t map_ctr, scale_factor;
+        double rng, curr_rng;
 
         bool fo_side;
 
 
-        geom::vect2_t get_screen_coords(geom::vect2_t src, geom::vect2_t map_ctr, 
-            geom::vect2_t sc);
+        void update_map_params();
+
+        geom::vect2_t get_screen_coords(geom::vect2_t src);
 
         void draw_flight_plan(cairo_t *cr, bool draw_labels);
 
-        void draw_ext_rwy_ctr_line(cairo_t *cr, leg_proj_t rnw_proj, geom::vect2_t scale,
-            geom::vect2_t map_ctr);
+        void draw_ext_rwy_ctr_line(cairo_t *cr, leg_proj_t rnw_proj);
 
         void draw_runway(cairo_t *cr, leg_proj_t rnw_proj);
 
         void draw_runways(cairo_t *cr);
+
+        void draw_range(cairo_t *cr);
     };
 } // namespace StratosphereAvionics
