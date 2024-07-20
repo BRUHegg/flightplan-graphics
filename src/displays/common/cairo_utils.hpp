@@ -173,19 +173,27 @@ namespace cairo_utils
     }
 
     inline void draw_image(cairo_t* cr, cairo_surface_t *surf, geom::vect2_t pos, 
-        bool centered)
+        geom::vect2_t scale, bool centered)
     {
+        if(scale.x == 0 || scale.y == 0)
+            return;
+
+        cairo_save(cr);
         geom::vect2_t offset = {0, 0};
 
         if(centered)
         {
-            offset.x = -cairo_image_surface_get_width(surf) / 2;
-            offset.y = -cairo_image_surface_get_height(surf) / 2;
+            offset.x = -cairo_image_surface_get_width(surf) * scale.x / 2;
+            offset.y = -cairo_image_surface_get_height(surf) * scale.y / 2;
         }
 
         pos = pos + offset;
 
-        cairo_set_source_surface(cr, surf, pos.x, pos.y);
+        cairo_set_source_surface(cr, surf, pos.x/scale.x, pos.y/scale.y);
+        
+        cairo_scale(cr, scale.x, scale.y);
+                        
         cairo_paint(cr);
+        cairo_restore(cr);
     }
 }

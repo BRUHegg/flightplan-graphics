@@ -140,7 +140,7 @@ namespace StratosphereAvionics
         }
     }
 
-    bool bound_check(double x1, double x2, double rng)
+    bool NDData::bound_check(double x1, double x2, double rng)
     {
         return (x1 < rng && x2 >= rng) || (x1 >= rng && x2 < rng) || 
                 (x1 > -rng && x2 <= -rng) || (x2 > -rng && x1 <= -rng) ||
@@ -363,8 +363,11 @@ namespace StratosphereAvionics
                         cairo_utils::WHITE, ND_WPT_FONT_SZ);
 
                     if(!buf[i].is_rwy)
-                        cairo_utils::draw_image(cr, tex_mngr->data[WPT_INACT_NAME], ew_trans, 
-                            true);
+                    {
+                        geom::vect2_t scale = size.scmul(1/WPT_SCALE_FACT);
+                        cairo_utils::draw_image(cr, tex_mngr->data[WPT_INACT_NAME], 
+                            ew_trans, scale, true);
+                    }
                 }
             }
         }

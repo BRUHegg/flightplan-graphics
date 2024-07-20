@@ -32,6 +32,8 @@ namespace StratosphereAvionics
 
 
     constexpr double ND_WPT_FONT_SZ = 18;
+    // Inverse of percentage of resolution that contributes to the scaling factor of waypoint image
+    constexpr double WPT_SCALE_FACT = 900;
     // Percentage of horisontal resolution that translates into magenta line width
     constexpr double ND_FPL_LINE_THICK = 0.003;
     constexpr geom::vect2_t FIX_NAME_OFFS = {0.03, 0.05};
@@ -97,6 +99,8 @@ namespace StratosphereAvionics
 
         bool m_has_dep_rwy, m_has_arr_rwy;
 
+
+        static bool bound_check(double x1, double x2, double rng);
 
         bool in_view(geom::vect2_t start, geom::vect2_t , bool fo_side);
 
