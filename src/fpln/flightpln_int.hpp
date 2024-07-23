@@ -65,11 +65,12 @@ namespace test
     const std::string DFMS_FILE_POSTFIX = ".fms";
 
     const std::set<std::string> NOT_FOLLOWED_BY_DF = {"AF", "CI", "PI", "RF", "VI"};
+    const std::set<std::string> AFTER_INTC = {"AF", "CF", "FA", "FC", "FD", "FM", "IF"};
     // The following set contains legs that allow to be offset by a turn(onto 
     /// the current leg)
     const std::set<std::string> TURN_OFFS_LEGS = {"DF", "CI", "CA", "CD", 
         "CR", "VA", "VI", "VR"};
-    const std::set<std::string> LEGS_CALC = {"DF", "TF", "CF", "VA", "CA"};
+    const std::set<std::string> LEGS_CALC = {"DF", "TF", "CF", "VA", "CA", "VI", "CI"};
     //const std::map<std::string, std::set<std::string>> ILLEGAL_NEXT_LEG = {
     //    {"AF", {"DF", "IF", "PI"}},
     //    {"CA", {"AF", "HA", "HF", "HM", "PI", "RF", "TF"}},
