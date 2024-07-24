@@ -82,7 +82,7 @@ namespace test
 
         if(rnw_data != nullptr)
         {
-            clb_nm += rnw_data->get_impl_length_m() * geo::M_TO_FT;
+            clb_nm += rnw_data->get_impl_length_m() * geo::M_TO_FT * geo::FT_TO_NM;
         }
 
         geo::point curr = geo::get_pos_from_brng_dist(prev, 
@@ -1606,7 +1606,11 @@ namespace test
                 double crs_rad = double(next.outbd_crs_deg) * geo::DEG_TO_RAD;
                 if(next.leg_type[0] == 'C')
                     crs_rad += next.get_mag_var_deg() * geo::DEG_TO_RAD;
-                double turn_rad = crs_rad - brng1;
+                if(brng1 < 0)
+                {
+                    brng1 += 2 * M_PI;
+                }
+                double turn_rad = abs(crs_rad - brng1);
                 if(turn_rad > M_PI)
                 {
                     turn_rad = 2 * M_PI - turn_rad;
@@ -1645,15 +1649,14 @@ namespace test
                 next.main_fix.data.pos);
             
             double brng_next_rad = outbd_brng_deg * geo::DEG_TO_RAD;
-            double next_brng_rad = double(next.outbd_crs_deg) * geo::DEG_TO_RAD;
 
-            bool left_turn = is_ang_greater(curr_brng_rad, next_brng_rad);
+            bool left_turn = is_ang_greater(curr_brng_rad, brng_next_rad);
             bool brng_gr = is_ang_greater(brng_to_main_fix, curr_brng_rad);
 
             bool is_bp = true;
             if((brng_gr && !left_turn) || (!brng_gr && left_turn))
             {
-                brng_next_rad = outbd_brng_deg * geo::DEG_TO_RAD + M_PI;
+                brng_next_rad += M_PI;
                 is_bp = false;
             }
 
@@ -1701,7 +1704,8 @@ namespace test
                     prev_leg->data.misc_data.end = leg->data.misc_data.start;
                     prev_leg->data.leg.main_fix.id = INTC_LEG_NM;
                     prev_leg->data.leg.main_fix.data.pos = leg->data.misc_data.start;
-                    prev_leg->data.misc_data.turn_rad_nm = TURN_RADIUS_NM;
+                    prev_leg->data.leg.outbd_dist_time = prev_leg->data.misc_data.start.get_gc_dist_nm(
+                        prev_leg->data.misc_data.end);
                 }
 
                 if(TURN_OFFS_LEGS.find(curr_arinc_leg.leg_type) == TURN_OFFS_LEGS.end() &&
@@ -1789,6 +1793,7 @@ namespace test
                 }
                 leg->data.misc_data.true_trk_deg = curr_brng;
                 leg->data.misc_data.is_arc = false;
+                leg->data.misc_data.turn_rad_nm = TURN_RADIUS_NM;
                 leg->data.misc_data.is_finite = true;
             }
         }

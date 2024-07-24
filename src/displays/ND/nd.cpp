@@ -202,8 +202,7 @@ namespace StratosphereAvionics
             if(i >= N_LEG_PROJ_CACHE_SZ)
                 break;
 
-            if(m_leg_data[i].leg_data.turn_rad_nm == -1 || 
-                !m_leg_data[i].leg_data.is_finite || m_leg_data[i].leg_data.is_arc)
+            if(!m_leg_data[i].leg_data.is_finite || m_leg_data[i].leg_data.is_arc)
                 continue;
 
             if(m_leg_data[i].leg_data.is_finite)
@@ -213,25 +212,28 @@ namespace StratosphereAvionics
 
                 dst[*sz_ptr].end_wpt = {dist_wpt * sin(brng_wpt), dist_wpt * cos(brng_wpt)};
             }
-            
-            geom::vect2_t start_proj = project_point(m_leg_data[i].leg_data.start, 
-                map_ctr);
-            geom::vect2_t end_proj = project_point(m_leg_data[i].leg_data.end, 
-                map_ctr);
 
-            if(!in_view(start_proj, end_proj, fo_side))
-                continue;
+            if(m_leg_data[i].leg_data.turn_rad_nm != -1)
+            {
+                geom::vect2_t start_proj = project_point(m_leg_data[i].leg_data.start, 
+                    map_ctr);
+                geom::vect2_t end_proj = project_point(m_leg_data[i].leg_data.end, 
+                    map_ctr);
 
-            dst[*sz_ptr].start = start_proj;
-            dst[*sz_ptr].end = end_proj;
+                if(!in_view(start_proj, end_proj, fo_side))
+                    continue;
 
-            dst[*sz_ptr].is_arc = false;
-            dst[*sz_ptr].is_finite = true;
-            dst[*sz_ptr].is_rwy = m_leg_data[i].leg_data.is_rwy;
-            dst[*sz_ptr].turn_rad_nm = m_leg_data[i].leg_data.turn_rad_nm;
-            dst[*sz_ptr].end_nm = m_leg_data[i].end_name;
+                dst[*sz_ptr].start = start_proj;
+                dst[*sz_ptr].end = end_proj;
 
-            *sz_ptr = *sz_ptr + 1;
+                dst[*sz_ptr].is_arc = false;
+                dst[*sz_ptr].is_finite = true;
+                dst[*sz_ptr].is_rwy = m_leg_data[i].leg_data.is_rwy;
+                dst[*sz_ptr].turn_rad_nm = m_leg_data[i].leg_data.turn_rad_nm;
+                dst[*sz_ptr].end_nm = m_leg_data[i].end_name;
+
+                *sz_ptr = *sz_ptr + 1;
+            }
         }
     }
 

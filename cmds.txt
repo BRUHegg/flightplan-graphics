@@ -1,12 +1,4 @@
-setdep EGHH
-setarr LFML
-setdeprwy 26
-setproc 0 EAST DEP PROC
-setproc 0 GWC DEP TRANS
-legset 5 L L BENBO
-addvia 6 UL612
-addto 6 RESMI
-legset 11 L L UTUVA
-legset 12 L L LERGA
-setproc 2 RNV31LZ ARR PROC
-setproc 1 LERG1D ARR PROC
+setdep KSFO
+setarr KPDX
+setdeprwy 01L
+setproc 0 OFFSH2 DEP PROC
