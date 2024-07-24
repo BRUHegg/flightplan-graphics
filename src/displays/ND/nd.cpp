@@ -215,7 +215,7 @@ namespace StratosphereAvionics
                 dst[*sz_ptr].end_nm = m_leg_data[i].end_name;
                 dst[*sz_ptr].is_finite = true;
                 dst[*sz_ptr].is_arc = m_leg_data[i].leg_data.is_arc;
-                
+                dst[*sz_ptr].has_path = false;
             }
 
             if(m_leg_data[i].leg_data.turn_rad_nm != -1)
@@ -230,6 +230,7 @@ namespace StratosphereAvionics
 
                 dst[*sz_ptr].start = start_proj;
                 dst[*sz_ptr].end = end_proj;
+                dst[*sz_ptr].has_path = true;
 
                 dst[*sz_ptr].is_rwy = m_leg_data[i].leg_data.is_rwy;
                 dst[*sz_ptr].turn_rad_nm = m_leg_data[i].leg_data.turn_rad_nm;
@@ -354,7 +355,7 @@ namespace StratosphereAvionics
         {
             if(buf[i].is_finite && !buf[i].is_arc)
             {
-                if(!draw_labels)
+                if(!draw_labels && buf[i].has_path)
                 {
                     geom::vect2_t start = buf[i].start;
                     geom::vect2_t end = buf[i].end;
