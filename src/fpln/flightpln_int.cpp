@@ -1709,9 +1709,12 @@ namespace test
                 if(!intc_bp && (prev_leg->data.leg.leg_type == "VI" || 
                     prev_leg->data.leg.leg_type == "CI"))
                 {
+                    libnav::waypoint_t intc_wpt = {};
+                    intc_wpt.id = INTC_LEG_NM;
+                    intc_wpt.data.pos = leg->data.misc_data.start;
+                    prev_leg->data.leg.set_main_fix(intc_wpt);
+                    
                     prev_leg->data.misc_data.end = leg->data.misc_data.start;
-                    prev_leg->data.leg.main_fix.id = INTC_LEG_NM;
-                    prev_leg->data.leg.main_fix.data.pos = leg->data.misc_data.start;
                     prev_leg->data.leg.outbd_dist_time = prev_leg->data.misc_data.start.get_gc_dist_nm(
                         prev_leg->data.misc_data.end);
                 }
