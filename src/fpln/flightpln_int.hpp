@@ -266,7 +266,7 @@ namespace test
 
         // Calculation functions:
 
-        geo::point get_leg_start(leg_seg_t curr_seg, leg_t curr_leg, leg_t next);
+        bool get_leg_start(leg_seg_t curr_seg, leg_t curr_leg, leg_t next, geo::point *out);
 
         void calculate_leg(leg_list_node_t *leg, double hdg_trk_diff);
     };

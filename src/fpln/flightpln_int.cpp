@@ -1520,11 +1520,13 @@ namespace test
         return false;
     }
 
-    geo::point FplnInt::get_leg_start(leg_seg_t curr_seg, leg_t curr_leg, leg_t next)
+    bool FplnInt::get_leg_start(leg_seg_t curr_seg, leg_t curr_leg, leg_t next, 
+        geo::point *out)
     {
         if(curr_leg.leg_type == "IF")
         {
-            return curr_leg.main_fix.data.pos;
+            *out = curr_leg.main_fix.data.pos;
+            return false;
         }
         if(TURN_OFFS_LEGS.find(next.leg_type) != TURN_OFFS_LEGS.end())
         {
@@ -1544,7 +1546,8 @@ namespace test
                 {
                     if(dist1 == 0)
                     {
-                        return curr_seg.end;
+                        *out = curr_seg.end;
+                        return false;
                     }
                     double theta = acos(TURN_RADIUS_NM / dist1);
                     double ang_main = p1.get_gc_bearing_rad(next_point);
@@ -1558,19 +1561,22 @@ namespace test
                     if(ang_doub / 2 != M_PI / 2)
                     {
                         double offs_nm = TURN_RADIUS_NM * tan(ang_doub / 2);
-                        return geo::get_pos_from_brng_dist(curr_seg.end, brng1 + M_PI, offs_nm);
+                        *out = geo::get_pos_from_brng_dist(curr_seg.end, brng1 + M_PI, offs_nm);
+                        return false;
                     }
                     else
                     {
-                        return geo::get_pos_from_brng_dist(p1, brng1 + M_PI/2, 
+                        *out = geo::get_pos_from_brng_dist(p1, brng1 + M_PI/2, 
                             TURN_RADIUS_NM);
+                        return false;
                     }
                 }
                 else
                 {
                     if(dist2 == 0)
                     {
-                        return curr_seg.end;
+                        *out = curr_seg.end;
+                        return false;
                     }
                     double theta = acos(TURN_RADIUS_NM / dist2);
                     double ang_main = p2.get_gc_bearing_rad(next_point);
@@ -1584,12 +1590,14 @@ namespace test
                     if(ang_doub / 2 != M_PI / 2)
                     {
                         double offs_nm = TURN_RADIUS_NM * tan(ang_doub / 2);
-                        return geo::get_pos_from_brng_dist(curr_seg.end, brng1 + M_PI, offs_nm);
+                        *out = geo::get_pos_from_brng_dist(curr_seg.end, brng1 + M_PI, offs_nm);
+                        return false;
                     }
                     else
                     {
-                        return geo::get_pos_from_brng_dist(p1, brng1 - M_PI/2, 
+                        *out = geo::get_pos_from_brng_dist(p1, brng1 - M_PI/2, 
                             TURN_RADIUS_NM);
+                        return false;
                     }
                 }
             }
@@ -1615,13 +1623,15 @@ namespace test
                     double offs_nm = TURN_RADIUS_NM * cos_theta / sin_theta;
                     assert(offs_nm >= 0);
 
-                    return geo::get_pos_from_brng_dist(curr_seg.end, brng1 + M_PI, offs_nm);
+                    *out = geo::get_pos_from_brng_dist(curr_seg.end, brng1 + M_PI, offs_nm);
+                    return false;
                 }
             }
         }
         else if(next.leg_type == "TF")
         {
-            return curr_leg.main_fix.data.pos;
+            *out = curr_leg.main_fix.data.pos;
+            return false;
         }
         else if(next.leg_type == "CF")
         {
@@ -1640,22 +1650,27 @@ namespace test
             bool left_turn = is_ang_greater(curr_brng_rad, next_brng_rad);
             bool brng_gr = is_ang_greater(brng_to_main_fix, curr_brng_rad);
 
+            bool is_bp = true;
             if((brng_gr && !left_turn) || (!brng_gr && left_turn))
             {
                 brng_next_rad = outbd_brng_deg * geo::DEG_TO_RAD + M_PI;
+                is_bp = false;
             }
 
             geo::point intc = geo::get_pos_from_intc(curr_seg.start, 
                 next.main_fix.data.pos, curr_brng_rad, brng_next_rad);
                 
-            return intc;
+            *out = intc;
+            return is_bp;
         }
         else if(next.leg_type[0] == 'F')
         {
-            return next.main_fix.data.pos;
+            *out = next.main_fix.data.pos;
+            return false;
         }
 
-        return curr_seg.end;
+        *out = curr_seg.end;
+        return false;
     }
 
     void FplnInt::calculate_leg(leg_list_node_t *leg, double hdg_trk_diff)
@@ -1673,10 +1688,11 @@ namespace test
         }
 
         leg_list_node_t *prev_leg = leg->prev;
+        bool is_bypassed = false;
         if(prev_leg != &(leg_list.head) && !prev_leg->data.is_discon)
         {
-            leg->data.misc_data.start = get_leg_start(prev_leg->data.misc_data, 
-                prev_leg->data.leg, curr_arinc_leg);
+            is_bypassed = get_leg_start(prev_leg->data.misc_data, 
+                prev_leg->data.leg, curr_arinc_leg, &(leg->data.misc_data.start));
             
             if(prev_leg->data.misc_data.turn_rad_nm != -1)
             {
@@ -1707,8 +1723,10 @@ namespace test
                     }
                 }
             }
-            
         }
+
+        if(is_bypassed)
+            return;
 
         if(curr_arinc_leg.leg_type == "IF")
         {
