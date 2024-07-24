@@ -44,6 +44,7 @@ namespace test
     constexpr double ASSUMED_RNP_ENRT_NM = 3;
     const std::string NONE_TRANS = "NONE";
     const std::string MISSED_APPR_SEG_NM = "MISSED APPRCH";
+    const std::string INTC_LEG_NM = "(INTC)";
     // X-Plane .fms format stuff
     constexpr char DFMS_COL_SEP = ' ';
     constexpr uint8_t N_DFMS_OUT_PREC = 6;

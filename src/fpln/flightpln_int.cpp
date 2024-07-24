@@ -1699,6 +1699,9 @@ namespace test
                 if((prev_leg->data.leg.leg_type == "VI" || prev_leg->data.leg.leg_type == "CI"))
                 {
                     prev_leg->data.misc_data.end = leg->data.misc_data.start;
+                    prev_leg->data.leg.main_fix.id = INTC_LEG_NM;
+                    prev_leg->data.leg.main_fix.data.pos = leg->data.misc_data.start;
+                    prev_leg->data.misc_data.turn_rad_nm = TURN_RADIUS_NM;
                 }
 
                 if(TURN_OFFS_LEGS.find(curr_arinc_leg.leg_type) == TURN_OFFS_LEGS.end() &&
@@ -1787,7 +1790,6 @@ namespace test
                 leg->data.misc_data.true_trk_deg = curr_brng;
                 leg->data.misc_data.is_arc = false;
                 leg->data.misc_data.is_finite = true;
-                leg->data.misc_data.turn_rad_nm = TURN_RADIUS_NM;
             }
         }
         else if(curr_arinc_leg.leg_type == "TF" || curr_arinc_leg.leg_type == "CF" || 
