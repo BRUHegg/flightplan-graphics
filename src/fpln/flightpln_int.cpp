@@ -1683,6 +1683,7 @@ namespace test
         leg->data.misc_data.is_rwy = false;
         leg->data.misc_data.is_arc = false;
         leg->data.misc_data.is_finite = false;
+        leg->data.misc_data.is_bypassed = false;
         leg->data.misc_data.turn_rad_nm = -1;
 
         if(leg->data.leg.main_fix.data.type == libnav::NavaidType::RWY)
@@ -1691,15 +1692,22 @@ namespace test
         }
 
         leg_list_node_t *prev_leg = leg->prev;
-        bool is_bypassed = false;
+        bool intc_bp = false;
+
+        if(prev_leg->data.misc_data.is_bypassed)
+        {
+            prev_leg = prev_leg->prev;
+            intc_bp = true;
+        }
         if(prev_leg != &(leg_list.head) && !prev_leg->data.is_discon)
         {
-            is_bypassed = get_leg_start(prev_leg->data.misc_data, 
+            leg->data.misc_data.is_bypassed = get_leg_start(prev_leg->data.misc_data, 
                 prev_leg->data.leg, curr_arinc_leg, &(leg->data.misc_data.start));
             
             if(prev_leg->data.misc_data.turn_rad_nm != -1)
             {
-                if((prev_leg->data.leg.leg_type == "VI" || prev_leg->data.leg.leg_type == "CI"))
+                if(!intc_bp && (prev_leg->data.leg.leg_type == "VI" || 
+                    prev_leg->data.leg.leg_type == "CI"))
                 {
                     prev_leg->data.misc_data.end = leg->data.misc_data.start;
                     prev_leg->data.leg.main_fix.id = INTC_LEG_NM;
@@ -1732,7 +1740,7 @@ namespace test
             }
         }
 
-        if(is_bypassed)
+        if(leg->data.misc_data.is_bypassed)
             return;
 
         if(curr_arinc_leg.leg_type == "IF")

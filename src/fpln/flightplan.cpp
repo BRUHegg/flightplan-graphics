@@ -51,6 +51,8 @@ namespace test
         seg_list.head.data.seg_type = FPL_SEG_NONE;
         seg_list.tail.data.seg_type = FPL_SEG_NONE;
         
+        leg_list.head.data.misc_data = {};
+        leg_list.tail.data.misc_data = {};
         leg_list.head.data.is_discon = false;
         leg_list.tail.data.is_discon = false;
         leg_list.head.data.seg = &seg_list.head;
