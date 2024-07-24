@@ -39,7 +39,7 @@ namespace test
     constexpr double DEFAULT_VS_FPM = 2000;
     constexpr double DEFAULT_GS_KTS = 250;
     constexpr double CLB_RATE_FT_PER_NM = 500;
-    constexpr double TURN_RADIUS_NM = 1.5; // Untill there is a VNAV
+    constexpr double TURN_RADIUS_NM = 1; // Untill there is a VNAV
     constexpr double ASSUMED_RNP_PROC_NM = 1;
     constexpr double ASSUMED_RNP_ENRT_NM = 3;
     const std::string NONE_TRANS = "NONE";
@@ -266,6 +266,8 @@ namespace test
         bool set_proc_trans(ProcType tp, std::string trans, bool is_arr=false);
 
         // Calculation functions:
+
+        double get_leg_mag_var_deg(leg_list_node_t *leg);
 
         bool get_leg_start(leg_seg_t curr_seg, leg_t curr_leg, leg_t next, geo::point *out);
 

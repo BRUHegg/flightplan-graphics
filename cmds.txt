@@ -1,4 +1,5 @@
 setdep KSFO
-setarr KPDX
+setarr KLAS
 setdeprwy 01L
 setproc 0 OFFSH2 DEP PROC
+plegs 2

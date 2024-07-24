@@ -1520,6 +1520,16 @@ namespace test
         return false;
     }
 
+    double FplnInt::get_leg_mag_var_deg(leg_list_node_t *leg)
+    {
+        double curr_var = leg->data.leg.get_mag_var_deg();
+        if(leg->next != &(leg_list.tail) && curr_var == 0)
+        {
+            return leg->next->data.leg.get_mag_var_deg();
+        }
+        return curr_var;
+    }
+
     bool FplnInt::get_leg_start(leg_seg_t curr_seg, leg_t curr_leg, leg_t next, 
         geo::point *out)
     {
@@ -1641,8 +1651,9 @@ namespace test
         {
             double outbd_brng_deg = double(next.outbd_crs_deg);
             
+            double mag_var = next.get_mag_var_deg();
             if(!next.outbd_crs_true)
-                outbd_brng_deg += next.get_mag_var_deg();
+                outbd_brng_deg += mag_var;
             
             double curr_brng_rad = curr_seg.true_trk_deg * geo::DEG_TO_RAD;
             double brng_to_main_fix = curr_seg.start.get_gc_bearing_rad(
@@ -1712,8 +1723,9 @@ namespace test
                     libnav::waypoint_t intc_wpt = {};
                     intc_wpt.id = INTC_LEG_NM;
                     intc_wpt.data.pos = leg->data.misc_data.start;
+                    intc_wpt.data.type = libnav::NavaidType::WAYPOINT;
                     prev_leg->data.leg.set_main_fix(intc_wpt);
-                    
+
                     prev_leg->data.misc_data.end = leg->data.misc_data.start;
                     prev_leg->data.leg.outbd_dist_time = prev_leg->data.misc_data.start.get_gc_dist_nm(
                         prev_leg->data.misc_data.end);
@@ -1770,7 +1782,7 @@ namespace test
                 rwy_ent = &arr_rnw_data;
             }
 
-            float mag_var_deg = curr_arinc_leg.get_mag_var_deg();
+            double mag_var_deg = get_leg_mag_var_deg(leg);
 
             if(curr_arinc_leg.leg_type == "VA")
             {
@@ -1800,7 +1812,10 @@ namespace test
             {
                 double curr_brng = double(curr_arinc_leg.outbd_crs_deg);
                 if(!curr_arinc_leg.outbd_crs_true)
-                    curr_brng += curr_arinc_leg.get_mag_var_deg();
+                {
+                    curr_brng += get_leg_mag_var_deg(leg);
+                }
+                
                 if(curr_arinc_leg.leg_type == "VI")
                 {
                     curr_brng += hdg_trk_diff;
