@@ -24,7 +24,7 @@ namespace StratosphereAvionics
     constexpr double N_MAX_DIST_NM = 600;
     constexpr double ND_DEFAULT_RNG_NM = 10;
     // Percentage of resolution that translates into full range:
-    constexpr double ND_RNG_FULL_RES_COEFF = 0.4;
+    constexpr double ND_RNG_FULL_RES_COEFF = 0.43;
     // Percentage of horisontal resolution that translates into runway width
     constexpr double DEFAULT_RWY_WIDTH = 0.015;
     // Percentage of horisontal resolution that translates into thikness of runway 
@@ -40,9 +40,12 @@ namespace StratosphereAvionics
     constexpr double ND_WPT_FONT_SZ = 18;
     // Inverse of percentage of resolution that contributes to the scaling factor of waypoint image
     constexpr double WPT_SCALE_FACT = 900;
+    // Percentage of horizontal resolution that translates into radius of pseudo waypoint label
+    constexpr double PSEUDO_WPT_RADIUS_RAT = 0.007;
+    constexpr double PSEUDO_WPT_THICK_RAT = 0.0025;
     // Percentage of horisontal resolution that translates into magenta line width
     constexpr double ND_FPL_LINE_THICK = 0.003;
-    constexpr geom::vect2_t FIX_NAME_OFFS = {0.03, 0.05};
+    constexpr geom::vect2_t FIX_NAME_OFFS = {0.02, 0.03};
 
     const std::string WPT_INACT_NAME = "wpt_inact";
     const std::string WPT_ACT_NAME = "wpt_act";
@@ -58,6 +61,9 @@ namespace StratosphereAvionics
         bool is_arc, is_finite, is_rwy, has_path;
         double turn_rad_nm;
         std::string end_nm;
+
+
+        std::string get_draw_nm();
     };
 
 

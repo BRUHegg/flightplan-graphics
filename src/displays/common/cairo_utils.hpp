@@ -141,6 +141,27 @@ namespace cairo_utils
         }
     }
 
+    inline void draw_arc(cairo_t *cr, geom::vect2_t pos, double radius, double angle1, 
+        double angle2, double line_width, geom::vect3_t color)
+    {
+        prepare_cairo_context(cr, color, line_width);
+
+        cairo_move_to(cr, pos.x+radius, pos.y);
+        cairo_arc(cr, pos.x, pos.y, radius, angle1, angle2);
+        cairo_stroke(cr);
+
+        if(line_width < 0)
+        {
+            cairo_fill(cr);
+        }
+    }
+
+    inline void draw_circle(cairo_t *cr, geom::vect2_t pos, double radius, 
+        double line_width, geom::vect3_t color)
+    {
+        draw_arc(cr, pos, radius, 0, 2 * M_PI, line_width, color);
+    }
+
     inline void draw_left_text(cairo_t* cr, cairo_font_face_t *font_face, 
         std::string txt, geom::vect2_t pos, geom::vect3_t color, double font_sz)
     {

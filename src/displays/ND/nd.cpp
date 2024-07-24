@@ -13,6 +13,25 @@
 
 namespace StratosphereAvionics
 {
+    // leg_proj_t definitions:
+
+    std::string leg_proj_t::get_draw_nm()
+    {
+        std::string name_draw;
+        for(size_t j = 0; j < end_nm.size(); j++)
+        {
+            char curr_char = end_nm[j];
+            if(curr_char != '(' && curr_char != ')')
+            {
+                name_draw.push_back(curr_char);
+            }
+        }
+
+        return name_draw;
+    }
+
+    // Other functions:
+
     geom::vect2_t get_projection(double brng_rad, double dist_nm)
     {
         return {dist_nm * sin(brng_rad), dist_nm * cos(brng_rad)};
@@ -366,21 +385,29 @@ namespace StratosphereAvionics
                     cairo_utils::draw_line(cr, s_trans, e_trans, 
                         cairo_utils::MAGENTA, ND_FPL_LINE_THICK * size.x);
                 }
-                else
+                else if(buf[i].end_nm.size() && draw_labels)
                 {
                     geom::vect2_t end_wpt = buf[i].end_wpt;
 
                     geom::vect2_t ew_trans = get_screen_coords(end_wpt);
 
                     geom::vect2_t text_pos = ew_trans + size * FIX_NAME_OFFS;
-                    cairo_utils::draw_left_text(cr, font_face, buf[i].end_nm, text_pos, 
+
+                    std::string name_draw = buf[i].get_draw_nm();
+                    cairo_utils::draw_left_text(cr, font_face, name_draw, text_pos, 
                         cairo_utils::WHITE, ND_WPT_FONT_SZ);
 
-                    if(!buf[i].is_rwy)
+                    if(!buf[i].is_rwy && buf[i].end_nm[0] != '(')
                     {
                         geom::vect2_t scale = size.scmul(1/WPT_SCALE_FACT);
                         cairo_utils::draw_image(cr, tex_mngr->data[WPT_INACT_NAME], 
                             ew_trans, scale, true);
+                    }
+                    else if(!buf[i].is_rwy)
+                    {
+                        cairo_utils::draw_circle(cr, ew_trans, 
+                            size.x * PSEUDO_WPT_RADIUS_RAT, size.x * PSEUDO_WPT_THICK_RAT, 
+                            cairo_utils::WHITE);
                     }
                 }
             }
