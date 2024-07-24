@@ -17,6 +17,29 @@
 
 namespace test
 {
+    bool is_ang_greater(double ang1_rad, double ang2_rad)
+    {
+        if(ang1_rad < 0)
+        {
+            ang1_rad += 2 * M_PI;
+        }
+        if(ang2_rad < 0)
+        {
+            ang2_rad += 2 * M_PI;
+        }
+
+        if(ang1_rad - ang2_rad > M_PI)
+        {
+            ang2_rad += 2 * M_PI;
+        }
+        else if(ang2_rad - ang1_rad > M_PI)
+        {
+            ang1_rad += 2 * M_PI;
+        }
+
+        return ang1_rad > ang2_rad;
+    }
+
     std::string get_appr_rwy(std::string& appr)
     {
         std::string rw;
@@ -1608,30 +1631,16 @@ namespace test
                 outbd_brng_deg += next.get_mag_var_deg();
             
             double curr_brng_rad = curr_seg.true_trk_deg * geo::DEG_TO_RAD;
-            double tmp_brng_rad = curr_brng_rad;
             double brng_to_main_fix = curr_seg.start.get_gc_bearing_rad(
                 next.main_fix.data.pos);
-            if(tmp_brng_rad < 0)
-            {
-                tmp_brng_rad += 2 * M_PI;
-            }
-            if(brng_to_main_fix < 0)
-            {
-                brng_to_main_fix += 2 * M_PI;
-            }
-
-            if(tmp_brng_rad - brng_to_main_fix > M_PI)
-            {
-                brng_to_main_fix += 2 * M_PI;
-            }
-            else if(brng_to_main_fix - tmp_brng_rad > M_PI)
-            {
-                tmp_brng_rad += 2 * M_PI;
-            }
-
+            
             double brng_next_rad = outbd_brng_deg * geo::DEG_TO_RAD;
+            double next_brng_rad = double(next.outbd_crs_deg) * geo::DEG_TO_RAD;
 
-            if(tmp_brng_rad < brng_to_main_fix)
+            bool left_turn = is_ang_greater(curr_brng_rad, next_brng_rad);
+            bool brng_gr = is_ang_greater(brng_to_main_fix, curr_brng_rad);
+
+            if((brng_gr && !left_turn) || (!brng_gr && left_turn))
             {
                 brng_next_rad = outbd_brng_deg * geo::DEG_TO_RAD + M_PI;
             }

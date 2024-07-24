@@ -31,6 +31,7 @@ namespace test
         PROC_TYPE_STAR = 1,
         PROC_TYPE_APPCH = 2
     };
+    
 
     constexpr size_t N_PROC_DB_SZ = 5;
     constexpr size_t N_ARR_DB_OFFSET = 2;
@@ -87,6 +88,8 @@ namespace test
         std::string star, star_trans, arr_rwy, arr_icao;
     };
 
+
+    bool is_ang_greater(double ang1_rad, double ang2_rad);  // true if ang1 > ang2
 
     std::string get_appr_rwy(std::string& appr);
 
