@@ -202,7 +202,8 @@ namespace StratosphereAvionics
             if(i >= N_LEG_PROJ_CACHE_SZ)
                 break;
 
-            if(!m_leg_data[i].leg_data.is_finite || m_leg_data[i].leg_data.is_arc)
+            if((!m_leg_data[i].leg_data.is_finite && !m_leg_data[i].leg_data.is_bypassed) || 
+                m_leg_data[i].leg_data.is_arc)
                 continue;
 
             if(m_leg_data[i].leg_data.is_finite)
@@ -211,6 +212,10 @@ namespace StratosphereAvionics
                 double brng_wpt = map_ctr.get_gc_bearing_rad(m_leg_data[i].end_wpt);
 
                 dst[*sz_ptr].end_wpt = {dist_wpt * sin(brng_wpt), dist_wpt * cos(brng_wpt)};
+                dst[*sz_ptr].end_nm = m_leg_data[i].end_name;
+                dst[*sz_ptr].is_finite = true;
+                dst[*sz_ptr].is_arc = m_leg_data[i].leg_data.is_arc;
+                
             }
 
             if(m_leg_data[i].leg_data.turn_rad_nm != -1)
@@ -226,12 +231,13 @@ namespace StratosphereAvionics
                 dst[*sz_ptr].start = start_proj;
                 dst[*sz_ptr].end = end_proj;
 
-                dst[*sz_ptr].is_arc = false;
-                dst[*sz_ptr].is_finite = true;
                 dst[*sz_ptr].is_rwy = m_leg_data[i].leg_data.is_rwy;
                 dst[*sz_ptr].turn_rad_nm = m_leg_data[i].leg_data.turn_rad_nm;
-                dst[*sz_ptr].end_nm = m_leg_data[i].end_name;
 
+                *sz_ptr = *sz_ptr + 1;
+            }
+            else if(m_leg_data[i].leg_data.is_finite)
+            {
                 *sz_ptr = *sz_ptr + 1;
             }
         }
@@ -343,8 +349,6 @@ namespace StratosphereAvionics
     {
         leg_proj_t *buf;
         size_t buf_size = nd_data->get_proj_legs(&buf, fo_side);
-
-        
 
         for(size_t i = 0; i < buf_size; i++)
         {

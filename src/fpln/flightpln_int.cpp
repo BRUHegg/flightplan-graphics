@@ -1741,7 +1741,10 @@ namespace test
         }
 
         if(leg->data.misc_data.is_bypassed)
+        {
+            leg->data.misc_data.is_finite = true;
             return;
+        }
 
         if(curr_arinc_leg.leg_type == "IF")
         {
