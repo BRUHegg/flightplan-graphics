@@ -161,11 +161,15 @@ namespace geom
             double cos_alpha = n_b_a_dot / (n_b.absval() * a.absval());
 
             double ih = ln_dist / tan_alpha;
-            double bi = ih / cos_alpha;
+            double bi = abs(ih / cos_alpha);
             double r = (ln_dist * bi) / (ln_dist + bi);
             double im = (bi - r) * cos_alpha;
 
             vect2_t pi = pb + n_b.scmul(bi);
+            //double sign_factor = -1;
+            //double ba_cross = b.cross_prod(a);
+            //if(ba_cross*c < 0)
+            //    sign_factor *= -1;
             *out = pi + a.scmul(-im);
             return r;
         }
