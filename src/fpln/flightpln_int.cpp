@@ -78,7 +78,7 @@ namespace test
         double turn_rad_nm = geom::get_turn_isect_smpl(cs_proj, ce_proj, mp_proj, 
             next_dir, &out_proj);
         
-        double brng_rad = atan2(out_proj.x, out_proj.y);
+        double brng_rad = atan2(out_proj.y, out_proj.x);
         double dist_nm = out_proj.absval();
 
         *out = geo::get_pos_from_brng_dist(next_main_pos, brng_rad, dist_nm);

@@ -127,7 +127,9 @@ namespace geom
         vect2_t *out)
     {
         vect2_t b = pb - pa;
-        double c = b.cross_prod(a);
+        b = b.get_unit();
+        vect2_t tmp = ps - pa;
+        double c = b.cross_prod(tmp);
 
         vect2_t n_b; // b's normal vector
 

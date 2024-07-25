@@ -1,5 +1,5 @@
-setdep KSFO
-setarr KLAS
-setdeprwy 01L
-setproc 0 SSTIK5 DEP PROC
+setdep EGPF
+setarr LFML
+setdeprwy 23
+setproc 0 PTH4A DEP PROC
 plegs 2
