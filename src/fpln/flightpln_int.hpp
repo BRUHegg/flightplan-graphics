@@ -15,6 +15,7 @@
 #pragma once
 
 #include "flightplan.hpp"
+#include <geom.hpp>
 #include <libnav/awy_db.hpp>
 #include <libnav/str_utils.hpp>
 #include <libnav/common.hpp>
@@ -91,6 +92,10 @@ namespace test
 
 
     bool is_ang_greater(double ang1_rad, double ang2_rad);  // true if ang1 > ang2
+
+    double get_turn_rad(double ang1, geo::point p1, double ang2, geo::point p2);
+
+    double get_cf_big_turn_isect(leg_seg_t curr, leg_t next, double m_var, geo::point *out);
 
     std::string get_appr_rwy(std::string& appr);
 
@@ -268,6 +273,8 @@ namespace test
         // Calculation functions:
 
         double get_leg_mag_var_deg(leg_list_node_t *leg);
+
+        double get_leg_turn_rad(leg_list_node_t *curr);
 
         bool get_leg_start(leg_seg_t curr_seg, leg_t curr_leg, leg_t next, geo::point *out);
 

@@ -30,21 +30,6 @@ namespace StratosphereAvionics
         return name_draw;
     }
 
-    // Other functions:
-
-    geom::vect2_t get_projection(double brng_rad, double dist_nm)
-    {
-        return {dist_nm * sin(brng_rad), dist_nm * cos(brng_rad)};
-    }
-
-    geom::vect2_t project_point(geo::point tgt, geo::point p_ctr)
-    {
-        double brng_rad = p_ctr.get_gc_bearing_rad(tgt);
-        double dist_nm = p_ctr.get_gc_dist_nm(tgt);
-
-        return get_projection(brng_rad, dist_nm);
-    }
-
     // NDData member funcrion definitions:
 
     // Public member functions:
@@ -239,9 +224,9 @@ namespace StratosphereAvionics
 
             if(m_leg_data[i].leg_data.turn_rad_nm != -1)
             {
-                geom::vect2_t start_proj = project_point(m_leg_data[i].leg_data.start, 
+                geom::vect2_t start_proj = geom::project_point(m_leg_data[i].leg_data.start, 
                     map_ctr);
-                geom::vect2_t end_proj = project_point(m_leg_data[i].leg_data.end, 
+                geom::vect2_t end_proj = geom::project_point(m_leg_data[i].leg_data.end, 
                     map_ctr);
 
                 if(!in_view(start_proj, end_proj, fo_side))
@@ -290,8 +275,8 @@ namespace StratosphereAvionics
 
             if(has_data)
             {
-                dst[DEP_RWY_PROJ_IDX].start = project_point(rnw_data.start, map_ctr);
-                dst[DEP_RWY_PROJ_IDX].end = project_point(rnw_data.end, map_ctr);
+                dst[DEP_RWY_PROJ_IDX].start = geom::project_point(rnw_data.start, map_ctr);
+                dst[DEP_RWY_PROJ_IDX].end = geom::project_point(rnw_data.end, map_ctr);
             }
         }
 
@@ -302,8 +287,8 @@ namespace StratosphereAvionics
 
             if(has_data)
             {
-                dst[ARR_RWY_PROJ_IDX].start = project_point(rnw_data.start, map_ctr);
-                dst[ARR_RWY_PROJ_IDX].end = project_point(rnw_data.end, map_ctr);
+                dst[ARR_RWY_PROJ_IDX].start = geom::project_point(rnw_data.start, map_ctr);
+                dst[ARR_RWY_PROJ_IDX].end = geom::project_point(rnw_data.end, map_ctr);
             }
         }
     }

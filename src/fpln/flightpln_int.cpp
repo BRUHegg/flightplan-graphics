@@ -40,6 +40,51 @@ namespace test
         return ang1_rad > ang2_rad;
     }
 
+    double get_turn_rad(double ang1, geo::point p1, double ang2, geo::point p2)
+    {
+        double brng_12 = p1.get_gc_bearing_rad(p2);
+        if(ang1 < 0)
+            ang1 += 2 * M_PI;
+        if(ang2 < 0)
+            ang2 += 2 * M_PI;
+        if(brng_12 < 0)
+            brng_12 += 2 * M_PI;
+        
+        bool left_turn = is_ang_greater(ang1, brng_12);
+        double turn_rad = ang2 - ang1;
+
+        if(left_turn && turn_rad > 0)
+            turn_rad -= 2 * M_PI;
+        else if(!left_turn && turn_rad < 0)
+            turn_rad += 2 * M_PI;
+        
+        return turn_rad;
+    }
+
+    double get_cf_big_turn_isect(leg_seg_t curr, leg_t next, double m_var, geo::point *out)
+    {
+        assert(next.has_main_fix);
+        geo::point next_main_pos = next.main_fix.data.pos;
+        
+        geom::vect2_t mp_proj = {0, 0};
+        geom::vect2_t cs_proj = geom::project_point(curr.start, next_main_pos);
+        geom::vect2_t ce_proj = geom::project_point(curr.end, next_main_pos);
+        double next_inbd = double(next.outbd_crs_deg) * geo::DEG_TO_RAD + M_PI;
+        if(!next.outbd_crs_true)
+            next_inbd += m_var;
+        geom::vect2_t next_dir = {sin(next_inbd), cos(next_inbd)};
+
+        geom::vect2_t out_proj;
+        double turn_rad_nm = geom::get_turn_isect_smpl(cs_proj, ce_proj, mp_proj, 
+            next_dir, &out_proj);
+        
+        double brng_rad = atan2(out_proj.x, out_proj.y);
+        double dist_nm = out_proj.absval();
+
+        *out = geo::get_pos_from_brng_dist(next_main_pos, brng_rad, dist_nm);
+        return turn_rad_nm;
+    }
+
     std::string get_appr_rwy(std::string& appr)
     {
         std::string rw;
@@ -1530,6 +1575,19 @@ namespace test
         return curr_var;
     }
 
+    double FplnInt::get_leg_turn_rad(leg_list_node_t *curr)
+    {
+        double outbd_crs_next = curr->next->data.leg.outbd_crs_deg;
+
+        if(!curr->next->data.leg.outbd_crs_true)
+        {
+            outbd_crs_next += get_leg_mag_var_deg(curr) * geo::DEG_TO_RAD;
+        }
+
+        return get_turn_rad(curr->data.misc_data.true_trk_deg * geo::DEG_TO_RAD, 
+            curr->data.misc_data.start, outbd_crs_next, curr->data.misc_data.start);
+    }
+
     bool FplnInt::get_leg_start(leg_seg_t curr_seg, leg_t curr_leg, leg_t next, 
         geo::point *out)
     {
@@ -1655,24 +1713,39 @@ namespace test
             if(!next.outbd_crs_true)
                 outbd_brng_deg += mag_var;
             
-            double curr_brng_rad = curr_seg.true_trk_deg * geo::DEG_TO_RAD;
-            double brng_to_main_fix = curr_seg.start.get_gc_bearing_rad(
-                next.main_fix.data.pos);
-            
             double brng_next_rad = outbd_brng_deg * geo::DEG_TO_RAD;
+            double curr_brng_rad = curr_seg.true_trk_deg * geo::DEG_TO_RAD;
 
-            bool left_turn = is_ang_greater(curr_brng_rad, brng_next_rad);
-            bool brng_gr = is_ang_greater(brng_to_main_fix, curr_brng_rad);
+            double turn_rad = get_turn_rad(curr_brng_rad, curr_seg.start, 
+                brng_next_rad, next.main_fix.data.pos);
 
-            bool is_bp = true;
-            if((brng_gr && !left_turn) || (!brng_gr && left_turn))
+            geo::point intc;
+            bool is_bp = false;
+
+            if(abs(turn_rad) >= M_PI/2 && curr_leg.leg_type != "VI" && 
+                curr_leg.leg_type != "CI")
             {
-                brng_next_rad += M_PI;
-                is_bp = false;
+                get_cf_big_turn_isect(curr_seg, next, 
+                    mag_var * geo::DEG_TO_RAD, &intc);
             }
+            else
+            {
+                double brng_to_main_fix = curr_seg.start.get_gc_bearing_rad(
+                    next.main_fix.data.pos);
+                
+                bool left_turn = is_ang_greater(curr_brng_rad, brng_next_rad);
+                bool brng_gr = is_ang_greater(brng_to_main_fix, curr_brng_rad);
 
-            geo::point intc = geo::get_pos_from_intc(curr_seg.start, 
-                next.main_fix.data.pos, curr_brng_rad, brng_next_rad);
+                is_bp = true;
+                if((brng_gr && !left_turn) || (!brng_gr && left_turn))
+                {
+                    brng_next_rad += M_PI;
+                    is_bp = false;
+                }
+
+                intc = geo::get_pos_from_intc(curr_seg.start, 
+                    next.main_fix.data.pos, curr_brng_rad, brng_next_rad);
+            }
                 
             *out = intc;
             return is_bp;
@@ -1741,13 +1814,13 @@ namespace test
                         (prev_turn_rad_nm + rnp_nm) - prev_turn_rad_nm * prev_turn_rad_nm);
 
                     geo::point prev_start = prev_leg->data.misc_data.start;
-                    geo::point curr_start = leg->data.misc_data.start;
-                    double dist_nm = prev_start.get_gc_dist_nm(curr_start);
+                    geo::point prev_end = prev_leg->data.misc_data.end;
+                    double dist_nm = prev_start.get_gc_dist_nm(prev_end);
 
                     if(turn_offs_nm < dist_nm)
                     {
                         dist_nm -= turn_offs_nm;
-                        double brng_rad = prev_start.get_gc_bearing_rad(curr_start);
+                        double brng_rad = prev_leg->data.misc_data.true_trk_deg * geo::DEG_TO_RAD;
                         prev_leg->data.misc_data.end = geo::get_pos_from_brng_dist(prev_start, 
                             brng_rad, dist_nm);
                     }
@@ -1835,8 +1908,6 @@ namespace test
             double brng_rad = curr_start.get_gc_bearing_rad(curr_end);
             double dist_nm = curr_start.get_gc_dist_nm(curr_end);
             double turn_rad_nm = TURN_RADIUS_NM;
-
-            leg->data.misc_data.end = curr_end;
 
             leg->data.misc_data.true_trk_deg = brng_rad * geo::RAD_TO_DEG;
             
