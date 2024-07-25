@@ -1589,7 +1589,7 @@ namespace test
     }
 
     bool FplnInt::get_leg_start(leg_seg_t curr_seg, leg_t curr_leg, leg_t next, 
-        geo::point *out)
+        geo::point *out, bool *to_inh)
     {
         if(curr_leg.leg_type == "IF")
         {
@@ -1725,6 +1725,7 @@ namespace test
             if(abs(turn_rad) >= M_PI/2 && curr_leg.leg_type != "VI" && 
                 curr_leg.leg_type != "CI")
             {
+                *to_inh = true;
                 get_cf_big_turn_isect(curr_seg, next, 
                     mag_var * geo::DEG_TO_RAD, &intc);
             }
@@ -1768,6 +1769,7 @@ namespace test
         leg->data.misc_data.is_arc = false;
         leg->data.misc_data.is_finite = false;
         leg->data.misc_data.is_bypassed = false;
+        leg->data.misc_data.is_to_inhibited = false;
         leg->data.misc_data.turn_rad_nm = -1;
 
         if(leg->data.leg.main_fix.data.type == libnav::NavaidType::RWY)
@@ -1786,7 +1788,8 @@ namespace test
         if(prev_leg != &(leg_list.head) && !prev_leg->data.is_discon)
         {
             leg->data.misc_data.is_bypassed = get_leg_start(prev_leg->data.misc_data, 
-                prev_leg->data.leg, curr_arinc_leg, &(leg->data.misc_data.start));
+                prev_leg->data.leg, curr_arinc_leg, &leg->data.misc_data.start,
+                &leg->data.misc_data.is_to_inhibited);
             
             if(prev_leg->data.misc_data.turn_rad_nm != -1)
             {
@@ -1805,7 +1808,8 @@ namespace test
                 }
 
                 if(TURN_OFFS_LEGS.find(curr_arinc_leg.leg_type) == TURN_OFFS_LEGS.end() &&
-                    LEGS_CALC.find(prev_leg->data.leg.leg_type) != LEGS_CALC.end())
+                    LEGS_CALC.find(prev_leg->data.leg.leg_type) != LEGS_CALC.end() &&
+                    !leg->data.misc_data.is_to_inhibited)
                 {
                     double rnp_nm = get_rnp(leg);
                     double prev_turn_rad_nm = prev_leg->data.misc_data.turn_rad_nm;

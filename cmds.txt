@@ -1,5 +1,5 @@
-setdep EGPF
+setdep EGHH
 setarr LFML
-setdeprwy 23
-setproc 0 PTH4A DEP PROC
+load
+setproc 2 RNV31LZ ARR PROC
 plegs 2

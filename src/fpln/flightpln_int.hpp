@@ -276,7 +276,8 @@ namespace test
 
         double get_leg_turn_rad(leg_list_node_t *curr);
 
-        bool get_leg_start(leg_seg_t curr_seg, leg_t curr_leg, leg_t next, geo::point *out);
+        bool get_leg_start(leg_seg_t curr_seg, leg_t curr_leg, leg_t next, 
+            geo::point *out, bool *to_inh);
 
         void calculate_leg(leg_list_node_t *leg, double hdg_trk_diff);
     };
