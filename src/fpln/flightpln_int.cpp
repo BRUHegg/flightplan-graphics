@@ -61,6 +61,40 @@ namespace test
         return turn_rad;
     }
 
+    double get_turn_by_dir(double curr_brng_rad, double tgt_brng_rad, libnav::TurnDir t_dir)
+    {
+        if(curr_brng_rad < 0)
+        {
+            curr_brng_rad += 2 * M_PI;
+        }
+        if(tgt_brng_rad < 0)
+        {
+            tgt_brng_rad += 2 * M_PI;
+        }
+        double turn_rad = tgt_brng_rad - curr_brng_rad;
+        if(t_dir == libnav::TurnDir::LEFT && turn_rad > 0)
+        {
+            turn_rad -= 2 * M_PI;
+        }
+        else if(t_dir == libnav::TurnDir::RIGHT && turn_rad < 0)
+        {
+            turn_rad += 2 * M_PI;
+        }
+        else if(t_dir == libnav::TurnDir::EITHER)
+        {
+            if(turn_rad > M_PI)
+            {
+                turn_rad -= 2 * M_PI;
+            }
+            else if(turn_rad < -M_PI)
+            {
+                turn_rad += 2 * M_PI;
+            }
+        }
+
+        return turn_rad;
+    }
+
     double get_cf_big_turn_isect(leg_seg_t curr, leg_t next, double m_var, geo::point *out)
     {
         assert(next.has_main_fix);
@@ -1598,12 +1632,12 @@ namespace test
         }
         if(TURN_OFFS_LEGS.find(next.leg_type) != TURN_OFFS_LEGS.end())
         {
-            double brng1 = curr_seg.end.get_gc_bearing_rad(curr_seg.start);
+            double brng_end_start = curr_seg.end.get_gc_bearing_rad(curr_seg.start);
             if(next.leg_type == "DF")
             {
-                geo::point p1 = geo::get_pos_from_brng_dist(curr_seg.end, brng1 + M_PI/2, 
+                geo::point p1 = geo::get_pos_from_brng_dist(curr_seg.end, brng_end_start + M_PI/2, 
                     TURN_RADIUS_NM);
-                geo::point p2 = geo::get_pos_from_brng_dist(curr_seg.end, brng1 - M_PI/2, 
+                geo::point p2 = geo::get_pos_from_brng_dist(curr_seg.end, brng_end_start - M_PI/2, 
                     TURN_RADIUS_NM);
 
                 geo::point next_point = next.main_fix.data.pos;
@@ -1629,12 +1663,12 @@ namespace test
                     if(ang_doub / 2 != M_PI / 2)
                     {
                         double offs_nm = TURN_RADIUS_NM * tan(ang_doub / 2);
-                        *out = geo::get_pos_from_brng_dist(curr_seg.end, brng1 + M_PI, offs_nm);
+                        *out = geo::get_pos_from_brng_dist(curr_seg.end, brng_end_start + M_PI, offs_nm);
                         return false;
                     }
                     else
                     {
-                        *out = geo::get_pos_from_brng_dist(p1, brng1 + M_PI/2, 
+                        *out = geo::get_pos_from_brng_dist(p1, brng_end_start + M_PI/2, 
                             TURN_RADIUS_NM);
                         return false;
                     }
@@ -1658,12 +1692,12 @@ namespace test
                     if(ang_doub / 2 != M_PI / 2)
                     {
                         double offs_nm = TURN_RADIUS_NM * tan(ang_doub / 2);
-                        *out = geo::get_pos_from_brng_dist(curr_seg.end, brng1 + M_PI, offs_nm);
+                        *out = geo::get_pos_from_brng_dist(curr_seg.end, brng_end_start + M_PI, offs_nm);
                         return false;
                     }
                     else
                     {
-                        *out = geo::get_pos_from_brng_dist(p1, brng1 - M_PI/2, 
+                        *out = geo::get_pos_from_brng_dist(p1, brng_end_start - M_PI/2, 
                             TURN_RADIUS_NM);
                         return false;
                     }
@@ -1674,28 +1708,45 @@ namespace test
                 double crs_rad = double(next.outbd_crs_deg) * geo::DEG_TO_RAD;
                 if(next.leg_type[0] == 'C')
                     crs_rad += next.get_mag_var_deg() * geo::DEG_TO_RAD;
-                if(brng1 < 0)
+                if(brng_end_start < 0)
                 {
-                    brng1 += 2 * M_PI;
+                    brng_end_start += 2 * M_PI;
                 }
-                double turn_rad = abs(crs_rad - brng1);
-                if(turn_rad > M_PI)
-                {
-                    turn_rad = 2 * M_PI - turn_rad;
-                }
-                else if(turn_rad < -M_PI)
-                {
-                    turn_rad += 2 * M_PI;
-                }
-                double theta = turn_rad / 2;
-                double sin_theta = sin(theta);
-                double cos_theta = cos(theta);
-                if(sin_theta != 0 && cos_theta != 0)
-                {
-                    double offs_nm = TURN_RADIUS_NM * cos_theta / sin_theta;
-                    assert(offs_nm >= 0);
 
-                    *out = geo::get_pos_from_brng_dist(curr_seg.end, brng1 + M_PI, offs_nm);
+                double turn_rad = get_turn_by_dir(brng_end_start - M_PI, crs_rad, 
+                    next.turn_dir);
+
+                if(abs(turn_rad) < M_PI / 2)
+                {
+                    //TODO: sort out the stuff below
+                    double theta = (M_PI-abs(turn_rad)) / 2;
+                    double sin_theta = sin(theta);
+                    double cos_theta = cos(theta);
+                    if(sin_theta != 0 && cos_theta != 0)
+                    {
+                        double offs_nm = TURN_RADIUS_NM * cos_theta / sin_theta;
+                        assert(offs_nm >= 0);
+
+                        *out = geo::get_pos_from_brng_dist(curr_seg.end, 
+                            brng_end_start + M_PI, offs_nm);
+                        return false;
+                    }
+                }
+                else
+                {
+                    double brng_pr = brng_end_start - M_PI / 2;
+                    double brng_final = brng_end_start + M_PI / 2 + turn_rad;
+                    if(turn_rad < 0) // left turn
+                    {
+                        brng_pr += M_PI;
+                        brng_final -= M_PI;
+                    }
+
+                    geo::point p1 = geo::get_pos_from_brng_dist(curr_seg.end, 
+                        brng_pr, TURN_RADIUS_NM);
+                    geo::point p2 = geo::get_pos_from_brng_dist(p1, 
+                        brng_final, TURN_RADIUS_NM);
+                    *out = p2;
                     return false;
                 }
             }

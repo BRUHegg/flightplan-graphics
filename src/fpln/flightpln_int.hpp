@@ -91,9 +91,18 @@ namespace test
     };
 
 
+    /*
+        General info:
+        turns:
+        positive - right turn
+        negative - left turn
+    */
+
     bool is_ang_greater(double ang1_rad, double ang2_rad);  // true if ang1 > ang2
 
     double get_turn_rad(double ang1, geo::point p1, double ang2, geo::point p2);
+
+    double get_turn_by_dir(double curr_brng_rad, double tgt_brng_rad, libnav::TurnDir t_dir);
 
     double get_cf_big_turn_isect(leg_seg_t curr, leg_t next, double m_var, geo::point *out);
 
