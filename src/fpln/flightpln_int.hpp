@@ -285,8 +285,31 @@ namespace test
 
         double get_leg_turn_rad(leg_list_node_t *curr);
 
+        static void get_df_start(leg_seg_t curr_seg, leg_t next, geo::point *out);
+
+        static void get_to_leg_start(leg_seg_t curr_seg, leg_t next, geo::point *out);
+
+        static bool get_cf_leg_start(leg_seg_t curr_seg, leg_t curr_leg, leg_t next, 
+            geo::point *out, bool *to_inh);
+
+        /*
+            Function: get_leg_start
+            Description:
+            Calculates start of next leg.
+            @param curr_seg: current segment
+            @param curr_leg: current arinc424 leg
+            @param next: next arinc424 leg
+            @param out: pointer to where the output should be stored
+            @param to_inh: set to true when turn offset is inhibited
+            (90 degree and more turns). Otherwise not set
+        */
+
         bool get_leg_start(leg_seg_t curr_seg, leg_t curr_leg, leg_t next, 
             geo::point *out, bool *to_inh);
+
+        static void set_xi_leg(leg_list_node_t *leg);
+
+        static void set_turn_offset(leg_list_node_t *leg);
 
         void calculate_leg(leg_list_node_t *leg, double hdg_trk_diff);
     };
