@@ -287,6 +287,15 @@ namespace test
 
         static void get_df_start(leg_seg_t curr_seg, leg_t next, geo::point *out);
 
+        /*
+            Function: get_leg_start
+            Description:
+            Calculates start of a leg that can be offset by a turn(see TURN_OFFS_LEGS)
+            @param curr_seg: current segment
+            @param next: next arinc424 leg
+            @param out: pointer to where the output should be stored
+        */
+
         static void get_to_leg_start(leg_seg_t curr_seg, leg_t next, geo::point *out);
 
         static bool get_cf_leg_start(leg_seg_t curr_seg, leg_t curr_leg, leg_t next, 
@@ -310,6 +319,45 @@ namespace test
         static void set_xi_leg(leg_list_node_t *leg);
 
         static void set_turn_offset(leg_list_node_t *leg);
+
+        // The following functions are used to calculate ends of arinc424 legs.
+
+        /*
+            Function: calculate_alt_leg
+            Description:
+            Calculates end of CA or VA leg
+            @param leg: pointer to a node of leg list
+            @param hdg_trk_diff: difference between heading and track
+        */
+
+        void calculate_alt_leg(leg_list_node_t *leg, double hdg_trk_diff);
+
+        /*
+            Function: calculate_alt_leg
+            Description:
+            Calculates end of CI or VI leg
+            @param leg: pointer to a node of leg list
+            @param hdg_trk_diff: difference between heading and track
+        */
+
+        void calculate_intc_leg(leg_list_node_t *leg, double hdg_trk_diff);
+
+        /*
+            Function: calculate_alt_leg
+            Description:
+            Calculates end of CF/TF/DF leg
+            @param leg: pointer to a node of leg list
+        */
+
+        void calculate_crs_trk_dir_leg(leg_list_node_t *leg);
+
+        /*
+            Function: calculate_leg
+            Description:
+            Handles all supported leg types.
+            @param leg: pointer to a node of leg list
+            @param hdg_trk_diff: difference between heading and track
+        */
 
         void calculate_leg(leg_list_node_t *leg, double hdg_trk_diff);
     };
