@@ -1,0 +1,5 @@
+setdep LZIB
+setarr LFML
+setdeprwy 22
+setproc 0 TOVK1B DEP PROC
+plegs 2

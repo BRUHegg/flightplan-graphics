@@ -1,0 +1,5 @@
+setdep EGPF
+setarr LFML
+setdeprwy 23
+setproc 0 PTH4A DEP PROC
+plegs 2

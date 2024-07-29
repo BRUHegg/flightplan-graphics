@@ -1,0 +1,6 @@
+setdep KSFO
+setarr LFML
+setdeprwy 01L
+#sstik5 due to different data base
+setproc 0 SSTIK5 DEP PROC
+plegs 2
