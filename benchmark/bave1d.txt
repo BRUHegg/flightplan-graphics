@@ -1,0 +1,5 @@
+setdep LGIR
+setarr LFML
+setdeprwy 27
+setproc 0 BAVE1D DEP PROC
+plegs 2
