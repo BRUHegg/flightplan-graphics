@@ -103,7 +103,7 @@ namespace test
         geom::vect2_t ce_proj = geom::project_point(curr.end, next_main_pos);
         double next_inbd = double(next.outbd_crs_deg) * geo::DEG_TO_RAD + M_PI;
         if (!next.outbd_crs_true)
-            next_inbd += m_var;
+            next_inbd -= m_var;
         geom::vect2_t next_dir = {sin(next_inbd), cos(next_inbd)};
 
         geom::vect2_t out_proj;
@@ -1630,7 +1630,12 @@ namespace test
         double dist1 = next_point.get_gc_dist_nm(p1);
         double dist2 = next_point.get_gc_dist_nm(p2);
 
-        if (dist1 < dist2 && next.turn_dir != libnav::TurnDir::RIGHT) // left turn
+        bool left_turn = next.turn_dir == libnav::TurnDir::LEFT;
+
+        if(next.turn_dir == libnav::TurnDir::EITHER)
+            left_turn = dist1 < dist2;
+
+        if (left_turn) // left turn
         {
             if (dist1 == 0)
             {
@@ -1641,7 +1646,7 @@ namespace test
             double ang_doub = ang_main + theta;
             *out = geo::get_pos_from_brng_dist(p1, ang_doub, TURN_RADIUS_NM);
         }
-        else if(dist1 >= dist2 && next.turn_dir != libnav::TurnDir::LEFT)
+        else
         {
             if (dist2 == 0)
             {
@@ -1708,7 +1713,7 @@ namespace test
 
         double mag_var = next.get_mag_var_deg();
         if (!next.outbd_crs_true)
-            outbd_brng_deg += mag_var;
+            outbd_brng_deg -= mag_var;
 
         double brng_next_rad = outbd_brng_deg * geo::DEG_TO_RAD;
         double curr_brng_rad = curr_seg.true_trk_deg * geo::DEG_TO_RAD;
@@ -1741,8 +1746,23 @@ namespace test
                 is_bp = false;
             }
 
-            intc = geo::get_pos_from_intc(curr_seg.start,
-                                          next.main_fix.data.pos, curr_brng_rad, brng_next_rad);
+            geo::point intc1 = geo::get_pos_from_intc(curr_seg.start,
+                                          next.main_fix.data.pos, curr_brng_rad, 
+                                          brng_next_rad);
+            geo::point intc2 = geo::get_pos_from_intc(curr_seg.start,
+                                          next.main_fix.data.pos, curr_brng_rad + M_PI, 
+                                          brng_next_rad);
+
+            double dist1 = next.main_fix.data.pos.get_gc_dist_nm(intc1);
+            double dist2 = next.main_fix.data.pos.get_gc_dist_nm(intc2);
+            if(dist1 < dist2)
+            {
+                intc = intc1;
+            }
+            else
+            {
+                intc = intc2;
+            }
         }
 
         *out = intc;
@@ -1846,9 +1866,11 @@ namespace test
             {
                 rwy_ent = &arr_rnw_data;
             }
+
+            leg->data.misc_data.start = rwy_ent->end;
         }
 
-        double mag_var_deg = get_leg_mag_var_deg(leg);
+        double mag_var_deg = -get_leg_mag_var_deg(leg);
 
         if (curr_arinc_leg.leg_type == "VA")
         {
@@ -1865,7 +1887,7 @@ namespace test
         }
 
         geo::point end_pt = get_xa_end_point(ref_wpt,
-                                             curr_arinc_leg.outbd_crs_deg + mag_var_deg, curr_arinc_leg.alt1_ft, rwy_ent);
+                                             curr_arinc_leg.outbd_crs_deg + mag_var_deg, curr_arinc_leg.alt1_ft, nullptr);
         libnav::waypoint_t end_wpt = get_ca_va_wpt(end_pt, int(curr_arinc_leg.alt1_ft));
 
         leg->data.misc_data.is_arc = false;
@@ -1889,7 +1911,7 @@ namespace test
             double curr_brng = double(curr_arinc_leg.outbd_crs_deg);
             if (!curr_arinc_leg.outbd_crs_true)
             {
-                curr_brng += get_leg_mag_var_deg(leg);
+                curr_brng -= get_leg_mag_var_deg(leg);
             }
 
             if (curr_arinc_leg.leg_type == "VI")
@@ -1911,7 +1933,7 @@ namespace test
 
         if(!curr_arinc_leg.outbd_crs_true)
         {
-            true_brng_rad += curr_arinc_leg.get_mag_var_deg() * geo::DEG_TO_RAD;
+            true_brng_rad -= curr_arinc_leg.get_mag_var_deg() * geo::DEG_TO_RAD;
         }
 
         geo::point leg_end = geo::get_pos_from_brng_dist(leg->data.misc_data.start, 
