@@ -1630,7 +1630,7 @@ namespace test
         double dist1 = next_point.get_gc_dist_nm(p1);
         double dist2 = next_point.get_gc_dist_nm(p2);
 
-        if (dist1 < dist2)
+        if (dist1 < dist2 || next.turn_dir == libnav::TurnDir::LEFT) // left turn
         {
             if (dist1 == 0)
             {
@@ -1638,25 +1638,10 @@ namespace test
             }
             double theta = acos(TURN_RADIUS_NM / dist1);
             double ang_main = p1.get_gc_bearing_rad(next_point);
-            double ang_end = p1.get_gc_bearing_rad(curr_seg.end);
-            double ang_doub = ang_end - ang_main - theta;
-            if (ang_doub < 0)
-            {
-                ang_doub += 2 * M_PI;
-            }
-
-            if (ang_doub / 2 != M_PI / 2)
-            {
-                double offs_nm = TURN_RADIUS_NM * tan(ang_doub / 2);
-                *out = geo::get_pos_from_brng_dist(curr_seg.end, brng_end_start + M_PI, offs_nm);
-            }
-            else
-            {
-                *out = geo::get_pos_from_brng_dist(p1, brng_end_start + M_PI / 2,
-                                                   TURN_RADIUS_NM);
-            }
+            double ang_doub = ang_main + theta;
+            *out = geo::get_pos_from_brng_dist(p1, ang_doub, TURN_RADIUS_NM);
         }
-        else
+        else if(dist1 >= dist2 && next.turn_dir != libnav::TurnDir::LEFT)
         {
             if (dist2 == 0)
             {
@@ -1664,23 +1649,8 @@ namespace test
             }
             double theta = acos(TURN_RADIUS_NM / dist2);
             double ang_main = p2.get_gc_bearing_rad(next_point);
-            double ang_end = p2.get_gc_bearing_rad(curr_seg.end);
-            double ang_doub = ang_main - theta - ang_end;
-            if (ang_doub < 0)
-            {
-                ang_doub += 2 * M_PI;
-            }
-
-            if (ang_doub / 2 != M_PI / 2)
-            {
-                double offs_nm = TURN_RADIUS_NM * tan(ang_doub / 2);
-                *out = geo::get_pos_from_brng_dist(curr_seg.end, brng_end_start + M_PI, offs_nm);
-            }
-            else
-            {
-                *out = geo::get_pos_from_brng_dist(p1, brng_end_start - M_PI / 2,
-                                                   TURN_RADIUS_NM);
-            }
+            double ang_doub = ang_main - theta;
+            *out = geo::get_pos_from_brng_dist(p2, ang_doub, TURN_RADIUS_NM);
         }
     }
 
