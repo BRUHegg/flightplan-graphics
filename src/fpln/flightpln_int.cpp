@@ -1903,6 +1903,27 @@ namespace test
         }
     }
 
+    void FplnInt::calculate_fc_leg(leg_list_node_t *leg)
+    {
+        leg_t curr_arinc_leg = leg->data.leg;
+
+        double true_brng_rad = double(curr_arinc_leg.outbd_crs_deg) * geo::DEG_TO_RAD;
+
+        if(!curr_arinc_leg.outbd_crs_true)
+        {
+            true_brng_rad += curr_arinc_leg.get_mag_var_deg() * geo::DEG_TO_RAD;
+        }
+
+        geo::point leg_end = geo::get_pos_from_brng_dist(leg->data.misc_data.start, 
+            true_brng_rad, double(curr_arinc_leg.outbd_dist_time));
+
+        leg->data.misc_data.true_trk_deg = true_brng_rad * geo::RAD_TO_DEG;
+        leg->data.misc_data.is_arc = false;
+        leg->data.misc_data.turn_rad_nm = TURN_RADIUS_NM;
+        leg->data.misc_data.is_finite = true;
+        leg->data.misc_data.end = leg_end;
+    }
+
     void FplnInt::calculate_crs_trk_dir_leg(leg_list_node_t *leg)
     {
         leg_t curr_arinc_leg = leg->data.leg;
@@ -1994,6 +2015,10 @@ namespace test
             curr_arinc_leg.leg_type == "FA")
         {
             calculate_alt_leg(leg, hdg_trk_diff);
+        }
+        else if(curr_arinc_leg.leg_type == "FC")
+        {
+            calculate_fc_leg(leg);
         }
         else if (curr_arinc_leg.leg_type == "VI" || curr_arinc_leg.leg_type == "CI")
         {

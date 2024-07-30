@@ -73,7 +73,7 @@ namespace test
     /// the current leg)
     const std::set<std::string> TURN_OFFS_LEGS = {"DF", "CI", "CA", "CD", 
         "CR", "VA", "VI", "VR"};
-    const std::set<std::string> LEGS_CALC = {"DF", "TF", "CF", "VA", "CA", "VI", "CI"};
+    const std::set<std::string> LEGS_CALC = {"DF", "TF", "CF", "VA", "CA", "FA", "VI", "CI"};
     //const std::map<std::string, std::set<std::string>> ILLEGAL_NEXT_LEG = {
     //    {"AF", {"DF", "IF", "PI"}},
     //    {"CA", {"AF", "HA", "HF", "HM", "PI", "RF", "TF"}},
@@ -341,6 +341,8 @@ namespace test
         */
 
         void calculate_intc_leg(leg_list_node_t *leg, double hdg_trk_diff);
+
+        void calculate_fc_leg(leg_list_node_t *leg);
 
         /*
             Function: calculate_alt_leg
