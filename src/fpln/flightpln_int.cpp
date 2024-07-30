@@ -1630,7 +1630,7 @@ namespace test
         double dist1 = next_point.get_gc_dist_nm(p1);
         double dist2 = next_point.get_gc_dist_nm(p2);
 
-        if (dist1 < dist2 || next.turn_dir == libnav::TurnDir::LEFT) // left turn
+        if (dist1 < dist2 && next.turn_dir != libnav::TurnDir::RIGHT) // left turn
         {
             if (dist1 == 0)
             {
