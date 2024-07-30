@@ -1811,7 +1811,7 @@ namespace test
         }
         else if (next.leg_type[0] == 'F')
         {
-            *out = next.main_fix.data.pos;
+            get_cf_leg_start(curr_seg, curr_leg, next, out, to_inh);
             return false;
         }
 
@@ -1865,13 +1865,17 @@ namespace test
         leg_t curr_arinc_leg = leg->data.leg;
 
         libnav::runway_entry_t *rwy_ent = nullptr;
-        if (leg->prev->data.seg->data.seg_type == FPL_SEG_DEP_RWY)
+
+        if(curr_arinc_leg.leg_type != "FA")
         {
-            rwy_ent = &dep_rnw_data;
-        }
-        else if (leg->prev->data.leg.main_fix.data.type == libnav::NavaidType::RWY)
-        {
-            rwy_ent = &arr_rnw_data;
+            if (leg->prev->data.seg->data.seg_type == FPL_SEG_DEP_RWY)
+            {
+                rwy_ent = &dep_rnw_data;
+            }
+            else if (leg->prev->data.leg.main_fix.data.type == libnav::NavaidType::RWY)
+            {
+                rwy_ent = &arr_rnw_data;
+            }
         }
 
         double mag_var_deg = get_leg_mag_var_deg(leg);
@@ -1883,7 +1887,14 @@ namespace test
 
         leg->data.misc_data.true_trk_deg = curr_arinc_leg.outbd_crs_deg + mag_var_deg;
 
-        geo::point end_pt = get_xa_end_point(leg->data.misc_data.start,
+        geo::point ref_wpt = leg->data.misc_data.start;
+
+        if(curr_arinc_leg.leg_type == "FA")
+        {
+            ref_wpt = curr_arinc_leg.main_fix.data.pos;
+        }
+
+        geo::point end_pt = get_xa_end_point(ref_wpt,
                                              curr_arinc_leg.outbd_crs_deg + mag_var_deg, curr_arinc_leg.alt1_ft, rwy_ent);
         libnav::waypoint_t end_wpt = get_ca_va_wpt(end_pt, int(curr_arinc_leg.alt1_ft));
 
@@ -1893,7 +1904,7 @@ namespace test
         leg->data.misc_data.turn_rad_nm = TURN_RADIUS_NM;
 
         leg->data.leg.set_main_fix(end_wpt);
-        leg->data.leg.outbd_dist_time = curr_arinc_leg.alt1_ft / float(CLB_RATE_FT_PER_NM);
+        leg->data.leg.outbd_dist_time = float(ref_wpt.get_gc_dist_nm(end_pt));
         leg->data.leg.outbd_dist_as_time = false;
     }
 
@@ -2009,7 +2020,8 @@ namespace test
             leg->data.misc_data.end = main_fix_pos;
             leg->data.misc_data.turn_rad_nm = 0;
         }
-        else if (curr_arinc_leg.leg_type == "CA" || curr_arinc_leg.leg_type == "VA")
+        else if (curr_arinc_leg.leg_type == "CA" || curr_arinc_leg.leg_type == "VA" || 
+            curr_arinc_leg.leg_type == "FA")
         {
             calculate_alt_leg(leg, hdg_trk_diff);
         }
