@@ -43,6 +43,7 @@ namespace test
     constexpr double TURN_RADIUS_NM = 1; // Untill there is a VNAV
     constexpr double ASSUMED_RNP_PROC_NM = 1;
     constexpr double ASSUMED_RNP_ENRT_NM = 3;
+    constexpr double CF_STRAIGHT_DEV_RAD = (0.8 * geo::DEG_TO_RAD);
     const std::string NONE_TRANS = "NONE";
     const std::string MISSED_APPR_SEG_NM = "MISSED APPRCH";
     const std::string INTC_LEG_NM = "(INTC)";
@@ -111,7 +112,7 @@ namespace test
     std::string get_dfms_rwy(std::string& rwy_nm);
 
     geo::point get_xa_end_point(geo::point prev, float brng_deg, float va_alt_ft, 
-        libnav::runway_entry_t *rnw_data, double clb_ft_nm=CLB_RATE_FT_PER_NM);
+        double clb_ft_nm=CLB_RATE_FT_PER_NM);
 
     libnav::waypoint_t get_ca_va_wpt(geo::point pos, int n_ft);
 

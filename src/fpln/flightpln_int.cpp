@@ -153,14 +153,9 @@ namespace test
     }
 
     geo::point get_xa_end_point(geo::point prev, float brng_deg, float va_alt_ft,
-                                libnav::runway_entry_t *rnw_data, double clb_ft_nm)
+                                double clb_ft_nm)
     {
         double clb_nm = va_alt_ft / clb_ft_nm;
-
-        if (rnw_data != nullptr)
-        {
-            clb_nm += rnw_data->get_impl_length_m() * geo::M_TO_FT * geo::FT_TO_NM;
-        }
 
         geo::point curr = geo::get_pos_from_brng_dist(prev,
                                                       brng_deg * geo::DEG_TO_RAD, clb_nm);
@@ -1733,6 +1728,16 @@ namespace test
         }
         else
         {
+            // Replace with straight leg if course deviation is small enough
+            double brng_end_to_main_fix = curr_seg.end.get_gc_bearing_rad(
+                next.main_fix.data.pos);
+            if(abs(brng_end_to_main_fix-brng_next_rad) < CF_STRAIGHT_DEV_RAD)
+            {
+                *to_inh = true;
+                *out = curr_seg.end;
+                return false;
+            }
+
             double brng_to_main_fix = curr_seg.start.get_gc_bearing_rad(
                 next.main_fix.data.pos);
 
@@ -1750,8 +1755,8 @@ namespace test
                                           next.main_fix.data.pos, curr_brng_rad, 
                                           brng_next_rad);
             geo::point intc2 = geo::get_pos_from_intc(curr_seg.start,
-                                          next.main_fix.data.pos, curr_brng_rad + M_PI, 
-                                          brng_next_rad);
+                                          next.main_fix.data.pos, curr_brng_rad, 
+                                          brng_next_rad - M_PI);
 
             double dist1 = next.main_fix.data.pos.get_gc_dist_nm(intc1);
             double dist2 = next.main_fix.data.pos.get_gc_dist_nm(intc2);
@@ -1887,7 +1892,8 @@ namespace test
         }
 
         geo::point end_pt = get_xa_end_point(ref_wpt,
-                                             curr_arinc_leg.outbd_crs_deg + mag_var_deg, curr_arinc_leg.alt1_ft, nullptr);
+                                             curr_arinc_leg.outbd_crs_deg + mag_var_deg, 
+                                             curr_arinc_leg.alt1_ft);
         libnav::waypoint_t end_wpt = get_ca_va_wpt(end_pt, int(curr_arinc_leg.alt1_ft));
 
         leg->data.misc_data.is_arc = false;
