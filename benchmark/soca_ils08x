@@ -1,0 +1,5 @@
+setdep EGHH
+setarr SOCA
+setproc 2 ILS08-X ARR PROC
+setproc 2 FXC ARR TRANS
+plegs 2

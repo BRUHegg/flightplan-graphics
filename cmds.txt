@@ -1,5 +1,5 @@
-setdep EGHH
-setarr SOCA
-setproc 2 ILS08-X ARR PROC
-setproc 2 FXC ARR TRANS
+setdep EGPF
+setarr LFML
+setdeprwy 23
+setproc 0 PTH4A DEP PROC
 plegs 2
