@@ -123,6 +123,56 @@ namespace geom
         return area * 2 / s_c;
     }
 
+    /*
+        Function: get_vect_circ_isect_dist
+        Description:
+        Gets distance from point intercection of vector and circle.
+        @param ps: point from which the vector starts
+        @param po: center of the circle
+        @param a: unit vector that points from ps
+        @param c_r: radius of the circle
+        @return distance. Positive if there is an intersection. -1 otherwise.
+    */
+
+    inline double get_vect_circ_isect_dist(vect2_t ps, vect2_t po, vect2_t a, double c_r)
+    {
+        vect2_t b = po - ps;
+
+        double abs_b = b.absval();
+        if(abs_b == c_r)
+            return 0;
+
+        double l = abs(a.cross_prod(b));
+
+        if(l > c_r)
+        {
+            return -1;
+        }
+        else
+        {
+            double pq = sqrt(c_r * c_r - l * l);
+            double ps = sqrt(abs_b * abs_b - l * l);
+
+            if(abs_b > c_r)
+            {
+                return ps-pq;
+            }
+            else
+            {
+                double dp = a.dot_prod(b);
+
+                if(dp < 0)
+                {
+                    return pq-ps;
+                }
+                else
+                {
+                    return pq+ps;
+                }
+            }
+        }
+    }
+
     inline double get_turn_isect_smpl(vect2_t pa, vect2_t pb, vect2_t ps, vect2_t a,
         vect2_t *out)
     {
@@ -166,10 +216,6 @@ namespace geom
             double im = (bi - r) * cos_alpha;
 
             vect2_t pi = pb + n_b.scmul(bi);
-            //double sign_factor = -1;
-            //double ba_cross = b.cross_prod(a);
-            //if(ba_cross*c < 0)
-            //    sign_factor *= -1;
             *out = pi + a.scmul(-im);
             return r;
         }

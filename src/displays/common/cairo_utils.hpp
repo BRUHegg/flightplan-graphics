@@ -27,6 +27,9 @@ namespace cairo_utils
 {
     // Colors:
 
+    constexpr geom::vect3_t RED = {1, 0, 0};
+    constexpr geom::vect3_t GREEN = {0, 1, 0};
+    constexpr geom::vect3_t BLUE = {0, 0, 1};
     constexpr geom::vect3_t WHITE = {1, 1, 1};
     constexpr geom::vect3_t DARK_BLUE = {0.01, 0.05, 0.15};
     constexpr geom::vect3_t MAGENTA = {1, 0.451, 1};
