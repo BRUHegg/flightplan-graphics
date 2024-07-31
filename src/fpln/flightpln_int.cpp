@@ -163,6 +163,27 @@ namespace test
         return curr;
     }
 
+    geo::point get_dme_end_point(geo::point start, double true_brng_rad, 
+        geo::point st, double dist_nm)
+    {
+        geom::vect2_t start_proj = {0, 0};
+        geom::vect2_t st_proj = geom::project_point(st, start);
+
+        geom::vect2_t vec = {sin(true_brng_rad), cos(true_brng_rad)};
+
+        double dist_end = geom::get_vect_circ_isect_dist(start_proj, st_proj, vec, 
+            dist_nm);
+        
+        if(dist_end == -1)
+        {
+            return start;
+        }
+        else
+        {
+            return geo::get_pos_from_brng_dist(start, true_brng_rad, dist_end);
+        }
+    }
+
     libnav::waypoint_t get_ca_va_wpt(geo::point pos, int n_ft)
     {
         libnav::waypoint_t out;
@@ -505,11 +526,14 @@ namespace test
 
                 libnav::arinc_rwy_data_t rwy_data = dep_rnw[rwy];
 
-                leg_t ins_leg;
+                leg_t ins_leg{};
                 ins_leg.leg_type = "IF";
-                ins_leg.main_fix.id = rwy;
-                ins_leg.main_fix.data.pos = rwy_data.pos;
-                ins_leg.main_fix.data.type = libnav::NavaidType::RWY;
+                libnav::waypoint_t rnw_wpt = {};
+                rnw_wpt.id = rwy;
+                rnw_wpt.data.pos = rwy_data.pos;
+                rnw_wpt.data.area_code = departure->icao_code;
+                rnw_wpt.data.type = libnav::NavaidType::RWY;
+                ins_leg.set_main_fix(rnw_wpt);
 
                 std::vector<leg_t> legs = {};
 
@@ -566,7 +590,8 @@ namespace test
                 arr_rwy = rwy;
 
                 libnav::arinc_rwy_data_t rwy_data = arr_rnw[rwy];
-                libnav::waypoint_t rwy_wpt = {arr_rwy, {libnav::NavaidType::RWY, 0, rwy_data.pos, arrival->icao_code, "", nullptr}};
+                libnav::waypoint_t rwy_wpt = {arr_rwy, {libnav::NavaidType::RWY, 0, 
+                    rwy_data.pos, arrival->icao_code, "", nullptr}};
                 leg_t rwy_leg{};
                 rwy_leg.leg_type = "TF";
                 rwy_leg.set_main_fix(rwy_wpt);
@@ -945,6 +970,7 @@ namespace test
         std::lock_guard<std::mutex> lock(fpl_mtx);
         if (fpl_id_calc != fpl_id_curr)
         {
+            double curr_alt_ft = 0;
             leg_list_node_t *leg_curr = leg_list.head.next;
 
             while (leg_curr != &(leg_list.tail))
@@ -979,7 +1005,9 @@ namespace test
 
                 if (!leg_curr->data.is_discon)
                 {
-                    calculate_leg(leg_curr, hdg_trk_diff);
+                    calculate_leg(leg_curr, hdg_trk_diff, curr_alt_ft);
+                    if(leg_curr->data.leg.alt1_ft != 0)
+                        curr_alt_ft = leg_curr->data.leg.alt1_ft;
                 }
 
                 leg_curr = next_leg;
@@ -1660,7 +1688,7 @@ namespace test
         double crs_rad = double(next.outbd_crs_deg) * geo::DEG_TO_RAD;
 
         if (next.leg_type[0] == 'C')
-            crs_rad += next.get_mag_var_deg() * geo::DEG_TO_RAD;
+            crs_rad -= next.get_mag_var_deg() * geo::DEG_TO_RAD;
         if (brng_end_start < 0)
         {
             brng_end_start += 2 * M_PI;
@@ -1855,7 +1883,8 @@ namespace test
 
     // The following functions are used to calculate ends of arinc424 legs.
 
-    void FplnInt::calculate_alt_leg(leg_list_node_t *leg, double hdg_trk_diff)
+    void FplnInt::calculate_alt_leg(leg_list_node_t *leg, double hdg_trk_diff, 
+        double curr_alt_ft)
     {
         leg_t curr_arinc_leg = leg->data.leg;
 
@@ -1872,28 +1901,24 @@ namespace test
                 rwy_ent = &arr_rnw_data;
             }
 
-            leg->data.misc_data.start = rwy_ent->end;
+            if(rwy_ent)
+                leg->data.misc_data.start = rwy_ent->end;
         }
 
         double mag_var_deg = -get_leg_mag_var_deg(leg);
 
         if (curr_arinc_leg.leg_type == "VA")
         {
-            mag_var_deg += hdg_trk_diff;
+            mag_var_deg += hdg_trk_diff * geo::RAD_TO_DEG;
         }
 
         leg->data.misc_data.true_trk_deg = curr_arinc_leg.outbd_crs_deg + mag_var_deg;
 
         geo::point ref_wpt = leg->data.misc_data.start;
 
-        if(curr_arinc_leg.leg_type == "FA")
-        {
-            ref_wpt = curr_arinc_leg.main_fix.data.pos;
-        }
-
         geo::point end_pt = get_xa_end_point(ref_wpt,
                                              curr_arinc_leg.outbd_crs_deg + mag_var_deg, 
-                                             curr_arinc_leg.alt1_ft);
+                                             abs(curr_alt_ft-curr_arinc_leg.alt1_ft));
         libnav::waypoint_t end_wpt = get_ca_va_wpt(end_pt, int(curr_arinc_leg.alt1_ft));
 
         leg->data.misc_data.is_arc = false;
@@ -1922,7 +1947,7 @@ namespace test
 
             if (curr_arinc_leg.leg_type == "VI")
             {
-                curr_brng += hdg_trk_diff;
+                curr_brng += hdg_trk_diff * geo::RAD_TO_DEG;
             }
             leg->data.misc_data.true_trk_deg = curr_brng;
             leg->data.misc_data.is_arc = false;
@@ -1952,6 +1977,32 @@ namespace test
         leg->data.misc_data.end = leg_end;
     }
 
+    void FplnInt::calculate_dme_leg(leg_list_node_t *leg, double hdg_trk_diff)
+    {
+        leg_t curr_arinc_leg = leg->data.leg;
+
+        double true_brng_rad = double(curr_arinc_leg.outbd_crs_deg) * geo::DEG_TO_RAD;
+        if(!curr_arinc_leg.outbd_crs_true)
+        {
+            true_brng_rad -= curr_arinc_leg.get_mag_var_deg() * geo::DEG_TO_RAD;
+        }
+        if(curr_arinc_leg.leg_type == "VD")
+        {
+            true_brng_rad += hdg_trk_diff;
+        }
+
+        geo::point end = get_dme_end_point(leg->data.misc_data.start, true_brng_rad, 
+            curr_arinc_leg.recd_navaid.data.pos, curr_arinc_leg.outbd_dist_time);
+        
+
+        leg->data.misc_data.is_arc = false;
+        leg->data.misc_data.is_finite = true;
+        leg->data.misc_data.end = end;
+        leg->data.misc_data.is_bypassed = false;
+        leg->data.misc_data.true_trk_deg = true_brng_rad * geo::RAD_TO_DEG;
+        leg->data.misc_data.turn_rad_nm = TURN_RADIUS_NM;
+    }
+
     void FplnInt::calculate_crs_trk_dir_leg(leg_list_node_t *leg)
     {
         leg_t curr_arinc_leg = leg->data.leg;
@@ -1977,7 +2028,8 @@ namespace test
         leg->data.misc_data.turn_rad_nm = turn_rad_nm;
     }
 
-    void FplnInt::calculate_leg(leg_list_node_t *leg, double hdg_trk_diff)
+    void FplnInt::calculate_leg(leg_list_node_t *leg, double hdg_trk_diff, 
+        double curr_alt_ft)
     {
         leg_t curr_arinc_leg = leg->data.leg;
 
@@ -2042,7 +2094,7 @@ namespace test
         else if (curr_arinc_leg.leg_type == "CA" || curr_arinc_leg.leg_type == "VA" || 
             curr_arinc_leg.leg_type == "FA")
         {
-            calculate_alt_leg(leg, hdg_trk_diff);
+            calculate_alt_leg(leg, hdg_trk_diff, curr_alt_ft);
         }
         else if(curr_arinc_leg.leg_type == "FC")
         {
@@ -2056,6 +2108,11 @@ namespace test
                  curr_arinc_leg.leg_type == "DF")
         {
             calculate_crs_trk_dir_leg(leg);
+        }
+        else if(curr_arinc_leg.leg_type == "FD" || curr_arinc_leg.leg_type == "CD" ||
+            curr_arinc_leg.leg_type == "VD")
+        {
+            calculate_dme_leg(leg, hdg_trk_diff);
         }
 
         if (leg->data.misc_data.true_trk_deg > 360)

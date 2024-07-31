@@ -73,8 +73,9 @@ namespace test
     // The following set contains legs that allow to be offset by a turn(onto 
     /// the current leg)
     const std::set<std::string> TURN_OFFS_LEGS = {"DF", "CI", "CA", "CD", 
-        "CR", "VA", "VI", "VR"};
-    const std::set<std::string> LEGS_CALC = {"DF", "TF", "CF", "VA", "CA", "FA", "VI", "CI"};
+        "CR", "VA", "VI", "VR", "VD"};
+    const std::set<std::string> LEGS_CALC = {"DF", "TF", "CF", "VA", "CA", "FA", "VI", 
+        "CI", "FD", "CD", "VD"};
     //const std::map<std::string, std::set<std::string>> ILLEGAL_NEXT_LEG = {
     //    {"AF", {"DF", "IF", "PI"}},
     //    {"CA", {"AF", "HA", "HF", "HM", "PI", "RF", "TF"}},
@@ -113,6 +114,9 @@ namespace test
 
     geo::point get_xa_end_point(geo::point prev, float brng_deg, float va_alt_ft, 
         double clb_ft_nm=CLB_RATE_FT_PER_NM);
+
+    geo::point get_dme_end_point(geo::point start, double true_brng_rad, 
+        geo::point st, double dist_nm);
 
     libnav::waypoint_t get_ca_va_wpt(geo::point pos, int n_ft);
 
@@ -328,22 +332,33 @@ namespace test
             Description:
             Calculates end of CA or VA leg
             @param leg: pointer to a node of leg list
-            @param hdg_trk_diff: difference between heading and track
+            @param hdg_trk_diff: difference between heading and track in radians
         */
 
-        void calculate_alt_leg(leg_list_node_t *leg, double hdg_trk_diff);
+        void calculate_alt_leg(leg_list_node_t *leg, double hdg_trk_diff, 
+            double curr_alt_ft);
 
         /*
             Function: calculate_alt_leg
             Description:
             Calculates end of CI or VI leg
             @param leg: pointer to a node of leg list
-            @param hdg_trk_diff: difference between heading and track
+            @param hdg_trk_diff: difference between heading and track in radians
         */
 
         void calculate_intc_leg(leg_list_node_t *leg, double hdg_trk_diff);
 
         void calculate_fc_leg(leg_list_node_t *leg);
+
+        /*
+            Function: calculate_dme_leg
+            Description:
+            Calculates end of CD, FD or VD leg
+            @param leg: pointer to a node of leg list
+            @param hdg_trk_diff: difference between heading and track in radians
+        */
+
+        void calculate_dme_leg(leg_list_node_t *leg, double hdg_trk_diff);
 
         /*
             Function: calculate_alt_leg
@@ -359,9 +374,9 @@ namespace test
             Description:
             Handles all supported leg types.
             @param leg: pointer to a node of leg list
-            @param hdg_trk_diff: difference between heading and track
+            @param hdg_trk_diff: difference between heading and track in radians
         */
 
-        void calculate_leg(leg_list_node_t *leg, double hdg_trk_diff);
+        void calculate_leg(leg_list_node_t *leg, double hdg_trk_diff, double curr_alt_ft);
     };
 } // namespace test
