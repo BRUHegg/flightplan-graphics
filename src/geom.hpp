@@ -314,8 +314,8 @@ namespace geom
         return out;
     }
 
-    inline line_joint_t get_line_joint(vect2_t pq, vect2_t ps, vect2_t pa, vect2_t pb, 
-        double radius, double str_join_deg=5)
+    inline line_joint_t get_line_joint(vect2_t pq, vect2_t ps, vect2_t pa, vect2_t pb,
+                                       double radius, double str_join_deg = 5)
     {
         line_joint_t out = {};
 
@@ -328,7 +328,7 @@ namespace geom
 
         double c = qs.cross_prod(sb);
 
-        if(abs(c) < sin(str_join_deg * DEG_TO_RAD) && qs.dot_prod(sb) > 0)
+        if (abs(c) < sin(str_join_deg * DEG_TO_RAD) && qs.dot_prod(sb) > 0)
         {
             out.tp = JointType::LINE;
             out.line.start = ps;
@@ -337,12 +337,12 @@ namespace geom
         }
 
         vect2_t r1 = {qs.y, -qs.x}; // unit vector
-        if(c > 0)
+        if (c > 0)
         {
             r1 = r1.scmul(-1);
         }
         vect2_t r2 = {-ab.y, ab.x}; // unit vector
-        if(c > 0)
+        if (c > 0)
         {
             r2 = r2.scmul(-1);
         }
@@ -351,39 +351,48 @@ namespace geom
         vect2_t vec_to_ab;
         double dist = get_vec_to_line(po1, pa, pb, &vec_to_ab);
 
-        if(dist < 2 * radius)
+        double r_cp = vec_to_ab.dot_prod(r2);
+
+        double nml_offs = 0;
+
+        if (r_cp > 0)
         {
-            double r_cp = vec_to_ab.dot_prod(r2);
+            nml_offs = dist + radius;
+        }
+        else
+        {
+            nml_offs = dist - radius;
+        }
 
-            double nml_offs = 0;
-
-            if(r_cp > 0)
-            {
-                nml_offs = dist + radius;
-            }
-            else
-            {
-                nml_offs = dist - radius;
-            }
+        if (nml_offs <= 2 * radius)
+        {
 
             double lat_offs = sqrt(4 * radius * radius - nml_offs * nml_offs);
-            
+
             vect2_t po2 = po1 + vec_to_ab.scmul(nml_offs) + ab.scmul(lat_offs);
 
             vect2_t ctr_vec = po2 - po1;
             ctr_vec = ctr_vec.scmul(0.5);
 
+            vect2_t ln_start = po2 + r2.scmul(-radius);
+
             out.tp = JointType::CIRC_CIRC;
             bool left_turn = c > 0;
             out.arc1 = get_circ_from_pts(po1, ps, po1 + ctr_vec, left_turn);
-            out.arc2 = get_circ_from_pts(po2, po2 + ctr_vec.scmul(-1), 
-                po2 + r2.scmul(-radius), !left_turn);
+            out.arc2 = get_circ_from_pts(po2, po2 + ctr_vec.scmul(-1),
+                                         ln_start, !left_turn);
+
+            out.line.start = ln_start;
+            out.line.end = pb;
         }
         else
         {
             out.tp = JointType::CIRC;
             bool left_turn = c > 0;
-            get_circ_from_pts(po1, ps, po1 + r1.scmul(radius), left_turn);
+            out.arc1 = get_circ_from_pts(po1, ps, po1 + r2.scmul(radius), left_turn);
+
+            out.line.start = pa;
+            out.line.end = pb;
         }
 
         return out;
