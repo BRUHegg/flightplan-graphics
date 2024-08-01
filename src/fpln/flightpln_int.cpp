@@ -1730,7 +1730,7 @@ namespace test
     }
 
     bool FplnInt::get_cf_leg_start(leg_seg_t curr_seg, leg_t curr_leg, leg_t next,
-                                   geo::point *out, bool *to_inh)
+                                   geo::point *out, bool *to_inh, double *turn_radius_out)
     {
         double outbd_brng_deg = double(next.outbd_crs_deg);
 
@@ -1751,12 +1751,13 @@ namespace test
             curr_leg.leg_type != "CI")
         {
             *to_inh = true;
-            get_cf_big_turn_isect(curr_seg, next,
-                                  mag_var * geo::DEG_TO_RAD, &intc);
+            *turn_radius_out = std::max(get_cf_big_turn_isect(curr_seg, next,
+                mag_var * geo::DEG_TO_RAD, &intc), TURN_RADIUS_NM);
         }
         else
         {
             // Replace with straight leg if course deviation is small enough
+            *turn_radius_out = TURN_RADIUS_NM;
             double brng_end_to_main_fix = curr_seg.end.get_gc_bearing_rad(
                 next.main_fix.data.pos);
             if(abs(brng_end_to_main_fix-brng_next_rad) < CF_STRAIGHT_DEV_RAD)
@@ -1803,7 +1804,7 @@ namespace test
     }
 
     bool FplnInt::get_leg_start(leg_seg_t curr_seg, leg_t curr_leg, leg_t next,
-                                geo::point *out, bool *to_inh)
+                                geo::point *out, bool *to_inh, double *turn_radius_nm)
     {
         if (curr_leg.leg_type == "IF")
         {
@@ -1830,11 +1831,13 @@ namespace test
         }
         else if (next.leg_type == "CF")
         {
-            return get_cf_leg_start(curr_seg, curr_leg, next, out, to_inh);
+            return get_cf_leg_start(curr_seg, curr_leg, next, out, to_inh, 
+                turn_radius_nm);
         }
         else if (next.leg_type[0] == 'F')
         {
-            get_cf_leg_start(curr_seg, curr_leg, next, out, to_inh);
+            get_cf_leg_start(curr_seg, curr_leg, next, out, to_inh, 
+                turn_radius_nm);
             return false;
         }
 
@@ -2056,8 +2059,10 @@ namespace test
         if (prev_leg != &(leg_list.head) && !prev_leg->data.is_discon)
         {
             leg->data.misc_data.is_bypassed = get_leg_start(prev_leg->data.misc_data,
-                                                            prev_leg->data.leg, curr_arinc_leg, &leg->data.misc_data.start,
-                                                            &leg->data.misc_data.is_to_inhibited);
+                                                            prev_leg->data.leg, curr_arinc_leg, 
+                                                            &leg->data.misc_data.start,
+                                                            &leg->data.misc_data.is_to_inhibited,
+                                                            &prev_leg->data.misc_data.turn_rad_nm);
 
             if (prev_leg->data.misc_data.turn_rad_nm != -1)
             {

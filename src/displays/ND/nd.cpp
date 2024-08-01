@@ -227,6 +227,8 @@ namespace StratosphereAvionics
         *sz_ptr = 0;
         *sz_ptr_joint = 0;
 
+        bool prev_skipped = false;
+
         for (size_t i = 0; i < m_n_act_leg_data; i++)
         {
             if (i >= N_LEG_PROJ_CACHE_SZ)
@@ -256,14 +258,19 @@ namespace StratosphereAvionics
                                                              map_ctr);
 
                 if (!in_view(start_proj, end_proj, fo_side))
+                {
+                    prev_skipped = true;
                     continue;
+                }
 
-                if (*sz_ptr)
+                if (*sz_ptr && !prev_skipped)
                 {
                     geom::vect2_t prev_start = dst[*sz_ptr - 1].start;
                     geom::vect2_t prev_end = dst[*sz_ptr - 1].end;
+                    double radius_nm = dst[*sz_ptr - 1].turn_rad_nm;
                     dst_joint[*sz_ptr_joint] = geom::get_line_joint(prev_start, prev_end,
-                                                                    start_proj, end_proj, m_leg_data[i].leg_data.turn_rad_nm);
+                                                                    start_proj, end_proj, 
+                                                                    radius_nm);
 
                     *sz_ptr_joint = *sz_ptr_joint + 1;
                 }
@@ -276,10 +283,12 @@ namespace StratosphereAvionics
                 dst[*sz_ptr].turn_rad_nm = m_leg_data[i].leg_data.turn_rad_nm;
 
                 *sz_ptr = *sz_ptr + 1;
+                prev_skipped = false;
             }
             else if (m_leg_data[i].leg_data.is_finite)
             {
                 *sz_ptr = *sz_ptr + 1;
+                prev_skipped = true;
             }
         }
     }
@@ -386,9 +395,9 @@ namespace StratosphereAvionics
         return out;
     }
 
-    void NDDisplay::draw_line_joint(cairo_t *cr, geom::line_joint_t lj, double radius_nm)
+    void NDDisplay::draw_line_joint(cairo_t *cr, geom::line_joint_t lj)
     {
-        double radius_px = radius_nm * scale_factor.x;
+        double radius_px = lj.turn_radius * scale_factor.x;
         if (lj.tp == geom::JointType::CIRC_CIRC)
         {
             geom::vect2_t arc1_trans = get_screen_coords(lj.arc1.pos);
@@ -425,7 +434,7 @@ namespace StratosphereAvionics
 
         for (size_t i = 0; i < n_joints; i++)
         {
-            draw_line_joint(cr, joints[i], 1);
+            draw_line_joint(cr, joints[i]);
         }
 
         for (size_t i = 0; i < buf_size; i++)

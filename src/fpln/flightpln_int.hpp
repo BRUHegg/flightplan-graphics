@@ -304,7 +304,7 @@ namespace test
         static void get_to_leg_start(leg_seg_t curr_seg, leg_t next, geo::point *out);
 
         static bool get_cf_leg_start(leg_seg_t curr_seg, leg_t curr_leg, leg_t next, 
-            geo::point *out, bool *to_inh);
+            geo::point *out, bool *to_inh, double *turn_radius_out);
 
         /*
             Function: get_leg_start
@@ -316,10 +316,11 @@ namespace test
             @param out: pointer to where the output should be stored
             @param to_inh: set to true when turn offset is inhibited
             (90 degree and more turns). Otherwise not set
+            @param turn_radius_nm: where to output turn radius if required
         */
 
         bool get_leg_start(leg_seg_t curr_seg, leg_t curr_leg, leg_t next, 
-            geo::point *out, bool *to_inh);
+            geo::point *out, bool *to_inh, double *turn_radius_nm);
 
         static void set_xi_leg(leg_list_node_t *leg);
 

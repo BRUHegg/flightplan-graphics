@@ -127,6 +127,7 @@ namespace geom
         JointType tp;
         arc_t arc1, arc2;
         line_t line;
+        double turn_radius;
     };
 
 
@@ -318,6 +319,8 @@ namespace geom
                                        double radius, double str_join_deg = 5)
     {
         line_joint_t out = {};
+
+        out.turn_radius = radius;
 
         vect2_t qs = ps - pq;
         qs = qs.get_unit();
