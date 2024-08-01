@@ -27,12 +27,12 @@ namespace cairo_utils
 {
     // Colors:
 
-    constexpr geom::vect3_t RED = {1, 0, 0};
-    constexpr geom::vect3_t GREEN = {0, 1, 0};
-    constexpr geom::vect3_t BLUE = {0, 0, 1};
     constexpr geom::vect3_t WHITE = {1, 1, 1};
     constexpr geom::vect3_t DARK_BLUE = {0.01, 0.05, 0.15};
     constexpr geom::vect3_t MAGENTA = {1, 0.451, 1};
+    constexpr geom::vect3_t RED = {1, 0, 0};
+    constexpr geom::vect3_t GREEN = {0, 1, 0};
+    constexpr geom::vect3_t BLUE = {0, 0, 1};
 
     const std::string DEFAULT_IMG_FORMAT = ".png";
 
@@ -149,7 +149,7 @@ namespace cairo_utils
     {
         prepare_cairo_context(cr, color, line_width);
 
-        cairo_move_to(cr, pos.x+radius, pos.y);
+        cairo_new_sub_path(cr);
         cairo_arc(cr, pos.x, pos.y, radius, angle1, angle2);
         cairo_stroke(cr);
 

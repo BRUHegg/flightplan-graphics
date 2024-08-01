@@ -8,6 +8,17 @@
 
 namespace geom
 {
+    enum class JointType
+    {
+        CIRC,
+        CIRC_CIRC,
+        LINE
+    };
+
+    constexpr double DEG_TO_RAD = M_PI / 180.0;
+	constexpr double RAD_TO_DEG = 180.0 / M_PI;
+
+
     struct vect2_t
     {
         double x, y;
@@ -100,6 +111,25 @@ namespace geom
         }
     };
 
+    struct arc_t
+    {
+        double ang_start_rad, ang_end_rad;
+        vect2_t pos;
+    };
+
+    struct line_t
+    {
+        vect2_t start, end;
+    };
+
+    struct line_joint_t
+    {
+        JointType tp;
+        arc_t arc1, arc2;
+        line_t line;
+    };
+
+
     /*
         Function: get_point_line_dist
         Description:
@@ -121,6 +151,25 @@ namespace geom
         double p = (s_a + s_b + s_c) / 2;
         double area = sqrt(p * (p - s_a) * (p - s_b) * (p - s_c));
         return area * 2 / s_c;
+    }
+
+    inline double get_vec_to_line(vect2_t px, vect2_t pl1, vect2_t pl2, vect2_t *out)
+    {
+        vect2_t l_vec = pl2 - pl1;
+        double abs_lvec = l_vec.absval();
+        assert(abs_lvec != 0);
+
+        vect2_t a = pl1 - px;
+        vect2_t b = pl2 - px;
+
+        vect2_t nml = {l_vec.y, -l_vec.x};
+        if(nml.dot_prod(a) < 0)
+            nml = nml.scmul(-1);
+        
+        double dist = abs(a.cross_prod(b)) / abs_lvec;
+
+        *out = nml.get_unit();
+        return dist;
     }
 
     /*
@@ -219,6 +268,125 @@ namespace geom
             *out = pi + a.scmul(-im);
             return r;
         }
+    }
+
+    inline double get_turn_rad(double ang_start_rad, double ang_end_rad, bool left_turn)
+    {
+        double diff = ang_start_rad - ang_end_rad;
+
+        if(diff > 0 && left_turn)
+        {
+            return diff - 2 * M_PI;
+        }
+        else if(diff < 0 && !left_turn)
+        {
+            return diff + 2 * M_PI;
+        }
+
+        return diff;
+    }
+
+    inline arc_t get_circ_from_pts(vect2_t pos, vect2_t start, vect2_t end, 
+        bool left_turn)
+    {
+        vect2_t v_start = start - pos;
+        vect2_t v_end = end - pos;
+
+        double ang_start_rad = atan2(v_start.y, v_start.x);
+        double ang_end_rad = atan2(v_end.y, v_end.x);
+
+        if(ang_start_rad < 0)
+            ang_start_rad += 2 * M_PI;
+        if(ang_end_rad < 0)
+            ang_end_rad += 2 * M_PI;
+
+        double turn_rad = get_turn_rad(ang_start_rad, ang_end_rad, left_turn);
+
+        arc_t out;
+        out.pos = pos;
+        out.ang_start_rad = -ang_start_rad;
+        out.ang_end_rad = -ang_start_rad + turn_rad;
+        if(left_turn)
+        {
+            std::swap(out.ang_end_rad, out.ang_start_rad);
+        }
+
+        return out;
+    }
+
+    inline line_joint_t get_line_joint(vect2_t pq, vect2_t ps, vect2_t pa, vect2_t pb, 
+        double radius, double str_join_deg=5)
+    {
+        line_joint_t out = {};
+
+        vect2_t qs = ps - pq;
+        qs = qs.get_unit();
+        vect2_t ab = pb - pa;
+        ab = ab.get_unit();
+        vect2_t sb = pb - ps;
+        sb = sb.get_unit();
+
+        double c = qs.cross_prod(sb);
+
+        if(abs(c) < sin(str_join_deg * DEG_TO_RAD) && qs.dot_prod(sb) > 0)
+        {
+            out.tp = JointType::LINE;
+            out.line.start = ps;
+            out.line.end = pa;
+            return out;
+        }
+
+        vect2_t r1 = {qs.y, -qs.x}; // unit vector
+        if(c > 0)
+        {
+            r1 = r1.scmul(-1);
+        }
+        vect2_t r2 = {-ab.y, ab.x}; // unit vector
+        if(c > 0)
+        {
+            r2 = r2.scmul(-1);
+        }
+
+        vect2_t po1 = r1.scmul(radius) + ps;
+        vect2_t vec_to_ab;
+        double dist = get_vec_to_line(po1, pa, pb, &vec_to_ab);
+
+        if(dist < 2 * radius)
+        {
+            double r_cp = vec_to_ab.dot_prod(r2);
+
+            double nml_offs = 0;
+
+            if(r_cp > 0)
+            {
+                nml_offs = dist + radius;
+            }
+            else
+            {
+                nml_offs = dist - radius;
+            }
+
+            double lat_offs = sqrt(4 * radius * radius - nml_offs * nml_offs);
+            
+            vect2_t po2 = po1 + vec_to_ab.scmul(nml_offs) + ab.scmul(lat_offs);
+
+            vect2_t ctr_vec = po2 - po1;
+            ctr_vec = ctr_vec.scmul(0.5);
+
+            out.tp = JointType::CIRC_CIRC;
+            bool left_turn = c > 0;
+            out.arc1 = get_circ_from_pts(po1, ps, po1 + ctr_vec, left_turn);
+            out.arc2 = get_circ_from_pts(po2, po2 + ctr_vec.scmul(-1), 
+                po2 + r2.scmul(-radius), !left_turn);
+        }
+        else
+        {
+            out.tp = JointType::CIRC;
+            bool left_turn = c > 0;
+            get_circ_from_pts(po1, ps, po1 + r1.scmul(radius), left_turn);
+        }
+
+        return out;
     }
 
     // Projection functions
