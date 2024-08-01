@@ -328,7 +328,7 @@ namespace geom
 
         double c = qs.cross_prod(sb);
 
-        if (abs(c) < sin(str_join_deg * DEG_TO_RAD) && qs.dot_prod(sb) > 0)
+        if (abs(c) < sin(str_join_deg * DEG_TO_RAD) && qs.dot_prod(sb) >= 0)
         {
             out.tp = JointType::LINE;
             out.line.start = ps;

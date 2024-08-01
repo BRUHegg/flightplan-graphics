@@ -18,6 +18,7 @@
 namespace StratosphereAvionics
 {
     constexpr size_t N_LEG_PROJ_CACHE_SZ = 200;
+    constexpr size_t N_LN_JOINT_CACHE_SZ = N_LEG_PROJ_CACHE_SZ - 1;
     constexpr size_t N_PROJ_CACHE_SZ = 202;
     constexpr size_t DEP_RWY_PROJ_IDX = N_PROJ_CACHE_SZ-2;
     constexpr size_t ARR_RWY_PROJ_IDX = N_PROJ_CACHE_SZ-1;
@@ -79,6 +80,8 @@ namespace StratosphereAvionics
 
         size_t get_proj_legs(leg_proj_t **out, bool fo_side);
 
+        size_t get_joints(geom::line_joint_t **out, bool fo_side);
+
         bool has_dep_rwy();
 
         bool has_arr_rwy();
@@ -100,8 +103,13 @@ namespace StratosphereAvionics
 
         leg_proj_t *m_proj_legs_cap;
         leg_proj_t *m_proj_legs_fo;
+        geom::line_joint_t *m_line_joints_cap;
+        geom::line_joint_t *m_line_joints_fo;
+
         size_t m_n_act_proj_legs_cap;
         size_t m_n_act_proj_legs_fo;
+        size_t m_n_act_joints_cap;
+        size_t m_n_act_joints_fo;
 
         geo::point m_ctr_cap;
         geo::point m_ctr_fo;
@@ -153,6 +161,8 @@ namespace StratosphereAvionics
         void update_map_params();
 
         geom::vect2_t get_screen_coords(geom::vect2_t src);
+
+        void draw_line_joint(cairo_t *cr, geom::line_joint_t lj, double radius_nm);
 
         void draw_flight_plan(cairo_t *cr, bool draw_labels);
 
