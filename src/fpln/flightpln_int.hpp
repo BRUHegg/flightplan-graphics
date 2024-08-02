@@ -41,6 +41,7 @@ namespace test
     constexpr double DEFAULT_GS_KTS = 250;
     constexpr double CLB_RATE_FT_PER_NM = 500;
     constexpr double TURN_RADIUS_NM = 1; // Untill there is a VNAV
+    constexpr double TURN_OFFSET_PROJ_ERR_NM = 0.05;
     constexpr double ASSUMED_RNP_PROC_NM = 1;
     constexpr double ASSUMED_RNP_ENRT_NM = 3;
     constexpr double CF_STRAIGHT_DEV_RAD = (0.8 * geo::DEG_TO_RAD);

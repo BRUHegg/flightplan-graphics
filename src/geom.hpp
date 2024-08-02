@@ -417,7 +417,7 @@ namespace geom
             out.tp = JointType::CIRC;
             out.arc1 = get_circ_from_pts(po1, ps, po1 + r2.scmul(radius), left_turn);
 
-            out.line.start = pa;
+            out.line.start = po1 + r2.scmul(dist);
             out.line.end = pb;
         }
 

@@ -1704,8 +1704,9 @@ namespace test
             double cos_theta = cos(theta);
             if (sin_theta != 0 && cos_theta != 0)
             {
-                double offs_nm = TURN_RADIUS_NM * cos_theta / sin_theta;
-                assert(offs_nm >= 0);
+                double offs_nm = TURN_RADIUS_NM * cos_theta / sin_theta - 
+                    TURN_OFFSET_PROJ_ERR_NM;
+                offs_nm = std::max(0.0, offs_nm);
 
                 *out = geo::get_pos_from_brng_dist(curr_seg.end,
                                                    brng_end_start + M_PI, offs_nm);
@@ -1882,7 +1883,7 @@ namespace test
             double dist_end_start_nm = prev_end.get_gc_dist_nm(curr_start);
             double ang_rad = M_PI - turn_rad;
             double turn_offs_nm = prev_turn_rad_nm * cos(ang_rad/2) / sin(ang_rad/2);
-            turn_offs_nm = turn_offs_nm - dist_end_start_nm;
+            turn_offs_nm = turn_offs_nm - dist_end_start_nm - TURN_OFFSET_PROJ_ERR_NM;
 
             geo::point prev_start = prev_leg->data.misc_data.start;
             geo::point prev_end = prev_leg->data.misc_data.end;
