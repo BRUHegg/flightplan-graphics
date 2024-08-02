@@ -2071,13 +2071,6 @@ namespace test
                 {
                     set_xi_leg(leg);
                 }
-
-                if (TURN_OFFS_LEGS.find(curr_arinc_leg.leg_type) == TURN_OFFS_LEGS.end() &&
-                    LEGS_CALC.find(prev_leg->data.leg.leg_type) != LEGS_CALC.end() &&
-                    !leg->data.misc_data.is_to_inhibited)
-                {
-                    set_turn_offset(leg);
-                }
             }
         }
 
@@ -2122,5 +2115,18 @@ namespace test
 
         if (leg->data.misc_data.true_trk_deg > 360)
             leg->data.misc_data.true_trk_deg -= 360;
+
+        if (prev_leg != &(leg_list.head) && !prev_leg->data.is_discon)
+        {
+            if (prev_leg->data.misc_data.turn_rad_nm != -1)
+            {
+                if (TURN_OFFS_LEGS.find(curr_arinc_leg.leg_type) == TURN_OFFS_LEGS.end() &&
+                    LEGS_CALC.find(prev_leg->data.leg.leg_type) != LEGS_CALC.end() &&
+                    !leg->data.misc_data.is_to_inhibited)
+                {
+                    set_turn_offset(leg);
+                }
+            }
+        }
     }
 } // namespace test
