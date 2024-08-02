@@ -1,3 +1,14 @@
+/*
+	This project is licensed under
+	Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International Public License (CC BY-NC-SA 4.0).
+
+	A SUMMARY OF THIS LICENSE CAN BE FOUND HERE: https://creativecommons.org/licenses/by-nc-sa/4.0/
+
+	This is the entry point of the app.
+    Author: discord/bruh4096#4512(Tim G.)
+*/
+
+
 #include <gtk/gtk.h>
 #include "displays/common/cairo_utils.hpp"
 #include "main_helpers.hpp"
