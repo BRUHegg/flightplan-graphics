@@ -328,8 +328,21 @@ namespace geom
         ab = ab.get_unit();
         vect2_t sb = pb - ps;
         sb = sb.get_unit();
+        vect2_t sa = pa - ps;
+        sa = sa.get_unit();
 
         double c = qs.cross_prod(sb);
+        double c1 = qs.cross_prod(sa);
+        bool left_turn = false;
+
+        if(abs(c1) < sin(str_join_deg * DEG_TO_RAD))
+        {
+            left_turn = c > 0;
+        }
+        else
+        {
+            left_turn = c1 > 0;
+        }
 
         if (abs(c) < sin(str_join_deg * DEG_TO_RAD) && qs.dot_prod(sb) >= 0)
         {
@@ -340,12 +353,12 @@ namespace geom
         }
 
         vect2_t r1 = {qs.y, -qs.x}; // unit vector
-        if (c > 0)
+        if (left_turn)
         {
             r1 = r1.scmul(-1);
         }
         vect2_t r2 = {-ab.y, ab.x}; // unit vector
-        if (c > 0)
+        if (left_turn)
         {
             r2 = r2.scmul(-1);
         }
@@ -380,7 +393,6 @@ namespace geom
             vect2_t ln_start = po2 + r2.scmul(-radius);
 
             out.tp = JointType::CIRC_CIRC;
-            bool left_turn = c > 0;
             out.arc1 = get_circ_from_pts(po1, ps, po1 + ctr_vec, left_turn);
             out.arc2 = get_circ_from_pts(po2, po2 + ctr_vec.scmul(-1),
                                          ln_start, !left_turn);
@@ -391,7 +403,6 @@ namespace geom
         else
         {
             out.tp = JointType::CIRC;
-            bool left_turn = c > 0;
             out.arc1 = get_circ_from_pts(po1, ps, po1 + r2.scmul(radius), left_turn);
 
             out.line.start = pa;
