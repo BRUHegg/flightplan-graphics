@@ -34,3 +34,6 @@ cmake --build .
 You can see some examples of what the app is capable of below:
 
 ![alt text](image.png)
+![alt text](image-1.png)
+![alt text](image-2.png)
+![alt text](image-3.png)
