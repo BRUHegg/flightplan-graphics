@@ -1,5 +1,7 @@
-setdep EDDF
+setdep EGHH
 setarr LFML
-setdeprwy 25C
-setproc 0 TAU2Q DEP PROC
+load
+setproc 2 RNV31LZ ARR PROC
+legset 17 L L
+legset 18 L L 
 plegs 2
