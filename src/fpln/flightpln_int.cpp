@@ -1864,23 +1864,30 @@ namespace test
     {
         leg_list_node_t *prev_leg = leg->prev;
 
-        double rnp_nm = get_rnp(leg);
+        double prev_trk_rad = prev_leg->data.misc_data.true_trk_deg * geo::DEG_TO_RAD;
+        double curr_trk_rad = leg->data.misc_data.true_trk_deg * geo::DEG_TO_RAD;
+
+        double turn_rad = get_turn_rad(prev_trk_rad, prev_leg->data.misc_data.start,
+            curr_trk_rad, leg->data.misc_data.start);
+        turn_rad = abs(turn_rad);
+
         double prev_turn_rad_nm = prev_leg->data.misc_data.turn_rad_nm;
 
-        double turn_offs_nm = sqrt((prev_turn_rad_nm + rnp_nm) *
-                                       (prev_turn_rad_nm + rnp_nm) -
-                                   prev_turn_rad_nm * prev_turn_rad_nm);
-
-        geo::point prev_start = prev_leg->data.misc_data.start;
-        geo::point prev_end = prev_leg->data.misc_data.end;
-        double dist_nm = prev_start.get_gc_dist_nm(prev_end);
-
-        if (turn_offs_nm < dist_nm)
+        if(turn_rad < M_PI / 2 && turn_rad != 0)
         {
-            dist_nm -= turn_offs_nm;
-            double brng_rad = prev_leg->data.misc_data.true_trk_deg * geo::DEG_TO_RAD;
-            prev_leg->data.misc_data.end = geo::get_pos_from_brng_dist(prev_start,
-                                                                       brng_rad, dist_nm);
+            double turn_offs_nm = prev_turn_rad_nm * cos(turn_rad/2) / sin(turn_rad/2);
+
+            geo::point prev_start = prev_leg->data.misc_data.start;
+            geo::point prev_end = prev_leg->data.misc_data.end;
+            double dist_nm = prev_start.get_gc_dist_nm(prev_end);
+
+            if (turn_offs_nm < dist_nm)
+            {
+                dist_nm -= turn_offs_nm;
+                double brng_rad = prev_leg->data.misc_data.true_trk_deg * geo::DEG_TO_RAD;
+                prev_leg->data.misc_data.end = geo::get_pos_from_brng_dist(prev_start,
+                                                                        brng_rad, dist_nm);
+            }
         }
     }
 
