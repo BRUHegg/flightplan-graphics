@@ -71,18 +71,6 @@ namespace StratosphereAvionics
         return m_n_act_proj_legs_cap;
     }
 
-    size_t NDData::get_joints(geom::line_joint_t **out, bool fo_side)
-    {
-        if (fo_side)
-        {
-            *out = m_line_joints_fo;
-            return m_n_act_joints_fo;
-        }
-
-        *out = m_line_joints_cap;
-        return m_n_act_joints_cap;
-    }
-
     bool NDData::has_dep_rwy()
     {
         return m_has_dep_rwy;
@@ -234,6 +222,8 @@ namespace StratosphereAvionics
             if (i >= N_LEG_PROJ_CACHE_SZ)
                 break;
 
+            dst[*sz_ptr].joint = nullptr;
+
             if ((!m_leg_data[i].leg_data.is_finite && !m_leg_data[i].leg_data.is_bypassed) ||
                 m_leg_data[i].leg_data.is_arc)
                 continue;
@@ -271,6 +261,8 @@ namespace StratosphereAvionics
                     dst_joint[*sz_ptr_joint] = geom::get_line_joint(prev_start, prev_end,
                                                                     start_proj, end_proj, 
                                                                     radius_nm);
+
+                    dst[*sz_ptr].joint = &dst_joint[*sz_ptr_joint];
 
                     *sz_ptr_joint = *sz_ptr_joint + 1;
                 }
@@ -428,14 +420,7 @@ namespace StratosphereAvionics
     void NDDisplay::draw_flight_plan(cairo_t *cr, bool draw_labels)
     {
         leg_proj_t *buf;
-        geom::line_joint_t *joints;
         size_t buf_size = nd_data->get_proj_legs(&buf, fo_side);
-        size_t n_joints = nd_data->get_joints(&joints, fo_side);
-
-        for (size_t i = 0; i < n_joints; i++)
-        {
-            draw_line_joint(cr, joints[i]);
-        }
 
         for (size_t i = 0; i < buf_size; i++)
         {
@@ -446,9 +431,18 @@ namespace StratosphereAvionics
                     geom::vect2_t start = buf[i].start;
                     geom::vect2_t end = buf[i].end;
 
+                    if(buf[i].joint != nullptr)
+                    {
+                        geom::line_joint_t curr_joint = *buf[i].joint;
+
+                        start = curr_joint.line.start;
+
+                        draw_line_joint(cr, curr_joint);
+                    }
+
                     geom::vect2_t s_trans = get_screen_coords(start);
                     geom::vect2_t e_trans = get_screen_coords(end);
-
+                    
                     cairo_utils::draw_line(cr, s_trans, e_trans,
                                            cairo_utils::MAGENTA, ND_FPL_LINE_THICK * size.x);
                 }

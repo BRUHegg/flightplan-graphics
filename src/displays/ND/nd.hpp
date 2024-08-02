@@ -62,6 +62,7 @@ namespace StratosphereAvionics
         bool is_arc, is_finite, is_rwy, has_path;
         double turn_rad_nm;
         std::string end_nm;
+        geom::line_joint_t *joint;
 
 
         std::string get_draw_nm();
@@ -79,8 +80,6 @@ namespace StratosphereAvionics
         NDData(std::shared_ptr<test::FPLSys> fpl_sys);
 
         size_t get_proj_legs(leg_proj_t **out, bool fo_side);
-
-        size_t get_joints(geom::line_joint_t **out, bool fo_side);
 
         bool has_dep_rwy();
 
