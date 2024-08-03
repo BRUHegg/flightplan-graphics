@@ -1893,9 +1893,9 @@ namespace test
             prev_leg->data.misc_data.end);
     }
 
-    void FplnInt::set_turn_offset(leg_list_node_t *leg)
+    void FplnInt::set_turn_offset(leg_list_node_t *leg, leg_list_node_t *prev_leg)
     {
-        leg_list_node_t *prev_leg = leg->prev;
+        assert(!prev_leg->data.misc_data.is_bypassed);
 
         double prev_trk_rad = prev_leg->data.misc_data.true_trk_deg * geo::DEG_TO_RAD;
         double curr_trk_rad = leg->data.misc_data.true_trk_deg * geo::DEG_TO_RAD;
@@ -2173,7 +2173,7 @@ namespace test
                     LEGS_CALC.find(prev_leg->data.leg.leg_type) != LEGS_CALC.end() &&
                     !leg->data.misc_data.is_to_inhibited)
                 {
-                    set_turn_offset(leg);
+                    set_turn_offset(leg, prev_leg);
                 }
             }
         }

@@ -216,6 +216,7 @@ namespace StratosphereAvionics
         *sz_ptr_joint = 0;
 
         bool prev_skipped = false;
+        bool prev_bypassed = false;
 
         for (size_t i = 0; i < m_n_act_leg_data; i++)
         {
@@ -255,9 +256,12 @@ namespace StratosphereAvionics
 
                 if (*sz_ptr && !prev_skipped)
                 {
-                    geom::vect2_t prev_start = dst[*sz_ptr - 1].start;
-                    geom::vect2_t prev_end = dst[*sz_ptr - 1].end;
-                    double radius_nm = dst[*sz_ptr - 1].turn_rad_nm;
+                    size_t bwd_offs = 1;
+                    if(prev_bypassed)
+                        bwd_offs++;
+                    geom::vect2_t prev_start = dst[*sz_ptr - bwd_offs].start;
+                    geom::vect2_t prev_end = dst[*sz_ptr - bwd_offs].end;
+                    double radius_nm = dst[*sz_ptr - bwd_offs].turn_rad_nm;
                     dst_joint[*sz_ptr_joint] = geom::get_line_joint(prev_start, prev_end,
                                                                     start_proj, end_proj, 
                                                                     radius_nm);
@@ -276,12 +280,14 @@ namespace StratosphereAvionics
 
                 *sz_ptr = *sz_ptr + 1;
                 prev_skipped = false;
+                prev_bypassed = false;
             }
             else if (m_leg_data[i].leg_data.is_finite)
             {
                 *sz_ptr = *sz_ptr + 1;
-                prev_skipped = true;
+                prev_skipped = !m_leg_data[i].leg_data.is_bypassed;
             }
+            prev_bypassed = m_leg_data[i].leg_data.is_bypassed;
         }
     }
 

@@ -295,7 +295,7 @@ namespace test
         static void get_df_start(leg_seg_t curr_seg, leg_t next, geo::point *out);
 
         /*
-            Function: get_leg_start
+            Function: get_to_leg_start
             Description:
             Calculates start of a leg that can be offset by a turn(see TURN_OFFS_LEGS)
             @param curr_seg: current segment
@@ -328,7 +328,16 @@ namespace test
 
         static void set_xi_leg(leg_list_node_t *leg);
 
-        static void set_turn_offset(leg_list_node_t *leg);
+        /*
+            Function: set_turn_offset
+            Description:
+            Offsets the end of previous leg so that a turn without overshoot is possible.
+            @param leg: pointer to a node of leg list
+            @param prev_leg: non-bypassed leg before leg. THIS IS IMPORTANT: 
+            IT MUST NOT BE BYPASSED.
+        */
+
+        static void set_turn_offset(leg_list_node_t *leg, leg_list_node_t *prev_leg);
 
         // The following functions are used to calculate ends of arinc424 legs.
 
