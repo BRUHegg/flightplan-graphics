@@ -1682,13 +1682,17 @@ namespace test
         }
     }
 
-    void FplnInt::get_to_leg_start(leg_seg_t curr_seg, leg_t next, geo::point *out)
+    void FplnInt::get_to_leg_start(leg_seg_t curr_seg, leg_t next, 
+        double mag_var_deg, double hdg_trk_diff, geo::point *out)
     {
         double brng_end_start = curr_seg.true_trk_deg * geo::DEG_TO_RAD + M_PI;
         double crs_rad = double(next.outbd_crs_deg) * geo::DEG_TO_RAD;
 
-        if (next.leg_type[0] == 'C')
-            crs_rad -= next.get_mag_var_deg() * geo::DEG_TO_RAD;
+        crs_rad -= mag_var_deg * geo::DEG_TO_RAD;
+
+        if(next.leg_type[0] == 'V')
+            crs_rad -= hdg_trk_diff;
+
         if (brng_end_start < 0)
         {
             brng_end_start += 2 * M_PI;
@@ -1704,8 +1708,7 @@ namespace test
             double cos_theta = cos(theta);
             if (sin_theta != 0 && cos_theta != 0)
             {
-                double offs_nm = TURN_RADIUS_NM * cos_theta / sin_theta - 
-                    TURN_OFFSET_PROJ_ERR_NM;
+                double offs_nm = TURN_RADIUS_NM * cos_theta / sin_theta;
                 offs_nm = std::max(0.0, offs_nm);
 
                 *out = geo::get_pos_from_brng_dist(curr_seg.end,
@@ -1804,8 +1807,9 @@ namespace test
         return is_bp;
     }
 
-    bool FplnInt::get_leg_start(leg_seg_t curr_seg, leg_t curr_leg, leg_t next,
-                                geo::point *out, bool *to_inh, double *turn_radius_nm)
+    bool FplnInt::get_leg_start(leg_seg_t curr_seg, leg_t curr_leg, leg_t next, 
+            double mag_var_deg, double hdg_trk_diff, geo::point *out, 
+            bool *to_inh, double *turn_radius_nm)
     {
         if (curr_leg.leg_type == "IF")
         {
@@ -1821,7 +1825,7 @@ namespace test
             }
             else
             {
-                get_to_leg_start(curr_seg, next, out);
+                get_to_leg_start(curr_seg, next, mag_var_deg, hdg_trk_diff, out);
                 return false;
             }
         }
@@ -1883,7 +1887,7 @@ namespace test
             double dist_end_start_nm = prev_end.get_gc_dist_nm(curr_start);
             double ang_rad = M_PI - turn_rad;
             double turn_offs_nm = prev_turn_rad_nm * cos(ang_rad/2) / sin(ang_rad/2);
-            turn_offs_nm = turn_offs_nm - dist_end_start_nm - TURN_OFFSET_PROJ_ERR_NM;
+            turn_offs_nm = turn_offs_nm - dist_end_start_nm;
 
             geo::point prev_start = prev_leg->data.misc_data.start;
             geo::point prev_end = prev_leg->data.misc_data.end;
@@ -2073,8 +2077,10 @@ namespace test
         }
         if (prev_leg != &(leg_list.head) && !prev_leg->data.is_discon)
         {
+            double m_var = get_leg_mag_var_deg(leg);
             leg->data.misc_data.is_bypassed = get_leg_start(prev_leg->data.misc_data,
-                                                            prev_leg->data.leg, curr_arinc_leg, 
+                                                            prev_leg->data.leg, curr_arinc_leg,
+                                                            m_var, hdg_trk_diff, 
                                                             &leg->data.misc_data.start,
                                                             &leg->data.misc_data.is_to_inhibited,
                                                             &prev_leg->data.misc_data.turn_rad_nm);
