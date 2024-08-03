@@ -1005,6 +1005,17 @@ namespace test
 
                 if (!leg_curr->data.is_discon)
                 {
+                    if (leg_curr->data.seg->data.seg_type == FPL_SEG_DEP_RWY)
+                    {
+                        libnav::arinc_rwy_data_t dep_data = get_rwy_data(
+                            fpl_refs[FPL_SEG_DEP_RWY].name);
+                        curr_alt_ft = dep_data.thresh_elev_msl_ft;
+                    }
+                    else if (leg_curr->data.leg.main_fix.data.type == libnav::NavaidType::RWY)
+                    {
+                        libnav::arinc_rwy_data_t arr_data = get_rwy_data(arr_rwy, true);
+                        curr_alt_ft = arr_data.thresh_elev_msl_ft;
+                    }
                     calculate_leg(leg_curr, hdg_trk_diff, curr_alt_ft);
                     if(leg_curr->data.leg.alt1_ft != 0)
                         curr_alt_ft = leg_curr->data.leg.alt1_ft;
@@ -1308,6 +1319,23 @@ namespace test
         out->push_back(get_dfms_arpt_leg(true));
 
         return out->size();
+    }
+
+    libnav::arinc_rwy_data_t FplnInt::get_rwy_data(std::string nm, bool is_arr)
+    {
+        libnav::arinc_rwy_data_t out = {};
+
+        libnav::arinc_rwy_db_t *db = &dep_rnw;
+
+        if(is_arr)
+            db = &arr_rnw;
+
+        if(db->find(nm) != db->end())
+        {
+            out = db->at(nm);
+        }
+
+        return out;
     }
 
     bool FplnInt::add_fpl_seg(libnav::arinc_leg_seq_t &legs, fpl_segment_types seg_tp, std::string seg_nm,
