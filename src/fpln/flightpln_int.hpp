@@ -43,7 +43,7 @@ namespace test
     constexpr double TURN_RADIUS_NM = 1; // Untill there is a VNAV
     constexpr double ASSUMED_RNP_PROC_NM = 1;
     constexpr double ASSUMED_RNP_ENRT_NM = 3;
-    constexpr double CF_STRAIGHT_DEV_RAD = (0.8 * geo::DEG_TO_RAD);
+    constexpr double CF_STRAIGHT_DEV_RAD = (5 * geo::DEG_TO_RAD);
     const std::string NONE_TRANS = "NONE";
     const std::string MISSED_APPR_SEG_NM = "MISSED APPRCH";
     const std::string INTC_LEG_NM = "(INTC)";
@@ -307,7 +307,7 @@ namespace test
             double mag_var_deg, double hdg_trk_diff, geo::point *out);
 
         static bool get_cf_leg_start(leg_seg_t curr_seg, leg_t curr_leg, leg_t next, 
-            geo::point *out, bool *to_inh, double *turn_radius_out);
+            double mag_var_deg, geo::point *out, bool *to_inh, double *turn_radius_out);
 
         /*
             Function: get_leg_start

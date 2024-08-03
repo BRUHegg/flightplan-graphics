@@ -1761,12 +1761,12 @@ namespace test
         }
     }
 
-    bool FplnInt::get_cf_leg_start(leg_seg_t curr_seg, leg_t curr_leg, leg_t next,
-                                   geo::point *out, bool *to_inh, double *turn_radius_out)
+    bool FplnInt::get_cf_leg_start(leg_seg_t curr_seg, leg_t curr_leg, leg_t next, 
+            double mag_var_deg, geo::point *out, bool *to_inh, double *turn_radius_out)
     {
         double outbd_brng_deg = double(next.outbd_crs_deg);
 
-        double mag_var = next.get_mag_var_deg();
+        double mag_var = mag_var_deg;
         if (!next.outbd_crs_true)
             outbd_brng_deg -= mag_var;
 
@@ -1790,12 +1790,29 @@ namespace test
         {
             // Replace with straight leg if course deviation is small enough
             *turn_radius_out = TURN_RADIUS_NM;
+            
             double brng_end_to_main_fix = curr_seg.end.get_gc_bearing_rad(
-                next.main_fix.data.pos);
-            if(abs(brng_end_to_main_fix-brng_next_rad) < CF_STRAIGHT_DEV_RAD)
+                    next.main_fix.data.pos);
+            if(next.leg_type[0] == 'F')
+                brng_end_to_main_fix += M_PI;
+            
+            double diff = abs(brng_end_to_main_fix-brng_next_rad);
+            
+            if(diff < CF_STRAIGHT_DEV_RAD)
             {
+                double new_brng_rad = brng_next_rad;
+                if(is_ang_greater(brng_end_to_main_fix, brng_next_rad))
+                {
+                    new_brng_rad += M_PI / 2;
+                }
+                else
+                {
+                    new_brng_rad -= M_PI / 2;
+                }
+                intc = geo::get_pos_from_intc(curr_seg.end, next.main_fix.data.pos, 
+                    new_brng_rad, brng_next_rad);
                 *to_inh = true;
-                *out = curr_seg.end;
+                *out = intc;
                 return false;
             }
 
@@ -1864,12 +1881,12 @@ namespace test
         }
         else if (next.leg_type == "CF")
         {
-            return get_cf_leg_start(curr_seg, curr_leg, next, out, to_inh, 
+            return get_cf_leg_start(curr_seg, curr_leg, next, mag_var_deg, out, to_inh, 
                 turn_radius_nm);
         }
         else if (next.leg_type[0] == 'F')
         {
-            get_cf_leg_start(curr_seg, curr_leg, next, out, to_inh, 
+            get_cf_leg_start(curr_seg, curr_leg, next, mag_var_deg, out, to_inh, 
                 turn_radius_nm);
             return false;
         }
@@ -1977,7 +1994,7 @@ namespace test
         leg->data.misc_data.turn_rad_nm = TURN_RADIUS_NM;
 
         leg->data.leg.set_main_fix(end_wpt);
-        leg->data.leg.outbd_dist_time = float(ref_wpt.get_gc_dist_nm(end_pt));
+        leg->data.leg.outbd_dist_time = ref_wpt.get_gc_dist_nm(end_pt);
         leg->data.leg.outbd_dist_as_time = false;
     }
 
