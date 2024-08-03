@@ -435,7 +435,8 @@ namespace StratosphereAvionics
                     {
                         geom::line_joint_t curr_joint = *buf[i].joint;
 
-                        start = curr_joint.line.start;
+                        if(curr_joint.tp != geom::JointType::LINE)
+                            start = curr_joint.line.start;
 
                         draw_line_joint(cr, curr_joint);
                     }

@@ -69,11 +69,6 @@ namespace StratosphereAvionics
     };
 
 
-    geom::vect2_t get_projection(double brng_rad, double dist_nm);
-
-    geom::vect2_t project_point(geo::point tgt, geo::point p_ctr);
-
-
     class NDData
     {
     public:
