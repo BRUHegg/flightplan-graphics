@@ -1798,7 +1798,7 @@ namespace test
             
             double diff = abs(brng_end_to_main_fix-brng_next_rad);
             
-            if(diff < CF_STRAIGHT_DEV_RAD)
+            if(diff < CF_STRAIGHT_DEV_RAD && abs(turn_rad) < CF_STRAIGHT_DEV_RAD)
             {
                 double new_brng_rad = brng_next_rad;
                 double brng_from_next = brng_next_rad;
@@ -2108,6 +2108,7 @@ namespace test
         leg->data.misc_data.is_finite = false;
         leg->data.misc_data.is_bypassed = false;
         leg->data.misc_data.is_to_inhibited = false;
+        leg->data.misc_data.has_disc = false;
         leg->data.misc_data.turn_rad_nm = -1;
 
         if (leg->data.leg.main_fix.data.type == libnav::NavaidType::RWY)
@@ -2196,6 +2197,11 @@ namespace test
                     set_turn_offset(leg, prev_leg);
                 }
             }
+        }
+
+        if(leg->prev != &(leg_list.head) && leg->prev->data.is_discon)
+        {
+            leg->data.misc_data.has_disc = true;
         }
     }
 } // namespace test

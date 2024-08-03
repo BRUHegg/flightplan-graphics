@@ -63,7 +63,7 @@ namespace test
     struct leg_seg_t
     {
         // is_to_inhibited - true if turn offset is inhibited
-        bool is_arc, is_finite, is_rwy, is_bypassed, is_to_inhibited;
+        bool is_arc, is_finite, is_rwy, is_bypassed, is_to_inhibited, has_disc;
         geo::point start, end;
         double turn_rad_nm, true_trk_deg;
     };

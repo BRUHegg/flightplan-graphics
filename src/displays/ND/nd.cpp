@@ -254,7 +254,7 @@ namespace StratosphereAvionics
                     continue;
                 }
 
-                if (*sz_ptr && !prev_skipped)
+                if (*sz_ptr && !prev_skipped && !m_leg_data[i-1].leg_data.has_disc)
                 {
                     size_t bwd_offs = 1;
                     if(prev_bypassed)
