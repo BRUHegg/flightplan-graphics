@@ -1801,6 +1801,9 @@ namespace test
             if(diff < CF_STRAIGHT_DEV_RAD)
             {
                 double new_brng_rad = brng_next_rad;
+                double brng_from_next = brng_next_rad;
+                if(curr_leg.leg_type == "CF")
+                    brng_from_next += M_PI;
                 if(is_ang_greater(brng_end_to_main_fix, brng_next_rad))
                 {
                     new_brng_rad += M_PI / 2;
@@ -1810,7 +1813,7 @@ namespace test
                     new_brng_rad -= M_PI / 2;
                 }
                 intc = geo::get_pos_from_intc(curr_seg.end, next.main_fix.data.pos, 
-                    new_brng_rad, brng_next_rad);
+                    new_brng_rad, brng_from_next);
                 *to_inh = true;
                 *out = intc;
                 return false;
