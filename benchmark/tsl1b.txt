@@ -1,0 +1,9 @@
+setdep LGSK
+setarr LFML
+setdeprwy 01
+setproc 0 TSL1B DEP PROC
+legset 7 L L EVIKO
+#legset 8 L L SIGFO
+
+plegs 2
+pseg

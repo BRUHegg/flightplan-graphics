@@ -1,0 +1,5 @@
+setdep KOTH
+setarr LFML
+setdeprwy 05
+setproc 0 OTH7 DEP PROC
+plegs 2
