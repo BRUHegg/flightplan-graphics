@@ -1,0 +1,5 @@
+setdep LSZH
+setarr LFML
+setdeprwy 32
+setproc 0 DEGE5L DEP PROC
+plegs 2
