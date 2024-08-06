@@ -1906,7 +1906,7 @@ namespace test
         intc_wpt.id = INTC_LEG_NM;
         intc_wpt.data.pos = leg->data.misc_data.start;
         intc_wpt.data.type = libnav::NavaidType::WAYPOINT;
-        prev_leg->data.leg.set_main_fix(intc_wpt);
+        prev_leg->data.misc_data.set_calc_wpt(intc_wpt);
 
         prev_leg->data.misc_data.end = leg->data.misc_data.start;
         prev_leg->data.leg.outbd_dist_time = prev_leg->data.misc_data.start.get_gc_dist_nm(
@@ -1996,7 +1996,7 @@ namespace test
         leg->data.misc_data.end = end_pt;
         leg->data.misc_data.turn_rad_nm = TURN_RADIUS_NM;
 
-        leg->data.leg.set_main_fix(end_wpt);
+        leg->data.misc_data.set_calc_wpt(end_wpt);
         leg->data.leg.outbd_dist_time = ref_wpt.get_gc_dist_nm(end_pt);
         leg->data.leg.outbd_dist_as_time = false;
     }
@@ -2096,6 +2096,8 @@ namespace test
         leg->data.misc_data.is_finite = true;
         leg->data.misc_data.end = curr_end;
         leg->data.misc_data.turn_rad_nm = turn_rad_nm;
+
+        leg->data.misc_data.set_calc_wpt(leg->data.leg.main_fix);
     }
 
     void FplnInt::calculate_leg(leg_list_node_t *leg, double hdg_trk_diff, 
@@ -2103,12 +2105,7 @@ namespace test
     {
         leg_t curr_arinc_leg = leg->data.leg;
 
-        leg->data.misc_data.is_rwy = false;
-        leg->data.misc_data.is_arc = false;
-        leg->data.misc_data.is_finite = false;
-        leg->data.misc_data.is_bypassed = false;
-        leg->data.misc_data.is_to_inhibited = false;
-        leg->data.misc_data.has_disc = false;
+        leg->data.misc_data = {};
         leg->data.misc_data.turn_rad_nm = -1;
 
         if (leg->data.leg.main_fix.data.type == libnav::NavaidType::RWY)

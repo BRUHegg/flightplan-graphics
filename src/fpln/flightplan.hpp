@@ -66,13 +66,18 @@ namespace test
         bool is_arc, is_finite, is_rwy, is_bypassed, is_to_inhibited, has_disc;
         geo::point start, end;
         double turn_rad_nm, true_trk_deg;
+
+        bool has_calc_wpt;
+        libnav::waypoint_t calc_wpt;
+
+
+        void set_calc_wpt(libnav::waypoint_t wpt);
     };
 
     struct nd_leg_data_t
     {
         leg_seg_t leg_data;
-        geo::point arc_ctr, end_wpt;
-        std::string end_name;
+        geo::point arc_ctr;
     };
 
     struct leg_list_data_t;

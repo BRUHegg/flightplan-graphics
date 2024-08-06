@@ -229,13 +229,16 @@ namespace StratosphereAvionics
                 m_leg_data[i].leg_data.is_arc)
                 continue;
 
-            if (m_leg_data[i].leg_data.is_finite)
+            if (m_leg_data[i].leg_data.is_finite && m_leg_data[i].leg_data.has_calc_wpt)
             {
-                double dist_wpt = map_ctr.get_gc_dist_nm(m_leg_data[i].end_wpt);
-                double brng_wpt = map_ctr.get_gc_bearing_rad(m_leg_data[i].end_wpt);
+                geo::point end_wpt = m_leg_data[i].leg_data.calc_wpt.data.pos;
+                std::string end_name = m_leg_data[i].leg_data.calc_wpt.id;
+
+                double dist_wpt = map_ctr.get_gc_dist_nm(end_wpt);
+                double brng_wpt = map_ctr.get_gc_bearing_rad(end_wpt);
 
                 dst[*sz_ptr].end_wpt = {dist_wpt * sin(brng_wpt), dist_wpt * cos(brng_wpt)};
-                dst[*sz_ptr].end_nm = m_leg_data[i].end_name;
+                dst[*sz_ptr].end_nm = end_name;
                 dst[*sz_ptr].is_finite = true;
                 dst[*sz_ptr].is_arc = m_leg_data[i].leg_data.is_arc;
                 dst[*sz_ptr].has_path = false;

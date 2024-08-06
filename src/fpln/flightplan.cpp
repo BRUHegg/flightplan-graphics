@@ -17,6 +17,16 @@
 
 namespace test
 {
+    // leg_seg_t definitions:
+
+    void leg_seg_t::set_calc_wpt(libnav::waypoint_t wpt)
+    {
+        has_calc_wpt = true;
+        calc_wpt = wpt;
+    }
+
+    // Misc:
+
     std::string get_leg_str(leg_t& leg)
     {
         return leg.leg_type + " " + leg.main_fix.id;
