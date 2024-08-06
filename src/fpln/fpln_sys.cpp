@@ -100,10 +100,10 @@ namespace test
 
         if (curr_idx+1 < n_act_leg_list_sz)
         {
-            bool has_pos = leg_list[curr_idx].data.leg.has_main_fix;
+            bool has_pos = leg_list[curr_idx].data.misc_data.has_calc_wpt;
             if (has_pos)
             {
-                *out = leg_list[curr_idx].data.leg.main_fix.data.pos;
+                *out = leg_list[curr_idx].data.misc_data.calc_wpt.data.pos;
                 return true;
             }
         }
@@ -135,7 +135,7 @@ namespace test
             size_t curr_v = *curr_idx;
 
             while(leg_list[*curr_idx].data.is_discon || 
-                !leg_list[*curr_idx].data.leg.has_main_fix)
+                !leg_list[*curr_idx].data.misc_data.has_calc_wpt)
             {
                 if(*curr_idx)
                     *curr_idx = *curr_idx - 1;
@@ -154,7 +154,7 @@ namespace test
             size_t curr_v = *curr_idx;
 
             while(leg_list[*curr_idx].data.is_discon || 
-                !leg_list[*curr_idx].data.leg.has_main_fix)
+                !leg_list[*curr_idx].data.misc_data.has_calc_wpt)
             {
                 if (*curr_idx < n_act_leg_list_sz-1)
                     *curr_idx = *curr_idx + 1;
