@@ -1875,7 +1875,7 @@ namespace test
     {
         if (curr_leg.leg_type == "IF")
         {
-            *out = curr_leg.main_fix.data.pos;
+            *out = curr_seg.calc_wpt.data.pos;
             return false;
         }
         if (TURN_OFFS_LEGS.find(next.leg_type) != TURN_OFFS_LEGS.end())
@@ -1893,7 +1893,7 @@ namespace test
         }
         else if (next.leg_type == "TF")
         {
-            *out = curr_leg.main_fix.data.pos;
+            *out = curr_seg.calc_wpt.data.pos;
             return false;
         }
         else if (next.leg_type == "CF")
@@ -2160,6 +2160,8 @@ namespace test
 
         if (leg->data.misc_data.is_bypassed)
         {
+            if(leg->data.leg.has_main_fix)
+                leg->data.misc_data.set_calc_wpt(leg->data.leg.main_fix);
             leg->data.misc_data.is_finite = true;
             return;
         }
