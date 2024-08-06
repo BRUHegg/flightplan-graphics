@@ -435,7 +435,7 @@ namespace StratosphereAvionics
         {
             if (buf[i].is_finite && !buf[i].is_arc)
             {
-                if (!draw_labels && buf[i].has_path)
+                if (!draw_labels)
                 {
                     geom::vect2_t start = buf[i].start;
                     geom::vect2_t end = buf[i].end;
@@ -450,11 +450,14 @@ namespace StratosphereAvionics
                         draw_line_joint(cr, curr_joint);
                     }
 
-                    geom::vect2_t s_trans = get_screen_coords(start);
-                    geom::vect2_t e_trans = get_screen_coords(end);
-                    
-                    cairo_utils::draw_line(cr, s_trans, e_trans,
-                                           cairo_utils::MAGENTA, ND_FPL_LINE_THICK * size.x);
+                    if(buf[i].has_path)
+                    {
+                        geom::vect2_t s_trans = get_screen_coords(start);
+                        geom::vect2_t e_trans = get_screen_coords(end);
+                        
+                        cairo_utils::draw_line(cr, s_trans, e_trans,
+                                            cairo_utils::MAGENTA, ND_FPL_LINE_THICK * size.x);
+                    }
                 }
                 else if (buf[i].end_nm.size() && draw_labels)
                 {

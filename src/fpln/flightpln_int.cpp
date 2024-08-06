@@ -1960,6 +1960,14 @@ namespace test
                 prev_leg->data.misc_data.end = geo::get_pos_from_brng_dist(prev_start,
                                                                         brng_rad, dist_nm);
             }
+
+            double curr_dist_nm = curr_start.get_gc_dist_nm(curr_end);
+
+            if(turn_offs_nm > curr_dist_nm)
+            {
+                leg->data.misc_data.is_bypassed = true;
+                leg->data.misc_data.is_to_inhibited = true;
+            }
         }
     }
 
@@ -2218,7 +2226,7 @@ namespace test
             {
                 if (TURN_OFFS_LEGS.find(curr_arinc_leg.leg_type) == TURN_OFFS_LEGS.end() &&
                     LEGS_CALC.find(prev_leg->data.leg.leg_type) != LEGS_CALC.end() &&
-                    !leg->data.misc_data.is_to_inhibited)
+                    !prev_leg->data.misc_data.is_to_inhibited)
                 {
                     set_turn_offset(leg, prev_leg);
                 }
