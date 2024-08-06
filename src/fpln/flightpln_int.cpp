@@ -186,8 +186,22 @@ namespace test
 
     libnav::waypoint_t get_ca_va_wpt(geo::point pos, int n_ft)
     {
-        libnav::waypoint_t out;
+        libnav::waypoint_t out  = {};
         out.id = "(" + std::to_string(n_ft) + ")";
+        out.data.pos = pos;
+        out.data.arinc_type = 0;
+        out.data.area_code = "";
+        out.data.country_code = "";
+        out.data.type = libnav::NavaidType::WAYPOINT;
+        out.data.navaid = nullptr;
+
+        return out;
+    }
+
+    libnav::waypoint_t get_xd_wpt(geo::point pos, std::string main_nm, int dme_nm)
+    {
+        libnav::waypoint_t out  = {};
+        out.id = "(" + main_nm + "/" + std::to_string(dme_nm) + ")";
         out.data.pos = pos;
         out.data.arinc_type = 0;
         out.data.area_code = "";
@@ -2071,6 +2085,9 @@ namespace test
         leg->data.misc_data.is_bypassed = false;
         leg->data.misc_data.true_trk_deg = true_brng_rad * geo::RAD_TO_DEG;
         leg->data.misc_data.turn_rad_nm = TURN_RADIUS_NM;
+
+        leg->data.misc_data.set_calc_wpt(get_xd_wpt(end, leg->data.leg.recd_navaid.id,
+            int(leg->data.leg.outbd_dist_time)));
     }
 
     void FplnInt::calculate_crs_trk_dir_leg(leg_list_node_t *leg)

@@ -120,6 +120,8 @@ namespace test
 
     libnav::waypoint_t get_ca_va_wpt(geo::point pos, int n_ft);
 
+    libnav::waypoint_t get_xd_wpt(geo::point pos, std::string main_nm, int dme_nm);
+
     double get_rnp(leg_list_node_t *leg);
 
 
