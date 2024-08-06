@@ -383,16 +383,23 @@ namespace test
                 double lon_deg = i.data.leg.main_fix.data.pos.lon_rad * geo::RAD_TO_DEG;
                 if(i.data.leg.leg_type != "IF" && show_dist_trk)
                 {
-                    float brng_deg = i.data.misc_data.true_trk_deg;
-                    float dist_nm = i.data.leg.outbd_dist_time;
-                    std::string brng_str = strutils::double_to_str(double(brng_deg), 6);
-                    std::string dist_str = strutils::double_to_str(double(dist_nm), 6);
-                    std::cout << brng_str << " " << dist_str << "\n";
+                    if(!i.data.misc_data.is_bypassed)
+                    {
+                        float brng_deg = i.data.misc_data.true_trk_deg;
+                        float dist_nm = i.data.leg.outbd_dist_time;
+                        std::string brng_str = strutils::double_to_str(double(brng_deg), 6);
+                        std::string dist_str = strutils::double_to_str(double(dist_nm), 6);
+                        std::cout << brng_str << " " << dist_str << "\n";
+                    }
+                    else
+                    {
+                        std::cout << "--- ---\n";
+                    }
                 }
                 std::string pos = "";
                 if(!show_dist_trk)
                     pos = strutils::double_to_str(lat_deg, 6) + " " + strutils::double_to_str(lon_deg, 6);
-                std::string misc_data = i.data.leg.main_fix.id + " " + i.data.leg.leg_type;
+                std::string misc_data = i.data.misc_data.calc_wpt.id + " " + i.data.leg.leg_type;
 
                 std::cout << misc_data + " " + pos << "\n";
             }
