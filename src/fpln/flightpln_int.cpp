@@ -2125,7 +2125,8 @@ namespace test
         leg->data.misc_data = {};
         leg->data.misc_data.turn_rad_nm = -1;
 
-        if (leg->data.leg.main_fix.data.type == libnav::NavaidType::RWY)
+        if (curr_arinc_leg.has_main_fix && 
+            curr_arinc_leg.main_fix.data.type == libnav::NavaidType::RWY)
         {
             leg->data.misc_data.is_rwy = true;
         }
