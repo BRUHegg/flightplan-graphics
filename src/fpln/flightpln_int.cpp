@@ -2155,6 +2155,7 @@ namespace test
             leg->data.misc_data.start = main_fix_pos;
             leg->data.misc_data.end = main_fix_pos;
             leg->data.misc_data.turn_rad_nm = 0;
+            leg->data.misc_data.set_calc_wpt(curr_arinc_leg.main_fix);
         }
         else if (curr_arinc_leg.leg_type == "CA" || curr_arinc_leg.leg_type == "VA" || 
             curr_arinc_leg.leg_type == "FA")
