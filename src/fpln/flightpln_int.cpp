@@ -1929,8 +1929,6 @@ namespace test
 
     void FplnInt::set_turn_offset(leg_list_node_t *leg, leg_list_node_t *prev_leg)
     {
-        assert(!prev_leg->data.misc_data.is_bypassed);
-
         double prev_trk_rad = prev_leg->data.misc_data.true_trk_deg * geo::DEG_TO_RAD;
         double curr_trk_rad = leg->data.misc_data.true_trk_deg * geo::DEG_TO_RAD;
 
@@ -2134,11 +2132,18 @@ namespace test
         leg_list_node_t *prev_leg = leg->prev;
         bool intc_bp = false;
 
-        if (prev_leg->data.misc_data.is_bypassed)
+        if(prev_leg != &(leg_list.head))
         {
-            prev_leg = prev_leg->prev;
-            intc_bp = true;
+            if (prev_leg->data.misc_data.is_bypassed)
+            {
+                intc_bp = true;
+            }
+            if (prev_leg->data.misc_data.turn_rad_nm < 0)
+            {
+                prev_leg = prev_leg->prev;
+            }
         }
+        
         if (prev_leg != &(leg_list.head) && !prev_leg->data.is_discon)
         {
             double m_var = get_leg_mag_var_deg(leg);
@@ -2161,9 +2166,12 @@ namespace test
 
         if (leg->data.misc_data.is_bypassed)
         {
+            leg->data.misc_data = prev_leg->data.misc_data;
+            leg->data.misc_data.is_bypassed = true;
             if(leg->data.leg.has_main_fix)
                 leg->data.misc_data.set_calc_wpt(leg->data.leg.main_fix);
             leg->data.misc_data.is_finite = true;
+            leg->data.misc_data.turn_rad_nm = -1;
             return;
         }
 

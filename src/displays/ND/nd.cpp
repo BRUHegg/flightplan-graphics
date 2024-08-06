@@ -276,7 +276,7 @@ namespace StratosphereAvionics
 
                 dst[*sz_ptr].start = start_proj;
                 dst[*sz_ptr].end = end_proj;
-                dst[*sz_ptr].has_path = true;
+                dst[*sz_ptr].has_path = !m_leg_data[i].leg_data.is_bypassed;
 
                 dst[*sz_ptr].is_rwy = m_leg_data[i].leg_data.is_rwy;
                 dst[*sz_ptr].turn_rad_nm = m_leg_data[i].leg_data.turn_rad_nm;
@@ -290,7 +290,7 @@ namespace StratosphereAvionics
                 *sz_ptr = *sz_ptr + 1;
                 prev_skipped = !m_leg_data[i].leg_data.is_bypassed;
             }
-            prev_bypassed = m_leg_data[i].leg_data.is_bypassed;
+            prev_bypassed = m_leg_data[i].leg_data.turn_rad_nm == -1;
         }
     }
 
