@@ -356,7 +356,8 @@ namespace geom
             left_turn = c1 > 0;
         }
 
-        if (abs(c) < sin(str_join_deg * DEG_TO_RAD) && qs.dot_prod(sb) >= 0)
+        if (abs(c) < sin(str_join_deg * DEG_TO_RAD) && qs.dot_prod(sb) >= 0 && 
+            abs(qs.cross_prod(sa)) < sin(str_join_deg * DEG_TO_RAD))
         {
             out.tp = JointType::LINE;
             out.line.start = ps;
