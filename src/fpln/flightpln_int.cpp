@@ -961,7 +961,7 @@ namespace test
         if (next.id == leg_list.id)
         {
             leg_t dir_leg{};
-            dir_leg.leg_type = "TF";
+            dir_leg.leg_type = "DF";
             dir_leg.set_main_fix(wpt);
 
             add_direct_leg(dir_leg, next.ptr);
@@ -1010,6 +1010,11 @@ namespace test
                     if (NOT_FOLLOWED_BY_DF.find(prev_type) != NOT_FOLLOWED_BY_DF.end())
                     {
                         leg_curr->data.leg.leg_type = "CF";
+                        geo::point prev_pos = leg_curr->prev->data.misc_data.start;
+                        geo::point curr_pos = leg_curr->data.leg.main_fix.data.pos;
+                        double trk_deg = prev_pos.get_gc_bearing_rad(curr_pos);
+                        leg_curr->data.leg.outbd_crs_deg = trk_deg;
+                        leg_curr->data.leg.outbd_crs_true = true;
                     }
                     else
                     {
