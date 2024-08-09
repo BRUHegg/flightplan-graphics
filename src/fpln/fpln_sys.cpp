@@ -79,6 +79,9 @@ namespace test
             if (!n_max)
                 return n_written;
 
+            if(leg_list[i].data.is_discon)
+                continue;
+
             nd_leg_data_t tmp;
             tmp.leg_data = leg_list[i].data.misc_data;
             tmp.arc_ctr = leg_list[i].data.leg.center_fix.data.pos;
