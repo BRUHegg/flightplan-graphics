@@ -1683,7 +1683,7 @@ namespace test
                             curr->data.misc_data.start, outbd_crs_next, curr->data.misc_data.start);
     }
 
-    void FplnInt::get_df_start(leg_seg_t curr_seg, leg_t next, geo::point *out)
+    bool FplnInt::get_df_start(leg_seg_t curr_seg, leg_t next, geo::point *out)
     {
         double brng_end_start = curr_seg.true_trk_deg * geo::DEG_TO_RAD + M_PI;
         geo::point p1 = geo::get_pos_from_brng_dist(curr_seg.end, brng_end_start + M_PI / 2,
@@ -1702,6 +1702,9 @@ namespace test
 
         if (left_turn) // left turn
         {
+            if(TURN_RADIUS_NM > dist1)
+                return true;
+
             if (dist1 == 0)
             {
                 *out = curr_seg.end;
@@ -1713,6 +1716,9 @@ namespace test
         }
         else
         {
+            if(TURN_RADIUS_NM > dist2)
+                return true;
+
             if (dist2 == 0)
             {
                 *out = curr_seg.end;
@@ -1722,6 +1728,8 @@ namespace test
             double ang_doub = ang_main - theta;
             *out = geo::get_pos_from_brng_dist(p2, ang_doub, TURN_RADIUS_NM);
         }
+
+        return false;
     }
 
     void FplnInt::get_to_leg_start(leg_seg_t curr_seg, leg_t next, 
@@ -1882,8 +1890,7 @@ namespace test
         {
             if (next.leg_type == "DF")
             {
-                get_df_start(curr_seg, next, out);
-                return false;
+                return get_df_start(curr_seg, next, out);
             }
             else
             {

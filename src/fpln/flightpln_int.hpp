@@ -294,7 +294,7 @@ namespace test
 
         double get_leg_turn_rad(leg_list_node_t *curr);
 
-        static void get_df_start(leg_seg_t curr_seg, leg_t next, geo::point *out);
+        static bool get_df_start(leg_seg_t curr_seg, leg_t next, geo::point *out);
 
         /*
             Function: get_to_leg_start
