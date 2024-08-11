@@ -42,6 +42,7 @@ namespace test
     {
         departure = nullptr;
         arrival = nullptr;
+        act_leg = nullptr;
 
         arpt_db = apt_db;
         navaid_db = nav_db;
@@ -246,6 +247,9 @@ namespace test
     void FlightPlan::delete_segment(seg_list_node_t *seg, bool leave_seg, bool add_disc,
         bool ignore_tail)
     {
+        if(act_leg != nullptr && act_leg->data.seg == seg)
+            act_leg = nullptr;
+            
         if(seg->data.end == nullptr)
         {
             seg_list.pop(seg, seg_stack.ptr_stack);

@@ -217,6 +217,8 @@ namespace test
         struct_util::ll_node_stack_t<leg_list_node_t> leg_data_stack;
         struct_util::ll_node_stack_t<seg_list_node_t> seg_stack;
 
+        leg_list_node_t *act_leg;
+
         std::mutex fpl_mtx;
 
         std::chrono::time_point<std::chrono::steady_clock> start;

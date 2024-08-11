@@ -615,8 +615,6 @@ namespace test
                 delete_ref(FPL_SEG_APPCH_TRANS);
 
                 set_sid_star(fpl_refs[size_t(FPL_SEG_STAR)].name, true, false);
-                // set_proc_trans(PROC_TYPE_STAR,
-                //     fpl_refs[size_t(FPL_SEG_STAR_TRANS)].name, true);
 
                 add_legs(rwy_leg, legs, FPL_SEG_APPCH, arr_rwy);
                 fpl_refs[size_t(FPL_SEG_APPCH)].name = arr_rwy;
@@ -950,6 +948,8 @@ namespace test
 
         if (from.id == leg_list.id && from.id == to.id)
         {
+            if(to.ptr->prev == act_leg)
+                act_leg = from.ptr;
             delete_range(from.ptr, to.ptr);
         }
     }
@@ -1502,6 +1502,18 @@ namespace test
                 }
                 else
                 {
+                    if(act_leg == nullptr)
+                    {
+                        size_t idx = size_t(proc_seg) - 1;
+                        seg_list_node_t *prev_seg = fpl_refs[idx].ptr;
+                        while(prev_seg == nullptr)
+                        {
+                            idx--;
+                            prev_seg = fpl_refs[idx].ptr;
+                        }
+
+                        act_leg = prev_seg->data.end->next;
+                    }
                     set_proc_trans(proc_tp, trans_nm, is_star);
                 }
 
