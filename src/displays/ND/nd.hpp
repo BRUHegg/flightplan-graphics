@@ -76,6 +76,8 @@ namespace StratosphereAvionics
 
         size_t get_proj_legs(leg_proj_t **out, bool fo_side);
 
+        int get_act_leg_idx(bool fo_side);
+
         bool has_dep_rwy();
 
         bool has_arr_rwy();
@@ -114,6 +116,8 @@ namespace StratosphereAvionics
         double m_fpl_id_last;
 
         bool m_has_dep_rwy, m_has_arr_rwy;
+
+        int m_act_leg_idx, m_act_leg_idx_cap, m_act_leg_idx_fo;
 
 
         static bool bound_check(double x1, double x2, double rng);

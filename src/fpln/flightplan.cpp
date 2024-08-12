@@ -90,9 +90,11 @@ namespace test
     }
 
     double FlightPlan::get_ll_seg(size_t start, size_t l, 
-            std::vector<list_node_ref_t<leg_list_data_t>>* out)
+        std::vector<list_node_ref_t<leg_list_data_t>> *out, int *act_idx_out)
     {
         std::lock_guard<std::mutex> lock(fpl_mtx);
+        *act_idx_out = -1;
+
         if(start >= leg_list.size)
         {
             return -1;
@@ -106,9 +108,15 @@ namespace test
         }
 
         size_t cnt = 0;
+        int a_i = i;
 
         while(l && i < leg_list.size)
         {
+            if(curr == act_leg)
+                *act_idx_out = a_i;
+            else
+                a_i++;
+
             if(cnt >= out->size())
                 out->push_back({curr, curr->data});
             else

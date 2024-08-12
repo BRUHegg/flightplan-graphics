@@ -55,6 +55,7 @@ namespace test
         fo_ctr_idx = 1;
 
         fpl_id_last = 0;
+        act_leg_idx = -1;
     }
 
     std::vector<list_node_ref_t<fpl_seg_t>> FPLSys::get_seg_list(size_t *sz)
@@ -74,7 +75,12 @@ namespace test
         if(n_act_leg_list_sz == 0)
             return 0;
         size_t n_written = 0;
-        for (size_t i = 1; i < n_act_leg_list_sz-1; i++)
+        size_t i_start = 1;
+
+        if(act_leg_idx != -1 && act_leg_idx)
+            i_start = size_t(act_leg_idx) - 1;
+
+        for (size_t i = i_start; i < n_act_leg_list_sz-1; i++)
         {
             if (!n_max)
                 return n_written;
@@ -92,6 +98,13 @@ namespace test
         }
 
         return n_written;
+    }
+
+    int FPLSys::get_act_leg_idx()
+    {
+        if(act_leg_idx == -1)
+            return -1;
+        return 1;
     }
 
     bool FPLSys::get_ctr(geo::point *out, bool fo_side)
@@ -188,7 +201,7 @@ namespace test
     void FPLSys::update_leg_list()
     {
         n_act_leg_list_sz = fpl->get_leg_list_sz();
-        leg_list_id = fpl->get_ll_seg(0, n_act_leg_list_sz, &leg_list);
+        leg_list_id = fpl->get_ll_seg(0, n_act_leg_list_sz, &leg_list, &act_leg_idx);
 
         if (cap_ctr_idx >= n_act_leg_list_sz && n_act_leg_list_sz != 0)
         {

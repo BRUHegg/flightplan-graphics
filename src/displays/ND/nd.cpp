@@ -57,6 +57,10 @@ namespace StratosphereAvionics
 
         m_has_dep_rwy = false;
         m_has_arr_rwy = false;
+
+        m_act_leg_idx = -1;
+        m_act_leg_idx_cap = -1;
+        m_act_leg_idx_fo = -1;
     }
 
     size_t NDData::get_proj_legs(leg_proj_t **out, bool fo_side)
@@ -69,6 +73,13 @@ namespace StratosphereAvionics
 
         *out = m_proj_legs_cap;
         return m_n_act_proj_legs_cap;
+    }
+
+    int NDData::get_act_leg_idx(bool fo_side)
+    {
+        if(fo_side)
+            return m_act_leg_idx_fo;
+        return m_act_leg_idx_cap;
     }
 
     bool NDData::has_dep_rwy()
@@ -206,14 +217,17 @@ namespace StratosphereAvionics
 
         size_t *sz_ptr = &m_n_act_proj_legs_cap;
         size_t *sz_ptr_joint = &m_n_act_joints_cap;
+        int *act_idx_ptr = &m_act_leg_idx_cap;
         if (fo_side)
         {
             sz_ptr = &m_n_act_proj_legs_fo;
             sz_ptr_joint = &m_n_act_joints_fo;
+            act_idx_ptr = &m_act_leg_idx_fo;
         }
 
         *sz_ptr = 0;
         *sz_ptr_joint = 0;
+        *act_idx_ptr = -1;
 
         bool prev_skipped = false;
         bool prev_bypassed = false;
@@ -281,6 +295,11 @@ namespace StratosphereAvionics
                 dst[*sz_ptr].is_rwy = m_leg_data[i].leg_data.is_rwy;
                 dst[*sz_ptr].turn_rad_nm = m_leg_data[i].leg_data.turn_rad_nm;
 
+                if(m_act_leg_idx != -1 && i == size_t(m_act_leg_idx))
+                {
+                    *act_idx_ptr = int(*sz_ptr);
+                }
+
                 *sz_ptr = *sz_ptr + 1;
                 prev_skipped = false;
                 prev_bypassed = false;
@@ -342,6 +361,7 @@ namespace StratosphereAvionics
     void NDData::fetch_legs()
     {
         m_n_act_leg_data = m_fpl_sys_ptr->get_nd_seg(m_leg_data, N_LEG_PROJ_CACHE_SZ);
+        m_act_leg_idx = m_fpl_sys_ptr->get_act_leg_idx();
     }
 
     // NDDisplay member functions:
@@ -430,6 +450,7 @@ namespace StratosphereAvionics
     {
         leg_proj_t *buf;
         size_t buf_size = nd_data->get_proj_legs(&buf, fo_side);
+        int act_leg_idx = nd_data->get_act_leg_idx(fo_side);
 
         for (size_t i = 0; i < buf_size; i++)
         {
@@ -468,20 +489,38 @@ namespace StratosphereAvionics
                     geom::vect2_t text_pos = ew_trans + size * FIX_NAME_OFFS;
 
                     std::string name_draw = buf[i].get_draw_nm();
+
+                    bool is_active = false;
+                    geom::vect3_t tgt_color = cairo_utils::WHITE;
+
+                    if(act_leg_idx != -1 && i == size_t(act_leg_idx))
+                    {
+                        is_active = true;
+                        tgt_color = cairo_utils::MAGENTA;
+                    }
+
                     cairo_utils::draw_left_text(cr, font_face, name_draw, text_pos,
-                                                cairo_utils::WHITE, ND_WPT_FONT_SZ);
+                                                tgt_color, ND_WPT_FONT_SZ);
 
                     if (!buf[i].is_rwy && buf[i].end_nm[0] != '(')
                     {
                         geom::vect2_t scale = size.scmul(1 / WPT_SCALE_FACT);
-                        cairo_utils::draw_image(cr, tex_mngr->data[WPT_INACT_NAME],
+                        if(is_active)
+                        {
+                            cairo_utils::draw_image(cr, tex_mngr->data[WPT_ACT_NAME],
                                                 ew_trans, scale, true);
+                        }
+                        else
+                        {
+                            cairo_utils::draw_image(cr, tex_mngr->data[WPT_INACT_NAME],
+                                                ew_trans, scale, true);
+                        }
                     }
                     else if (!buf[i].is_rwy)
                     {
                         cairo_utils::draw_circle(cr, ew_trans,
                                                  size.x * PSEUDO_WPT_RADIUS_RAT, size.x * PSEUDO_WPT_THICK_RAT,
-                                                 cairo_utils::WHITE);
+                                                 tgt_color);
                     }
                 }
             }

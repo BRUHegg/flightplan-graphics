@@ -910,6 +910,8 @@ namespace test
         if (curr.id == seg_list.id && curr.ptr != &(seg_list.head) && curr.ptr != nullptr &&
             curr.ptr->prev != &(seg_list.head))
         {
+            if(curr.ptr == act_leg->data.seg)
+                return false;
             if (!curr.ptr->data.is_discon && !curr.ptr->data.is_direct)
             {
                 delete_segment(curr.ptr, true, false, true);
@@ -927,6 +929,9 @@ namespace test
         if (curr.id == seg_list.id && curr.ptr != &(seg_list.head) && curr.ptr != nullptr &&
             !curr.ptr->data.is_discon)
         {
+            if(curr.ptr == act_leg->data.seg)
+                return false;
+
             seg_list_node_t *next = curr.ptr->next;
             if (curr.ptr != &(seg_list.tail) && !next->data.is_direct &&
                 !next->data.is_discon && curr.ptr->data.end != nullptr)

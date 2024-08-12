@@ -182,10 +182,11 @@ namespace test
             @param start: start position
             @param l: length
             @param out: pointer to output vector
+            @param act_idx_out: pointer to index of active leg. -1 if no leg is active.
         */
 
         double get_ll_seg(size_t start, size_t l, 
-            std::vector<list_node_ref_t<leg_list_data_t>>* out);
+            std::vector<list_node_ref_t<leg_list_data_t>> *out, int *act_idx_out);
 
         /*
             Function: get_sl_seg
@@ -197,7 +198,7 @@ namespace test
         */
 
         double get_sl_seg(size_t start, size_t l, 
-            std::vector<list_node_ref_t<fpl_seg_t>>* out);
+            std::vector<list_node_ref_t<fpl_seg_t>> *out);
 
         ~FlightPlan();
 

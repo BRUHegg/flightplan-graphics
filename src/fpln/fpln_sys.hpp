@@ -63,6 +63,8 @@ namespace test
 
         size_t get_nd_seg(nd_leg_data_t *out, size_t n_max);
 
+        int get_act_leg_idx();
+
         bool get_ctr(geo::point *out, bool fo_side);
 
         geo::point get_ac_pos();
@@ -79,6 +81,7 @@ namespace test
 
         size_t cap_ctr_idx, fo_ctr_idx;
         double fpl_id_last;
+        int act_leg_idx;
 
 
         void update_seg_list();
