@@ -207,21 +207,35 @@ namespace cairo_utils
 
         if(centered)
         {
-            geom::vect2_t img_sz = {double(cairo_image_surface_get_width(surf)), 
-                double(cairo_image_surface_get_height(surf))};
-            offset.x = -img_sz.x * scale.x / 2;
-            offset.y = -img_sz.y * scale.y / 2;
-            pos = pos + offset;
-            //cairo_translate(cr, 0, 0);
-            //cairo_rotate(cr, M_PI / 2);
-            //cairo_translate(cr, -img_sz.x / 2, -img_sz.y / 2);
+            offset.x = -cairo_image_surface_get_width(surf) * scale.x / 2;
+            offset.y = -cairo_image_surface_get_height(surf) * scale.y / 2;
         }
 
-        
+        pos = pos + offset;
 
-        cairo_set_source_surface(cr, surf, pos.x/scale.x, pos.y/scale.y);
-        
         cairo_scale(cr, scale.x, scale.y);
+        cairo_set_source_surface(cr, surf, pos.x/scale.x, pos.y/scale.y);
+                        
+        cairo_paint(cr);
+        cairo_restore(cr);
+    }
+
+    inline void draw_rotated_image(cairo_t* cr, cairo_surface_t *surf, geom::vect2_t pos, 
+        geom::vect2_t scale, double rot_ang_rad)
+    {
+        if(scale.x == 0 || scale.y == 0)
+            return;
+
+        cairo_save(cr);
+
+        geom::vect2_t img_sz = {double(cairo_image_surface_get_width(surf)), 
+            double(cairo_image_surface_get_height(surf))};
+        
+        cairo_translate(cr, pos.x, pos.y);
+        cairo_rotate(cr, rot_ang_rad);
+        cairo_translate(cr, -img_sz.x * scale.x / 2, -img_sz.y * scale.y / 2);
+        cairo_scale(cr, scale.x, scale.y);
+        cairo_set_source_surface(cr, surf, 0, 0);
                         
         cairo_paint(cr);
         cairo_restore(cr);

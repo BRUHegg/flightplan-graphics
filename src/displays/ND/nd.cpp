@@ -157,6 +157,8 @@ namespace StratosphereAvionics
             fetch_legs();
         }
 
+        m_hdg_data = m_fpl_sys_ptr->get_hdg_info();
+
         update_ctr(&m_ctr_cap, false);
         update_ctr(&m_ctr_fo, true);
 
@@ -665,8 +667,8 @@ namespace StratosphereAvionics
         {
             geom::vect2_t pos_trans = get_screen_coords(pos);
 
-            cairo_utils::draw_image(cr, tex_mngr->data[AIRPLANE_NAME], pos_trans, 
-                {1.0, 1.0}, true);
+            cairo_utils::draw_rotated_image(cr, tex_mngr->data[AIRPLANE_NAME], pos_trans, 
+                {1.0, 1.0}, hdg_data.brng_tru_rad);
         }
     }
 
