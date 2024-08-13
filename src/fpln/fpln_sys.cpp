@@ -22,8 +22,13 @@ namespace test
         std::shared_ptr<libnav::NavaidDB> navaid_db,
         std::shared_ptr<libnav::AwyDB> awy_db, std::string cifp_path, std::string fpl_path)
     {
-        env_vars["ac_lat"] = strutils::double_to_str(AC_LAT_DEF, 8);
-        env_vars["ac_lon"] = strutils::double_to_str(AC_LON_DEF, 8);
+        // Initialize reserved variables:
+        assert(RSV_VARS.size() == RSV_VAR_VAL.size());
+
+        for(size_t i = 0; i < RSV_VARS.size(); i++)
+        {
+            env_vars[RSV_VARS[i]] = strutils::double_to_str(RSV_VAR_VAL[i], 9);
+        }
 
         leg_list_id = -1;
         seg_list_id = -1;
@@ -35,8 +40,8 @@ namespace test
         cifp_dir_path = cifp_path;
         fpl_dir = fpl_path;
 
-        ac_lat = AC_LAT_DEF;
-        ac_lon = AC_LON_DEF;
+        ac_lat_deg = AC_LAT_DEF;
+        ac_lon_deg = AC_LON_DEF;
 
         arpt_db_ptr = arpt_db;
         navaid_db_ptr = navaid_db;
@@ -129,7 +134,25 @@ namespace test
 
     geo::point FPLSys::get_ac_pos()
     {
-        return {ac_lat * geo::DEG_TO_RAD, ac_lon * geo::DEG_TO_RAD};
+        return {ac_lat_deg * geo::DEG_TO_RAD, ac_lon_deg * geo::DEG_TO_RAD};
+    }
+
+    hdg_info_t FPLSys::get_hdg_info()
+    {
+        hdg_info_t out = {};
+        out.brng_tru_rad = ac_brng_deg * geo::DEG_TO_RAD;
+        out.slip_rad = ac_slip_deg * geo::DEG_TO_RAD;
+        out.magvar_rad = ac_magvar_deg * geo::DEG_TO_RAD;
+        return out;
+    }
+
+    spd_info_t FPLSys::get_spd_info()
+    {
+        spd_info_t out = {};
+        out.gs_kts = ac_gs_kts;
+        out.tas_kts = ac_tas_kts;
+
+        return out;
     }
 
     void FPLSys::step_ctr(bool bwd, bool fo_side)
@@ -228,13 +251,18 @@ namespace test
 
     void FPLSys::update_pos()
     {
-        bool lat_valid = strutils::is_numeric(env_vars["ac_lat"]);
-        bool lon_valid = strutils::is_numeric(env_vars["ac_lon"]);
-
-        if (lon_valid && lat_valid)
+        for(size_t i = 0; i < RSV_VARS.size(); i++)
         {
-            ac_lat = std::stod(env_vars["ac_lat"]);
-            ac_lon = std::stod(env_vars["ac_lon"]);
+            if(!strutils::is_numeric(env_vars[RSV_VARS[i]]))
+                return;
         }
+
+        ac_lat_deg = std::stod(env_vars[AC_LAT_DEG_VAR]);
+        ac_lon_deg = std::stod(env_vars[AC_LON_DEG_VAR]);
+        ac_brng_deg = std::stod(env_vars[AC_BRNG_TRU_DEG_VAR]);
+        ac_slip_deg = std::stod(env_vars[AC_SLIP_DEG_VAR]);
+        ac_magvar_deg = std::stod(env_vars[AC_MAGVAR_DEG_VAR]);
+        ac_gs_kts = std::stod(env_vars[AC_GS_KTS_VAR]);
+        ac_tas_kts = std::stod(env_vars[AC_TAS_KTS_VAR]);
     }
 }

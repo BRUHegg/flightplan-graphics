@@ -45,6 +45,9 @@ namespace StratosphereAvionics
         m_line_joints_cap = new geom::line_joint_t[N_LN_JOINT_CACHE_SZ];
         m_line_joints_fo = new geom::line_joint_t[N_LN_JOINT_CACHE_SZ];
 
+        m_ac_pos_proj_cap = {};
+        m_ac_pos_proj_fo = {};
+
         m_n_act_proj_legs_cap = 0;
         m_n_act_proj_legs_fo = 0;
         m_n_act_joints_cap = 0;
@@ -55,8 +58,12 @@ namespace StratosphereAvionics
 
         m_fpl_id_last = 0;
 
+        m_hdg_data = {};
+
         m_has_dep_rwy = false;
         m_has_arr_rwy = false;
+        m_ac_pos_ok_cap = false;
+        m_ac_pos_ok_fo = false;
 
         m_act_leg_idx = -1;
         m_act_leg_idx_cap = -1;
@@ -80,6 +87,28 @@ namespace StratosphereAvionics
         if(fo_side)
             return m_act_leg_idx_fo;
         return m_act_leg_idx_cap;
+    }
+
+    bool NDData::get_ac_pos(geom::vect2_t *out, bool fo_side)
+    {
+        bool is_ok = m_ac_pos_ok_cap;
+        if(fo_side)
+            is_ok = m_ac_pos_ok_fo;
+        
+        if(!is_ok)
+            return false;
+        
+        geom::vect2_t src = m_ac_pos_proj_cap;
+        if(fo_side)
+            src = m_ac_pos_proj_fo;
+
+        *out = src;
+        return true;
+    }
+
+    test::hdg_info_t NDData::get_hdg_data()
+    {
+        return m_hdg_data;
     }
 
     bool NDData::has_dep_rwy()
@@ -136,6 +165,9 @@ namespace StratosphereAvionics
 
         project_rwys(false);
         project_rwys(true);
+
+        m_ac_pos_ok_cap = project_ac_pos(false);
+        m_ac_pos_ok_fo = project_ac_pos(true);
 
         m_fpl_id_last = id_curr;
     }
@@ -358,6 +390,30 @@ namespace StratosphereAvionics
         }
     }
 
+    bool NDData::project_ac_pos(bool fo_side)
+    {
+        geo::point map_ctr = m_ctr_cap;
+        if (fo_side)
+            map_ctr = m_ctr_fo;
+
+        geom::vect2_t *dst = &m_ac_pos_proj_cap;
+        if(fo_side)
+            dst = &m_ac_pos_proj_fo;
+
+        geo::point curr_pos = m_fpl_sys_ptr->get_ac_pos();
+        
+        double gc_dist_nm = map_ctr.get_gc_dist_nm(curr_pos);
+        double rng = get_range(fo_side) / 2;
+
+        if(rng < gc_dist_nm)
+            return false;
+
+        double gc_brng_rad = map_ctr.get_gc_bearing_rad(curr_pos);
+        *dst = geom::get_projection(gc_brng_rad, gc_dist_nm);
+
+        return true;
+    }
+
     void NDData::fetch_legs()
     {
         m_n_act_leg_data = m_fpl_sys_ptr->get_nd_seg(m_leg_data, N_LEG_PROJ_CACHE_SZ);
@@ -389,12 +445,14 @@ namespace StratosphereAvionics
     {
         rng = nd_data->get_range(fo_side);
         update_map_params();
+        hdg_data = nd_data->get_hdg_data();
 
         cairo_utils::draw_rect(cr, scr_pos, size, cairo_utils::DARK_BLUE);
 
         draw_runways(cr);
         draw_flight_plan(cr, false);
         draw_flight_plan(cr, true);
+        draw_airplane(cr);
 
         draw_range(cr);
     }
@@ -595,6 +653,20 @@ namespace StratosphereAvionics
         if (nd_data->has_arr_rwy())
         {
             draw_runway(cr, buf[ARR_RWY_PROJ_IDX]);
+        }
+    }
+
+    void NDDisplay::draw_airplane(cairo_t *cr)
+    {
+        geom::vect2_t pos;
+        bool do_drawing = nd_data->get_ac_pos(&pos, fo_side);
+
+        if(do_drawing)
+        {
+            geom::vect2_t pos_trans = get_screen_coords(pos);
+
+            cairo_utils::draw_image(cr, tex_mngr->data[AIRPLANE_NAME], pos_trans, 
+                {1.0, 1.0}, true);
         }
     }
 

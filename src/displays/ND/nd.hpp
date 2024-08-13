@@ -50,6 +50,7 @@ namespace StratosphereAvionics
 
     const std::string WPT_INACT_NAME = "wpt_inact";
     const std::string WPT_ACT_NAME = "wpt_act";
+    const std::string AIRPLANE_NAME = "airplane";
 
     const std::vector<double> ND_RANGES_NM = {10, 20, 40, 80, 160, 320, 640};
     constexpr double RNG_DEC_1_NM = 2.5;
@@ -78,6 +79,10 @@ namespace StratosphereAvionics
 
         int get_act_leg_idx(bool fo_side);
 
+        bool get_ac_pos(geom::vect2_t *out, bool fo_side);
+
+        test::hdg_info_t get_hdg_data();
+
         bool has_dep_rwy();
 
         bool has_arr_rwy();
@@ -102,6 +107,9 @@ namespace StratosphereAvionics
         geom::line_joint_t *m_line_joints_cap;
         geom::line_joint_t *m_line_joints_fo;
 
+        geom::vect2_t m_ac_pos_proj_cap;
+        geom::vect2_t m_ac_pos_proj_fo;
+
         size_t m_n_act_proj_legs_cap;
         size_t m_n_act_proj_legs_fo;
         size_t m_n_act_joints_cap;
@@ -110,12 +118,14 @@ namespace StratosphereAvionics
         geo::point m_ctr_cap;
         geo::point m_ctr_fo;
 
+        test::hdg_info_t m_hdg_data;
+
         size_t m_rng_idx_cap;
         size_t m_rng_idx_fo;
 
         double m_fpl_id_last;
 
-        bool m_has_dep_rwy, m_has_arr_rwy;
+        bool m_has_dep_rwy, m_has_arr_rwy, m_ac_pos_ok_cap, m_ac_pos_ok_fo;
 
         int m_act_leg_idx, m_act_leg_idx_cap, m_act_leg_idx_fo;
 
@@ -129,6 +139,8 @@ namespace StratosphereAvionics
         void project_legs(bool fo_side);
 
         void project_rwys(bool fo_side);
+
+        bool project_ac_pos(bool fo_side);
 
         void fetch_legs();
     };
@@ -151,6 +163,7 @@ namespace StratosphereAvionics
         geom::vect2_t scr_pos;
         geom::vect2_t size;
         geom::vect2_t map_ctr, scale_factor;
+        test::hdg_info_t hdg_data;
         double rng, curr_rng;
 
         bool fo_side;
@@ -169,6 +182,8 @@ namespace StratosphereAvionics
         void draw_runway(cairo_t *cr, leg_proj_t rnw_proj);
 
         void draw_runways(cairo_t *cr);
+
+        void draw_airplane(cairo_t *cr);
 
         void draw_range(cairo_t *cr);
     };

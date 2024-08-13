@@ -336,7 +336,8 @@ namespace test
         {
             std::vector<std::string> tgt_names = {
                 StratosphereAvionics::WPT_ACT_NAME,
-                StratosphereAvionics::WPT_INACT_NAME
+                StratosphereAvionics::WPT_INACT_NAME,
+                StratosphereAvionics::AIRPLANE_NAME
                 };
             
             tex_mngr = std::make_shared<cairo_utils::texture_manager_t>();

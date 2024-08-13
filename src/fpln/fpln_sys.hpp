@@ -20,16 +20,53 @@
 
 namespace test
 {
+    const std::string AC_LAT_DEG_VAR = "ac_lat_deg";
+    const std::string AC_LON_DEG_VAR = "ac_lon_deg";
+    const std::string AC_BRNG_TRU_DEG_VAR = "ac_brng_tru_deg";
+    const std::string AC_SLIP_DEG_VAR = "ac_slip_deg";
+    const std::string AC_MAGVAR_DEG_VAR = "ac_magvar_deg";
+    const std::string AC_GS_KTS_VAR = "ac_gs_kts";
+    const std::string AC_TAS_KTS_VAR = "ac_tas_kts";
+
     constexpr double AC_LAT_DEF = 45.588670483;
     constexpr double AC_LON_DEF = -122.598150383;
+    constexpr double AC_BRNG_TRU_DEF = 175;
+    constexpr double AC_SLIP_DEF = 0;
+    constexpr double AC_MAGVAR_DEF = 0;
+    constexpr double AC_GS_KTS_DEF = 0;
+    constexpr double AC_TAS_KTS_DEF = 0;
 
+    const std::vector<std::string> RSV_VARS = {AC_LAT_DEG_VAR, AC_LON_DEG_VAR, 
+        AC_BRNG_TRU_DEG_VAR, AC_SLIP_DEG_VAR, AC_MAGVAR_DEG_VAR, AC_GS_KTS_VAR,
+        AC_TAS_KTS_VAR};
+
+    const std::vector<double> RSV_VAR_VAL = {AC_LAT_DEF, AC_LON_DEF, AC_BRNG_TRU_DEF,
+        AC_SLIP_DEF, AC_MAGVAR_DEF, AC_GS_KTS_DEF, AC_TAS_KTS_DEF};
+
+
+    struct hdg_info_t
+    {
+        double brng_tru_rad, slip_rad, magvar_rad;
+    };
+
+    struct spd_info_t
+    {
+        double gs_kts, tas_kts;
+    };
 
     class FPLSys
     {
     public:
         // These are used by commands
-        double ac_lat;
-        double ac_lon;
+        // Position:
+        double ac_lat_deg;
+        double ac_lon_deg;
+        double ac_brng_deg;
+        double ac_slip_deg;
+        double ac_magvar_deg;
+        // Speed
+        double ac_gs_kts;
+        double ac_tas_kts;
 
         double leg_list_id;
         double seg_list_id;
@@ -68,6 +105,10 @@ namespace test
         bool get_ctr(geo::point *out, bool fo_side);
 
         geo::point get_ac_pos();
+
+        hdg_info_t get_hdg_info();
+
+        spd_info_t get_spd_info();
 
         void step_ctr(bool bwd, bool fo_side);
 
