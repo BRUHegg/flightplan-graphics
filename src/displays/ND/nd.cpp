@@ -666,9 +666,10 @@ namespace StratosphereAvionics
         if(do_drawing)
         {
             geom::vect2_t pos_trans = get_screen_coords(pos);
+            geom::vect2_t scale = size.scmul(1 / WPT_SCALE_FACT);
 
             cairo_utils::draw_rotated_image(cr, tex_mngr->data[AIRPLANE_NAME], pos_trans, 
-                {1.0, 1.0}, hdg_data.brng_tru_rad);
+                scale, hdg_data.brng_tru_rad);
         }
     }
 

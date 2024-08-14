@@ -257,12 +257,12 @@ namespace test
                 return;
         }
 
-        ac_lat_deg = std::stod(env_vars[AC_LAT_DEG_VAR]);
-        ac_lon_deg = std::stod(env_vars[AC_LON_DEG_VAR]);
-        ac_brng_deg = std::stod(env_vars[AC_BRNG_TRU_DEG_VAR]);
-        ac_slip_deg = std::stod(env_vars[AC_SLIP_DEG_VAR]);
-        ac_magvar_deg = std::stod(env_vars[AC_MAGVAR_DEG_VAR]);
-        ac_gs_kts = std::stod(env_vars[AC_GS_KTS_VAR]);
-        ac_tas_kts = std::stod(env_vars[AC_TAS_KTS_VAR]);
+        ac_lat_deg = strutils::strtod(env_vars[AC_LAT_DEG_VAR]);
+        ac_lon_deg = strutils::strtod(env_vars[AC_LON_DEG_VAR]);
+        ac_brng_deg = strutils::strtod(env_vars[AC_BRNG_TRU_DEG_VAR]);
+        ac_slip_deg = strutils::strtod(env_vars[AC_SLIP_DEG_VAR]);
+        ac_magvar_deg = strutils::strtod(env_vars[AC_MAGVAR_DEG_VAR]);
+        ac_gs_kts = strutils::strtod(env_vars[AC_GS_KTS_VAR]);
+        ac_tas_kts = strutils::strtod(env_vars[AC_TAS_KTS_VAR]);
     }
 }
