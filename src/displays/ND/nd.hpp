@@ -41,6 +41,9 @@ namespace StratosphereAvionics
     constexpr double ND_WPT_FONT_SZ = 18;
     constexpr double ND_ACT_INFO_MAIN_FONT_SZ = 21;
     constexpr double ND_ACT_INFO_DIST_FONT_SZ = 19;
+    constexpr double ND_SPD_BIG_FONT_SZ = 26;
+    constexpr double ND_SPD_SMALL_FONT_SZ = 21;
+    constexpr double GS_THRESH_BIG_KTS = 30;
     // Inverse of percentage of resolution that contributes to the scaling factor of waypoint image
     constexpr double WPT_SCALE_FACT = 900;
     // Percentage of horizontal resolution that translates into radius of pseudo waypoint label
@@ -85,6 +88,8 @@ namespace StratosphereAvionics
         bool get_ac_pos(geom::vect2_t *out, bool fo_side);
 
         test::hdg_info_t get_hdg_data();
+
+        test::spd_info_t get_spd_data();
 
         test::act_leg_info_t get_act_leg_info();
 
@@ -193,6 +198,8 @@ namespace StratosphereAvionics
         void draw_background(cairo_t *cr);
 
         void draw_act_leg_info(cairo_t *cr);
+
+        void draw_spd_info(cairo_t *cr);
 
         void draw_range(cairo_t *cr);
     };

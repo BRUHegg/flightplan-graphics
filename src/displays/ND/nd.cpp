@@ -111,6 +111,11 @@ namespace StratosphereAvionics
         return m_hdg_data;
     }
 
+    test::spd_info_t NDData::get_spd_data()
+    {
+        return m_fpl_sys_ptr->get_spd_info();
+    }
+
     test::act_leg_info_t NDData::get_act_leg_info()
     {
         return m_fpl_sys_ptr->get_act_leg_info();
@@ -463,6 +468,7 @@ namespace StratosphereAvionics
 
         draw_background(cr);
         draw_act_leg_info(cr);
+        draw_spd_info(cr);
         draw_range(cr);
     }
 
@@ -703,6 +709,24 @@ namespace StratosphereAvionics
             cairo_utils::WHITE, leg_info.dist_sz);
         cairo_utils::draw_left_text(cr, font_face, "NM", {size.x * 0.96, size.y * 0.07}, 
             cairo_utils::WHITE, ND_ACT_INFO_DIST_FONT_SZ);
+    }
+
+    void NDDisplay::draw_spd_info(cairo_t *cr)
+    {
+        test::spd_info_t spd_info = nd_data->get_spd_data();
+
+        cairo_utils::draw_left_text(cr, font_face, "GS", {size.x * 0.003, size.y * 0.034}, 
+            cairo_utils::WHITE, ND_ACT_INFO_DIST_FONT_SZ);
+        double gs_sz = ND_SPD_BIG_FONT_SZ;
+        if(spd_info.gs_kts > GS_THRESH_BIG_KTS)
+        {
+            gs_sz = ND_SPD_SMALL_FONT_SZ;
+        }
+
+        std::string gs_str = strutils::double_to_str(spd_info.gs_kts, 0);
+
+        cairo_utils::draw_right_text(cr, font_face, gs_str, {size.x * 0.061, size.y * 0.034}, 
+            cairo_utils::WHITE, gs_sz);
     }
 
     void NDDisplay::draw_range(cairo_t *cr)

@@ -184,6 +184,24 @@ namespace cairo_utils
         cairo_show_text(cr, txt_cstr);
     }
 
+    inline void draw_right_text(cairo_t* cr, cairo_font_face_t *font_face, 
+        std::string txt, geom::vect2_t pos, geom::vect3_t color, double font_sz)
+    {
+        const char *txt_cstr = txt.c_str();
+
+        cairo_text_extents_t extents;
+        cairo_set_font_face(cr, font_face);
+        cairo_set_source_rgb(cr, color.x, color.y, color.z);
+        cairo_set_font_size(cr, font_sz);
+        cairo_text_extents(cr, txt_cstr, &extents);
+
+        double x = pos.x-(extents.width + extents.x_bearing);
+        double y = pos.y;
+
+        cairo_move_to(cr, x, y);
+        cairo_show_text(cr, txt_cstr);
+    }
+
     inline void draw_centered_text(cairo_t* cr, cairo_font_face_t *font_face, 
         std::string txt, geom::vect2_t pos, geom::vect3_t color, double font_sz)
     {
