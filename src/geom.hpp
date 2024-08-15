@@ -90,6 +90,11 @@ namespace geom
         {
             return {x * other.x, y * other.y};
         }
+
+        vect2_t operator/(vect2_t const& other)
+        {
+            return {x / other.x, y / other.y};
+        }
     };
 
     struct vect3_t

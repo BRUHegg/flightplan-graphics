@@ -97,6 +97,12 @@ namespace cairo_utils
         }
     }
 
+    inline geom::vect2_t get_surf_sz(cairo_surface_t *surf)
+    {
+        return {double(cairo_image_surface_get_width(surf)), 
+            double(cairo_image_surface_get_height(surf))};
+    }
+
     inline void draw_line(cairo_t* cr, geom::vect2_t start, geom::vect2_t end,
         geom::vect3_t color, double line_width=1)
     {
@@ -207,8 +213,9 @@ namespace cairo_utils
 
         if(centered)
         {
-            offset.x = -cairo_image_surface_get_width(surf) * scale.x / 2;
-            offset.y = -cairo_image_surface_get_height(surf) * scale.y / 2;
+            geom::vect2_t surf_sz = get_surf_sz(surf);
+            offset.x = -surf_sz.x * scale.x / 2;
+            offset.y = -surf_sz.y * scale.y / 2;
         }
 
         pos = pos + offset;
@@ -228,8 +235,7 @@ namespace cairo_utils
 
         cairo_save(cr);
 
-        geom::vect2_t img_sz = {double(cairo_image_surface_get_width(surf)), 
-            double(cairo_image_surface_get_height(surf))};
+        geom::vect2_t img_sz = get_surf_sz(surf);
         
         cairo_translate(cr, pos.x, pos.y);
         cairo_rotate(cr, rot_ang_rad);

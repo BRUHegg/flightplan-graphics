@@ -25,7 +25,7 @@ namespace StratosphereAvionics
     constexpr double N_MAX_DIST_NM = 600;
     constexpr double ND_DEFAULT_RNG_NM = 10;
     // Percentage of resolution that translates into full range:
-    constexpr double ND_RNG_FULL_RES_COEFF = 0.43;
+    constexpr double ND_RNG_FULL_RES_COEFF = 0.4;
     // Percentage of horisontal resolution that translates into runway width
     constexpr double DEFAULT_RWY_WIDTH = 0.015;
     // Percentage of horisontal resolution that translates into thikness of runway 
@@ -39,6 +39,8 @@ namespace StratosphereAvionics
 
 
     constexpr double ND_WPT_FONT_SZ = 18;
+    constexpr double ND_ACT_INFO_MAIN_FONT_SZ = 21;
+    constexpr double ND_ACT_INFO_DIST_FONT_SZ = 19;
     // Inverse of percentage of resolution that contributes to the scaling factor of waypoint image
     constexpr double WPT_SCALE_FACT = 900;
     // Percentage of horizontal resolution that translates into radius of pseudo waypoint label
@@ -51,6 +53,7 @@ namespace StratosphereAvionics
     const std::string WPT_INACT_NAME = "wpt_inact";
     const std::string WPT_ACT_NAME = "wpt_act";
     const std::string AIRPLANE_NAME = "airplane";
+    const std::string PLN_BACKGND_NAME = "pln_back";
 
     const std::vector<double> ND_RANGES_NM = {10, 20, 40, 80, 160, 320, 640};
     constexpr double RNG_DEC_1_NM = 2.5;
@@ -82,6 +85,8 @@ namespace StratosphereAvionics
         bool get_ac_pos(geom::vect2_t *out, bool fo_side);
 
         test::hdg_info_t get_hdg_data();
+
+        test::act_leg_info_t get_act_leg_info();
 
         bool has_dep_rwy();
 
@@ -184,6 +189,10 @@ namespace StratosphereAvionics
         void draw_runways(cairo_t *cr);
 
         void draw_airplane(cairo_t *cr);
+
+        void draw_background(cairo_t *cr);
+
+        void draw_act_leg_info(cairo_t *cr);
 
         void draw_range(cairo_t *cr);
     };

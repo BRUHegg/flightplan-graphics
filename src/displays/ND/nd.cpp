@@ -111,6 +111,11 @@ namespace StratosphereAvionics
         return m_hdg_data;
     }
 
+    test::act_leg_info_t NDData::get_act_leg_info()
+    {
+        return m_fpl_sys_ptr->get_act_leg_info();
+    }
+
     bool NDData::has_dep_rwy()
     {
         return m_has_dep_rwy;
@@ -456,6 +461,8 @@ namespace StratosphereAvionics
         draw_flight_plan(cr, true);
         draw_airplane(cr);
 
+        draw_background(cr);
+        draw_act_leg_info(cr);
         draw_range(cr);
     }
 
@@ -465,6 +472,7 @@ namespace StratosphereAvionics
     {
         curr_rng = rng / 2;
         map_ctr = scr_pos + size.scmul(0.5);
+        map_ctr.y += size.y * 0.01;
         scale_factor = size.scmul(ND_RNG_FULL_RES_COEFF).scdiv(curr_rng);
     }
 
@@ -671,6 +679,30 @@ namespace StratosphereAvionics
             cairo_utils::draw_rotated_image(cr, tex_mngr->data[AIRPLANE_NAME], pos_trans, 
                 scale, hdg_data.brng_tru_rad);
         }
+    }
+
+    void NDDisplay::draw_background(cairo_t *cr)
+    {
+        cairo_surface_t *back_surf = tex_mngr->data[PLN_BACKGND_NAME];
+        geom::vect2_t scale = size / cairo_utils::get_surf_sz(back_surf);
+
+        cairo_utils::draw_image(cr, back_surf, {0, 0}, scale, false);
+    }
+
+    void NDDisplay::draw_act_leg_info(cairo_t *cr)
+    {
+        test::act_leg_info_t leg_info = nd_data->get_act_leg_info();
+
+        cairo_utils::draw_left_text(cr, font_face, leg_info.name, {size.x * 0.911, size.y * 0.03}, 
+            cairo_utils::MAGENTA, ND_ACT_INFO_MAIN_FONT_SZ);
+
+        cairo_utils::draw_left_text(cr, font_face, "------Z", {size.x * 0.911, size.y * 0.05}, 
+            cairo_utils::WHITE, ND_ACT_INFO_MAIN_FONT_SZ);
+        
+        cairo_utils::draw_left_text(cr, font_face, leg_info.dist_nm, {size.x * 0.911, size.y * 0.07}, 
+            cairo_utils::WHITE, leg_info.dist_sz);
+        cairo_utils::draw_left_text(cr, font_face, "NM", {size.x * 0.96, size.y * 0.07}, 
+            cairo_utils::WHITE, ND_ACT_INFO_DIST_FONT_SZ);
     }
 
     void NDDisplay::draw_range(cairo_t *cr)

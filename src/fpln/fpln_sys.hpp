@@ -35,6 +35,8 @@ namespace test
     constexpr double AC_MAGVAR_DEF = 0;
     constexpr double AC_GS_KTS_DEF = 0;
     constexpr double AC_TAS_KTS_DEF = 0;
+    constexpr double DIST_FONT_SZ_DD = 21; // Double digits;
+    constexpr double DIST_FONT_SZ_TD = 19;
 
     const std::vector<std::string> RSV_VARS = {AC_LAT_DEG_VAR, AC_LON_DEG_VAR, 
         AC_BRNG_TRU_DEG_VAR, AC_SLIP_DEG_VAR, AC_MAGVAR_DEG_VAR, AC_GS_KTS_VAR,
@@ -52,6 +54,12 @@ namespace test
     struct spd_info_t
     {
         double gs_kts, tas_kts;
+    };
+
+    struct act_leg_info_t
+    {
+        std::string name, time_z, dist_nm;
+        double dist_sz;
     };
 
     class FPLSys
@@ -109,6 +117,8 @@ namespace test
         hdg_info_t get_hdg_info();
 
         spd_info_t get_spd_info();
+
+        act_leg_info_t get_act_leg_info();
 
         void step_ctr(bool bwd, bool fo_side);
 
