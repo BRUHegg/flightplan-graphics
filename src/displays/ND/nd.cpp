@@ -461,12 +461,14 @@ namespace StratosphereAvionics
 
         cairo_utils::draw_rect(cr, scr_pos, size, cairo_utils::DARK_BLUE);
 
+        draw_background(cr, true);
+
         draw_runways(cr);
         draw_flight_plan(cr, false);
         draw_flight_plan(cr, true);
         draw_airplane(cr);
 
-        draw_background(cr);
+        draw_background(cr, false);
         draw_act_leg_info(cr);
         draw_spd_info(cr);
         draw_range(cr);
@@ -687,12 +689,17 @@ namespace StratosphereAvionics
         }
     }
 
-    void NDDisplay::draw_background(cairo_t *cr)
+    void NDDisplay::draw_background(cairo_t *cr, bool draw_inner)
     {
-        cairo_surface_t *back_surf = tex_mngr->data[PLN_BACKGND_NAME];
+        cairo_surface_t *back_surf;
+        if(draw_inner)
+            back_surf = tex_mngr->data[PLN_BACKGND_INNER_NAME];
+        else
+            back_surf = tex_mngr->data[PLN_BACKGND_OUTER_NAME];
+        
         geom::vect2_t scale = size / cairo_utils::get_surf_sz(back_surf);
 
-        cairo_utils::draw_image(cr, back_surf, {0, 0}, scale, false);
+        cairo_utils::draw_image(cr, back_surf, scr_pos, scale, false);
     }
 
     void NDDisplay::draw_act_leg_info(cairo_t *cr)

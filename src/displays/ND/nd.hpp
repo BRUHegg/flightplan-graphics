@@ -56,7 +56,8 @@ namespace StratosphereAvionics
     const std::string WPT_INACT_NAME = "wpt_inact";
     const std::string WPT_ACT_NAME = "wpt_act";
     const std::string AIRPLANE_NAME = "airplane";
-    const std::string PLN_BACKGND_NAME = "pln_back";
+    const std::string PLN_BACKGND_INNER_NAME = "pln_back_inner";
+    const std::string PLN_BACKGND_OUTER_NAME = "pln_back_outer";
 
     const std::vector<double> ND_RANGES_NM = {10, 20, 40, 80, 160, 320, 640};
     constexpr double RNG_DEC_1_NM = 2.5;
@@ -195,7 +196,7 @@ namespace StratosphereAvionics
 
         void draw_airplane(cairo_t *cr);
 
-        void draw_background(cairo_t *cr);
+        void draw_background(cairo_t *cr, bool draw_inner);
 
         void draw_act_leg_info(cairo_t *cr);
 
