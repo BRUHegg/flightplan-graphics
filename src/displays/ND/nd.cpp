@@ -479,7 +479,7 @@ namespace StratosphereAvionics
     void NDDisplay::update_map_params()
     {
         curr_rng = rng / 2;
-        map_ctr = scr_pos + size.scmul(0.5);
+        map_ctr = size.scmul(0.5);
         map_ctr.y += size.y * 0.01;
         scale_factor = size.scmul(ND_RNG_FULL_RES_COEFF).scdiv(curr_rng);
     }
@@ -488,6 +488,7 @@ namespace StratosphereAvionics
     {
         geom::vect2_t out = src * scale_factor + map_ctr;
         out.y = size.y - out.y;
+        out = out + scr_pos;
 
         return out;
     }
@@ -706,15 +707,20 @@ namespace StratosphereAvionics
     {
         test::act_leg_info_t leg_info = nd_data->get_act_leg_info();
 
-        cairo_utils::draw_left_text(cr, font_face, leg_info.name, {size.x * 0.911, size.y * 0.03}, 
+        geom::vect2_t act_name_pos = scr_pos + size * ACT_LEG_NAME_OFFS;
+        geom::vect2_t act_time_pos = scr_pos + size * ACT_LEG_TIME_OFFS;
+        geom::vect2_t act_dist_pos = scr_pos + size * ACT_LEG_DIST_OFFS;
+        geom::vect2_t act_nm_pos = scr_pos + size * ACT_LEG_NM_OFFS;
+
+        cairo_utils::draw_left_text(cr, font_face, leg_info.name, act_name_pos, 
             cairo_utils::MAGENTA, ND_ACT_INFO_MAIN_FONT_SZ);
 
-        cairo_utils::draw_left_text(cr, font_face, "------Z", {size.x * 0.911, size.y * 0.05}, 
+        cairo_utils::draw_left_text(cr, font_face, "------Z", act_time_pos, 
             cairo_utils::WHITE, ND_ACT_INFO_MAIN_FONT_SZ);
         
-        cairo_utils::draw_left_text(cr, font_face, leg_info.dist_nm, {size.x * 0.911, size.y * 0.07}, 
+        cairo_utils::draw_left_text(cr, font_face, leg_info.dist_nm, act_dist_pos, 
             cairo_utils::WHITE, leg_info.dist_sz);
-        cairo_utils::draw_left_text(cr, font_face, "NM", {size.x * 0.96, size.y * 0.07}, 
+        cairo_utils::draw_left_text(cr, font_face, "NM", act_nm_pos, 
             cairo_utils::WHITE, ND_ACT_INFO_DIST_FONT_SZ);
     }
 
@@ -722,7 +728,10 @@ namespace StratosphereAvionics
     {
         test::spd_info_t spd_info = nd_data->get_spd_data();
 
-        cairo_utils::draw_left_text(cr, font_face, "GS", {size.x * 0.003, size.y * 0.034}, 
+        geom::vect2_t gs_text_pos = scr_pos + size * GS_TEXT_OFFS;
+        geom::vect2_t gs_pos = scr_pos + size * GS_OFFS;
+
+        cairo_utils::draw_left_text(cr, font_face, "GS", gs_text_pos, 
             cairo_utils::WHITE, ND_ACT_INFO_DIST_FONT_SZ);
         double gs_sz = ND_SPD_BIG_FONT_SZ;
         if(spd_info.gs_kts > GS_THRESH_BIG_KTS)
@@ -732,7 +741,7 @@ namespace StratosphereAvionics
 
         std::string gs_str = strutils::double_to_str(spd_info.gs_kts, 0);
 
-        cairo_utils::draw_right_text(cr, font_face, gs_str, {size.x * 0.061, size.y * 0.034}, 
+        cairo_utils::draw_right_text(cr, font_face, gs_str, gs_pos, 
             cairo_utils::WHITE, gs_sz);
     }
 
@@ -750,10 +759,12 @@ namespace StratosphereAvionics
             half_pr = 1;
         std::string rng_half_str = strutils::double_to_str(curr_rng / 2, half_pr);
 
-        geom::vect2_t pos_1_dn = {map_ctr.x, map_ctr.y + curr_rng * scale_factor.y};
-        geom::vect2_t pos_2_dn = {map_ctr.x, map_ctr.y + curr_rng * 0.5 * scale_factor.y};
-        geom::vect2_t pos_1_up = {map_ctr.x, map_ctr.y - curr_rng * scale_factor.y};
-        geom::vect2_t pos_2_up = {map_ctr.x, map_ctr.y - curr_rng * 0.5 * scale_factor.y};
+        geom::vect2_t ctr_trans = map_ctr + scr_pos;
+
+        geom::vect2_t pos_1_dn = {ctr_trans.x, ctr_trans.y + curr_rng * scale_factor.y};
+        geom::vect2_t pos_2_dn = {ctr_trans.x, ctr_trans.y + curr_rng * 0.5 * scale_factor.y};
+        geom::vect2_t pos_1_up = {ctr_trans.x, ctr_trans.y - curr_rng * scale_factor.y};
+        geom::vect2_t pos_2_up = {ctr_trans.x, ctr_trans.y - curr_rng * 0.5 * scale_factor.y};
 
         cairo_utils::draw_centered_text(cr, font_face, rng_full_str,
                                         pos_1_dn, cairo_utils::WHITE, ND_WPT_FONT_SZ);

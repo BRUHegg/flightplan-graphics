@@ -51,7 +51,19 @@ namespace StratosphereAvionics
     constexpr double PSEUDO_WPT_THICK_RAT = 0.0025;
     // Percentage of horisontal resolution that translates into magenta line width
     constexpr double ND_FPL_LINE_THICK = 0.003;
+    // Route drawing
     constexpr geom::vect2_t FIX_NAME_OFFS = {0.02, 0.03};
+    // Active leg
+    constexpr geom::vect2_t ACT_LEG_NAME_OFFS = {0.911, 0.03};
+    constexpr geom::vect2_t ACT_LEG_TIME_OFFS = {0.911, 0.05};
+    constexpr geom::vect2_t ACT_LEG_DIST_OFFS = {0.911, 0.07};
+    constexpr geom::vect2_t ACT_LEG_NM_OFFS = {0.96, 0.07};
+    // Speed
+    constexpr geom::vect2_t GS_OFFS = {0.061, 0.034};
+    constexpr geom::vect2_t GS_TEXT_OFFS = {0.003, 0.034};
+    constexpr geom::vect2_t TAS_OFFS = {0.96, 0.07};
+    constexpr geom::vect2_t TAS_TEXT_OFFS = {0.96, 0.07};
+
 
     const std::string WPT_INACT_NAME = "wpt_inact";
     const std::string WPT_ACT_NAME = "wpt_act";
