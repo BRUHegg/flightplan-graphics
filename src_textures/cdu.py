@@ -23,6 +23,8 @@ LSK_L_WIDTH = LSK_HEIGHT * 0.2
 LSK_OFFS_START = WND_HEIGHT * 0.12
 LSK_LINE_OFFS = 0.02 * WND_WIDTH
 LSK_INN_OFFS = WND_WIDTH * 0.01
+
+MAIN_KEY_FNT = 22
 KEY_MAIN_START_X = LSK_OFFS * WND_WIDTH
 KEY_MAIN_START_Y = 0.51 * WND_HEIGHT
 KEY_MAIN_WIDTH = LSK_WIDTH * 1.5
@@ -30,6 +32,7 @@ KEY_MAIN_HEIGHT = LSK_HEIGHT * 1.47
 KEY_MAIN_LAT_OFFS = KEY_MAIN_WIDTH * 1.06
 KEY_MAIN_VERT_OFFS = KEY_MAIN_HEIGHT * 1.08
 
+LETTER_KEY_FNT = 40
 LETTER_KEY_WIDTH = 0.075 * WND_WIDTH
 LETTER_KEY_HEIGHT = LETTER_KEY_WIDTH
 LETTER_KEY_START_X = 0.44 * WND_WIDTH
@@ -37,10 +40,14 @@ LETTER_KEY_START_Y = 0.63 * WND_HEIGHT
 LETTER_KEY_LAT_OFFS = LETTER_KEY_WIDTH * 1.24
 LETTER_KEY_VERT_OFFS = LETTER_KEY_WIDTH * 1.24
 
+NUM_KEY_START_X = KEY_MAIN_START_X
+NUM_KEY_START_Y = WND_HEIGHT * 0.75
+NUM_KEY_LAT_OFFS = LETTER_KEY_LAT_OFFS * 1.15
+
 
 save = False
 
-def draw_btn(x, y, w, h, text=""):
+def draw_btn(x, y, w, h, text="", fnt_sz=25):
     curr_rect = pg.Rect(x, y, w, h)
     curr_rect_inn = pg.Rect(x+LSK_INN_OFFS, y+LSK_INN_OFFS, 
                             w-LSK_INN_OFFS*2, h-LSK_INN_OFFS*2)
@@ -51,9 +58,26 @@ def draw_btn(x, y, w, h, text=""):
         l_y = curr_rect[1] + curr_rect[3] * 0.5
         pg.draw.line(screen, WHITE, (curr_rect[0]+LSK_LINE_OFFS, l_y),
                     (curr_rect[0]+curr_rect[2]-LSK_LINE_OFFS, l_y),int(LSK_L_WIDTH))
+    else:
+        btn_ctr = (x + w / 2, y + h / 2)
+        font = pg.font.Font(None, fnt_sz)
+        text = font.render(text, True, WHITE)
+        text_rect = text.get_rect(center=btn_ctr)
+        screen.blit(text, text_rect)
+
+def draw_round_btn(x, y, r, text=""):
+    curr_ctr = (x + r, y + r)
+    r1 = r
+    r2 = r1 - LSK_INN_OFFS
+
+    pg.draw.circle(screen, LSK_CLR, curr_ctr, r1)
+    pg.draw.circle(screen, LSK_CLR_LT, curr_ctr, r2)
 
 def draw_lsk(x, y):
     draw_btn(x, y, LSK_WIDTH, LSK_HEIGHT)
+
+main_btn_labels = ["INIT", "RTE", "DEP", "ALTN", "VNAV", "FIX", "LEGS", "HOLD", "FMC",
+                   "PROG", "MENU", "NAV", "PREV", "NEXT"]
 
 while 1:
     for event in pg.event.get():
@@ -61,6 +85,8 @@ while 1:
             exit()
     
     screen.fill(BACKGND_CLR_LIGHT)
+
+    
 
     pg.draw.rect(screen, BACKGND_CLR, 
                 (WND_WIDTH * LSK_OFFS, WND_HEIGHT * SCR_OFFS_OUTER, 
@@ -75,27 +101,46 @@ while 1:
         curr_rect_l[1] += LSK_KEY_OFFS_VERT
         curr_rect_r[1] += LSK_KEY_OFFS_VERT
 
+    k = 0
     curr_y = KEY_MAIN_START_Y
     for i in range(2):
         curr_x = KEY_MAIN_START_X
         for j in range(5):
-            draw_btn(curr_x, curr_y, KEY_MAIN_WIDTH, KEY_MAIN_HEIGHT, "A")
+            draw_btn(curr_x, curr_y, KEY_MAIN_WIDTH, KEY_MAIN_HEIGHT, main_btn_labels[k],
+                        MAIN_KEY_FNT)
             curr_x += KEY_MAIN_LAT_OFFS
+            k+=1
         curr_y += KEY_MAIN_VERT_OFFS
 
     for i in range(2):
         curr_x = KEY_MAIN_START_X
         for j in range(2):
-            draw_btn(curr_x, curr_y, KEY_MAIN_WIDTH, KEY_MAIN_HEIGHT, "A")
+            draw_btn(curr_x, curr_y, KEY_MAIN_WIDTH, KEY_MAIN_HEIGHT, main_btn_labels[k],
+                     MAIN_KEY_FNT)
             curr_x += KEY_MAIN_LAT_OFFS
+            k+=1
         curr_y += KEY_MAIN_VERT_OFFS
 
+    k = 0
     curr_y = LETTER_KEY_START_Y
     for i in range(6):
         curr_x = LETTER_KEY_START_X
         for j in range(5):
-            draw_btn(curr_x, curr_y, LETTER_KEY_WIDTH, LETTER_KEY_HEIGHT, "A")
+            curr_txt = ""
+            if k < 26:
+                curr_txt = chr(ord("A") + k)
+            draw_btn(curr_x, curr_y, LETTER_KEY_WIDTH, LETTER_KEY_HEIGHT, curr_txt,
+                     LETTER_KEY_FNT)
             curr_x += LETTER_KEY_LAT_OFFS
+            k += 1
+        curr_y += LETTER_KEY_VERT_OFFS
+
+    curr_y = NUM_KEY_START_Y
+    for i in range(4):
+        curr_x = NUM_KEY_START_X
+        for j in range(3):
+            draw_round_btn(curr_x, curr_y, LETTER_KEY_WIDTH/2, "A")
+            curr_x += NUM_KEY_LAT_OFFS
         curr_y += LETTER_KEY_VERT_OFFS
 
     if save:
