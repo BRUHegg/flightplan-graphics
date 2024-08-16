@@ -731,8 +731,6 @@ namespace StratosphereAvionics
         geom::vect2_t gs_text_pos = scr_pos + size * GS_TEXT_OFFS;
         geom::vect2_t gs_pos = scr_pos + size * GS_OFFS;
 
-        cairo_utils::draw_left_text(cr, font_face, "GS", gs_text_pos, 
-            cairo_utils::WHITE, ND_ACT_INFO_DIST_FONT_SZ);
         double gs_sz = ND_SPD_BIG_FONT_SZ;
         if(spd_info.gs_kts > GS_THRESH_BIG_KTS)
         {
@@ -741,8 +739,23 @@ namespace StratosphereAvionics
 
         std::string gs_str = strutils::double_to_str(spd_info.gs_kts, 0);
 
+        cairo_utils::draw_left_text(cr, font_face, "GS", gs_text_pos, 
+            cairo_utils::WHITE, ND_ACT_INFO_DIST_FONT_SZ);
         cairo_utils::draw_right_text(cr, font_face, gs_str, gs_pos, 
             cairo_utils::WHITE, gs_sz);
+
+        if(spd_info.tas_kts >= TAS_DISPL_THRESH_KTS)
+        {
+            geom::vect2_t tas_text_pos = scr_pos + size * TAS_TEXT_OFFS;
+            geom::vect2_t tas_pos = scr_pos + size * TAS_OFFS;
+
+            std::string tas_str = strutils::double_to_str(spd_info.tas_kts, 0);
+
+            cairo_utils::draw_left_text(cr, font_face, "TAS", tas_text_pos, 
+                cairo_utils::WHITE, ND_ACT_INFO_DIST_FONT_SZ);
+            cairo_utils::draw_right_text(cr, font_face, tas_str, tas_pos, 
+                cairo_utils::WHITE, ND_SPD_SMALL_FONT_SZ);
+        }
     }
 
     void NDDisplay::draw_range(cairo_t *cr)

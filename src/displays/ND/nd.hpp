@@ -44,6 +44,7 @@ namespace StratosphereAvionics
     constexpr double ND_SPD_BIG_FONT_SZ = 26;
     constexpr double ND_SPD_SMALL_FONT_SZ = 21;
     constexpr double GS_THRESH_BIG_KTS = 30;
+    constexpr double TAS_DISPL_THRESH_KTS = 100;
     // Inverse of percentage of resolution that contributes to the scaling factor of waypoint image
     constexpr double WPT_SCALE_FACT = 900;
     // Percentage of horizontal resolution that translates into radius of pseudo waypoint label
@@ -61,8 +62,8 @@ namespace StratosphereAvionics
     // Speed
     constexpr geom::vect2_t GS_OFFS = {0.061, 0.034};
     constexpr geom::vect2_t GS_TEXT_OFFS = {0.003, 0.034};
-    constexpr geom::vect2_t TAS_OFFS = {0.96, 0.07};
-    constexpr geom::vect2_t TAS_TEXT_OFFS = {0.96, 0.07};
+    constexpr geom::vect2_t TAS_OFFS = {0.15, 0.034};
+    constexpr geom::vect2_t TAS_TEXT_OFFS = {0.079, 0.034};
 
 
     const std::string WPT_INACT_NAME = "wpt_inact";
