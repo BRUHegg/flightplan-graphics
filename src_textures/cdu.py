@@ -217,7 +217,7 @@ while 1:
     for i in range(2):
         curr_x = KEY_MAIN_START_X
         for j in range(5):
-            draw_btn(curr_x, curr_y, KEY_MAIN_WIDTH, KEY_MAIN_HEIGHT, k+1, btn_labels[k][0],
+            draw_btn(curr_x, curr_y, KEY_MAIN_WIDTH, KEY_MAIN_HEIGHT, btn_cnt, btn_labels[k][0],
                         btn_labels[k][1])
             btn_cnt += 1
             curr_x += KEY_MAIN_LAT_OFFS
@@ -227,7 +227,7 @@ while 1:
     for i in range(2):
         curr_x = KEY_MAIN_START_X
         for j in range(2):
-            draw_btn(curr_x, curr_y, KEY_MAIN_WIDTH, KEY_MAIN_HEIGHT, k+1, btn_labels[k][0],
+            draw_btn(curr_x, curr_y, KEY_MAIN_WIDTH, KEY_MAIN_HEIGHT, btn_cnt, btn_labels[k][0],
                         btn_labels[k][1])
             btn_cnt += 1
             curr_x += KEY_MAIN_LAT_OFFS
@@ -238,7 +238,7 @@ while 1:
     for i in range(6):
         curr_x = LETTER_KEY_START_X
         for j in range(5):
-            draw_btn(curr_x, curr_y, LETTER_KEY_WIDTH, LETTER_KEY_HEIGHT, k+1, btn_labels[k][0],
+            draw_btn(curr_x, curr_y, LETTER_KEY_WIDTH, LETTER_KEY_HEIGHT, btn_cnt, btn_labels[k][0],
                         btn_labels[k][1])
             btn_cnt += 1
             curr_x += LETTER_KEY_LAT_OFFS
@@ -249,14 +249,14 @@ while 1:
     for i in range(4):
         curr_x = NUM_KEY_START_X
         for j in range(3):
-            draw_round_btn(curr_x, curr_y, LETTER_KEY_WIDTH/2, k+1, btn_labels[k][0],
+            draw_round_btn(curr_x, curr_y, LETTER_KEY_WIDTH/2, btn_cnt, btn_labels[k][0],
                         btn_labels[k][1])
             btn_cnt += 1
             k += 1
             curr_x += NUM_KEY_LAT_OFFS
         curr_y += LETTER_KEY_VERT_OFFS
 
-    draw_btn(EXEC_BTN_X, EXEC_BTN_Y, EXEC_BTN_W, EXEC_BTN_H, k+1, btn_labels[k][0],
+    draw_btn(EXEC_BTN_X, EXEC_BTN_Y, EXEC_BTN_W, EXEC_BTN_H, btn_cnt, btn_labels[k][0],
                         btn_labels[k][1])
     
     save_bytemap(cdu_key_map, int(WND_WIDTH), int(WND_HEIGHT))
