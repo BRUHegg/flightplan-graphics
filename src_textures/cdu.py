@@ -1,5 +1,17 @@
 import pygame as pg
 
+
+def save_bytemap(surf, w, h):
+    out = [[0] for i in range(int(w*h))]
+    for y in range(h):
+        for x in range(w):
+            out[y*w+x] = surf.get_at((x, y))[0]
+    f = open("cdu_key_map.byt", "wb")
+    b_array = bytearray(out)
+    f.write(b_array)
+    f.close()
+
+
 ASPECT_RATIO = 488/751
 WND_HEIGHT = 900
 WND_WIDTH = ASPECT_RATIO * WND_HEIGHT
@@ -69,8 +81,11 @@ MAIN_KEY_RECT_H2 = WND_HEIGHT * 0.236
 TEXT_OFFS = WND_HEIGHT * 0.001
 
 
-save_cdu = True
+save_cdu = False
 save_keys = False
+
+cdu_key_map = pg.Surface((WND_WIDTH, WND_HEIGHT))
+cdu_key_map.fill(BLACK)
 
 def draw_ctrd_text(x, y, v_offs, s, fnt_sz):
     if(s != ""):
@@ -101,12 +116,14 @@ def draw_depth_rect(x, y, w, h, inn_offs, c_out, c_inn):
     pg.draw.rect(screen, c_out, curr_rect, 0, 5)
     pg.draw.rect(screen, c_inn, curr_rect_inn, 0, 5)
 
-def draw_btn(x, y, w, h, s="", fnt_sz=25):
+def draw_btn(x, y, w, h, curr_cnt, s="", fnt_sz=25):
     curr_rect = pg.Rect(x, y, w, h)
     curr_rect_inn = pg.Rect(x+LSK_INN_OFFS, y+LSK_INN_OFFS, 
                             w-LSK_INN_OFFS*2, h-LSK_INN_OFFS*2)
     pg.draw.rect(screen, LSK_CLR, curr_rect, 0, 5)
     pg.draw.rect(screen, LSK_CLR_LT, curr_rect_inn, 0, 5)
+
+    pg.draw.rect(cdu_key_map, (curr_cnt, 0, 0), curr_rect, 0, 5)
 
     if s == "":
         l_y = curr_rect[1] + curr_rect[3] * 0.5
@@ -116,7 +133,7 @@ def draw_btn(x, y, w, h, s="", fnt_sz=25):
         btn_ctr = (x + w / 2, y + h / 2)
         draw_ctrd_text(btn_ctr[0], btn_ctr[1], TEXT_OFFS, s, fnt_sz)
 
-def draw_round_btn(x, y, r, s="", fnt_sz=25):
+def draw_round_btn(x, y, r, curr_cnt, s="", fnt_sz=25):
     curr_ctr = (x + r, y + r)
     r1 = r
     r2 = r1 - LSK_INN_OFFS
@@ -124,10 +141,13 @@ def draw_round_btn(x, y, r, s="", fnt_sz=25):
     pg.draw.circle(screen, LSK_CLR, curr_ctr, r1)
     pg.draw.circle(screen, LSK_CLR_LT, curr_ctr, r2)
 
+    pg.draw.circle(cdu_key_map, (curr_cnt, 0, 0), curr_ctr, r1)
+
+
     draw_ctrd_text(curr_ctr[0], curr_ctr[1], 0, s, fnt_sz)
 
-def draw_lsk(x, y):
-    draw_btn(x, y, LSK_WIDTH, LSK_HEIGHT)
+def draw_lsk(x, y, curr_cnt):
+    draw_btn(x, y, LSK_WIDTH, LSK_HEIGHT, curr_cnt)
 
 main_btn_labels = ["INIT\nREF", "RTE", "DEP\nARR", "ALTN", "VNAV", "FIX", "LEGS", "HOLD", "FMC\nCOMM",
                    "PROG", "MENU", "NAV\nRAD", "PREV\nPAGE", "NEXT\nPAGE"]
@@ -176,22 +196,30 @@ while 1:
         pg.image.save(screen, "cdu_back.png")
         break
     
+    btn_cnt = 1
+
     curr_rect_l = pg.Rect(LSK_KEY_OFFS_LAT, LSK_OFFS_START, LSK_WIDTH, LSK_HEIGHT)
     curr_rect_r = pg.Rect(WND_WIDTH-LSK_KEY_OFFS_LAT-LSK_WIDTH, LSK_OFFS_START, LSK_WIDTH, LSK_HEIGHT)
     for i in range(6):
-        draw_lsk(curr_rect_l[0], curr_rect_l[1])
-        draw_lsk(curr_rect_r[0], curr_rect_r[1])
+        draw_lsk(curr_rect_l[0], curr_rect_l[1], btn_cnt)
         
         curr_rect_l[1] += LSK_KEY_OFFS_VERT
+        btn_cnt += 1
+    
+    for i in range(6):
+        draw_lsk(curr_rect_r[0], curr_rect_r[1], btn_cnt)
+        
         curr_rect_r[1] += LSK_KEY_OFFS_VERT
+        btn_cnt += 1
 
     k = 0
     curr_y = KEY_MAIN_START_Y
     for i in range(2):
         curr_x = KEY_MAIN_START_X
         for j in range(5):
-            draw_btn(curr_x, curr_y, KEY_MAIN_WIDTH, KEY_MAIN_HEIGHT, btn_labels[k][0],
+            draw_btn(curr_x, curr_y, KEY_MAIN_WIDTH, KEY_MAIN_HEIGHT, k+1, btn_labels[k][0],
                         btn_labels[k][1])
+            btn_cnt += 1
             curr_x += KEY_MAIN_LAT_OFFS
             k+=1
         curr_y += KEY_MAIN_VERT_OFFS
@@ -199,8 +227,9 @@ while 1:
     for i in range(2):
         curr_x = KEY_MAIN_START_X
         for j in range(2):
-            draw_btn(curr_x, curr_y, KEY_MAIN_WIDTH, KEY_MAIN_HEIGHT, btn_labels[k][0],
+            draw_btn(curr_x, curr_y, KEY_MAIN_WIDTH, KEY_MAIN_HEIGHT, k+1, btn_labels[k][0],
                         btn_labels[k][1])
+            btn_cnt += 1
             curr_x += KEY_MAIN_LAT_OFFS
             k+=1
         curr_y += KEY_MAIN_VERT_OFFS
@@ -209,8 +238,9 @@ while 1:
     for i in range(6):
         curr_x = LETTER_KEY_START_X
         for j in range(5):
-            draw_btn(curr_x, curr_y, LETTER_KEY_WIDTH, LETTER_KEY_HEIGHT, btn_labels[k][0],
+            draw_btn(curr_x, curr_y, LETTER_KEY_WIDTH, LETTER_KEY_HEIGHT, k+1, btn_labels[k][0],
                         btn_labels[k][1])
+            btn_cnt += 1
             curr_x += LETTER_KEY_LAT_OFFS
             k += 1
         curr_y += LETTER_KEY_VERT_OFFS
@@ -219,15 +249,18 @@ while 1:
     for i in range(4):
         curr_x = NUM_KEY_START_X
         for j in range(3):
-            draw_round_btn(curr_x, curr_y, LETTER_KEY_WIDTH/2, btn_labels[k][0],
+            draw_round_btn(curr_x, curr_y, LETTER_KEY_WIDTH/2, k+1, btn_labels[k][0],
                         btn_labels[k][1])
+            btn_cnt += 1
             k += 1
             curr_x += NUM_KEY_LAT_OFFS
         curr_y += LETTER_KEY_VERT_OFFS
 
-    draw_btn(EXEC_BTN_X, EXEC_BTN_Y, EXEC_BTN_W, EXEC_BTN_H, btn_labels[k][0],
+    draw_btn(EXEC_BTN_X, EXEC_BTN_Y, EXEC_BTN_W, EXEC_BTN_H, k+1, btn_labels[k][0],
                         btn_labels[k][1])
-
+    
+    save_bytemap(cdu_key_map, int(WND_WIDTH), int(WND_HEIGHT))
+    break
     if save_keys:
         pg.image.save(screen, "cdu_keys.png")
         break
