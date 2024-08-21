@@ -15,6 +15,7 @@
 #include "fpln/fpln_sys.hpp"
 #include "fpln/fpl_cmds.hpp"
 #include "displays/ND/nd.hpp"
+#include "displays/CDU/cdu.hpp"
 #include <iostream>
 #include <memory>
 #include <string>
@@ -35,8 +36,14 @@ namespace test
     const std::string BOEING_FONT_NAME = "BoeingFont.ttf";
     const std::string TEXTURES_PATH = "textures/";
 
-    constexpr geom::vect2_t ND_POS = {0, 0};
-    constexpr geom::vect2_t ND_SZ = {900, 900};
+    constexpr double WND_HEIGHT = 900;
+    constexpr double CDU_WIDTH = (StratosphereAvionics::CDU_TEXTURE_ASPECT_RATIO * WND_HEIGHT);
+    constexpr double ND_WIDTH = WND_HEIGHT;
+    constexpr double WND_WIDTH = CDU_WIDTH + ND_WIDTH;
+    constexpr geom::vect2_t ND_POS = {CDU_WIDTH, 0};
+    constexpr geom::vect2_t ND_SZ = {ND_WIDTH, ND_WIDTH};
+    constexpr geom::vect2_t CDU_L_POS = {0, 0};
+    constexpr geom::vect2_t CDU_L_SZ = {CDU_WIDTH, WND_HEIGHT};
 
 
     class Avionics
@@ -131,6 +138,7 @@ namespace test
         std::shared_ptr<cairo_utils::texture_manager_t> tex_mngr;
         std::shared_ptr<StratosphereAvionics::NDData> nd_data;
         std::shared_ptr<StratosphereAvionics::NDDisplay> nd_display;
+        std::shared_ptr<StratosphereAvionics::CDUDisplay> cdu_display_l;
 
 
         CMDInterface()
@@ -173,6 +181,7 @@ namespace test
         void draw(cairo_t *cr)
         {
             nd_display->draw(cr);
+            cdu_display_l->draw(cr);
         }
 
         void update()
@@ -339,7 +348,9 @@ namespace test
                 StratosphereAvionics::WPT_INACT_NAME,
                 StratosphereAvionics::AIRPLANE_NAME,
                 StratosphereAvionics::PLN_BACKGND_INNER_NAME,
-                StratosphereAvionics::PLN_BACKGND_OUTER_NAME
+                StratosphereAvionics::PLN_BACKGND_OUTER_NAME,
+                
+                StratosphereAvionics::CDU_TEXTURE_NAME
                 };
             
             tex_mngr = std::make_shared<cairo_utils::texture_manager_t>();
@@ -366,6 +377,9 @@ namespace test
             nd_data = std::make_shared<StratosphereAvionics::NDData>(avncs->fpl_sys);
             nd_display = std::make_shared<StratosphereAvionics::NDDisplay>(
                 nd_data, tex_mngr, boeing_font_face, ND_POS, ND_SZ, false);
+            cdu_display_l = std::make_shared<StratosphereAvionics::CDUDisplay>(
+                CDU_L_POS, CDU_L_SZ, boeing_font_face, tex_mngr
+            );
 
             std::cout << "Avionics loaded\n";
         }

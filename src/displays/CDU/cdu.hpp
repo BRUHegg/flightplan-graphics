@@ -7,12 +7,17 @@
 namespace StratosphereAvionics
 {
     constexpr double N_CDU_LINES = 8; // small and big lines are counted as 1
-    constexpr double CDU_SMALL_TEXT_SZ = 18;
-    constexpr double CDU_BIG_TEXT_SZ = 21;
-    constexpr double CDU_BIG_TEXT_OFFS = 0.04;
+    constexpr double CDU_SMALL_TEXT_SZ = 21;
+    constexpr double CDU_SMALL_TEXT_OFFS_X = 0.003;
+    constexpr double CDU_BIG_TEXT_SZ = 26;
+    constexpr double CDU_BIG_TEXT_OFFS = 0.064;
+    constexpr double CDU_SMALL_TEXT_INTV = 0.031;
+    constexpr double CDU_BIG_TEXT_INTV = 0.031;
 
-    const geom::vect2_t DISPLAY_OFFS = {0.1, 0.1};
-    const geom::vect2_t DISPLAY_SZ = {0.9, 0.4};
+    constexpr double CDU_TEXTURE_ASPECT_RATIO = (488.0/751.0);
+
+    const geom::vect2_t DISPLAY_OFFS = {0.17, 0.086};
+    const geom::vect2_t DISPLAY_SZ = {0.9, 0.378};
 
     const std::string CDU_TEXTURE_NAME = "cdu";
 
@@ -35,6 +40,9 @@ namespace StratosphereAvionics
 
         std::shared_ptr<cairo_utils::texture_manager_t> tex_mngr;
 
+
+        void draw_text_line(cairo_t *cr, std::string& text, geom::vect2_t pos, 
+            geom::vect3_t color, double sz, double l_intv_px);
         
         void draw_screen(cairo_t *cr);
     };

@@ -12,7 +12,7 @@ namespace StratosphereAvionics
         scr_pos = pos;
         size = sz;
         disp_pos = scr_pos + size * DISPLAY_OFFS;
-        disp_size = scr_pos + size * DISPLAY_SZ;
+        disp_size = size * DISPLAY_SZ;
 
         font_face = ff;
 
@@ -31,6 +31,19 @@ namespace StratosphereAvionics
 
     // Private member functions:
 
+    void CDUDisplay::draw_text_line(cairo_t *cr, std::string& text, geom::vect2_t pos, 
+            geom::vect3_t color, double sz, double l_intv_px)
+    {
+        for(size_t i = 0; i < text.size(); i++)
+        {
+            std::string curr = std::string(1, text[i]);
+            cairo_utils::draw_left_text(cr, font_face, curr, pos, 
+                color, sz);
+            
+            pos.x += l_intv_px;
+        }
+    }
+
     void CDUDisplay::draw_screen(cairo_t *cr)
     {
         double v_offs = disp_size.y / N_CDU_LINES;
@@ -41,12 +54,13 @@ namespace StratosphereAvionics
         std::string test_str = std::string(24, 'X');
         for(int i = 0; i < int(N_CDU_LINES); i++)
         {
-            cairo_utils::draw_left_text(cr, font_face, test_str, pos_small, 
-                cairo_utils::WHITE, CDU_SMALL_TEXT_SZ);
-            cairo_utils::draw_left_text(cr, font_face, test_str, pos_big, 
-                cairo_utils::WHITE, CDU_BIG_TEXT_SZ);
+            draw_text_line(cr, test_str, pos_small, cairo_utils::WHITE, 
+                CDU_SMALL_TEXT_SZ, CDU_SMALL_TEXT_INTV * disp_size.x);
+            draw_text_line(cr, test_str, pos_big, cairo_utils::WHITE, 
+                CDU_BIG_TEXT_SZ, CDU_BIG_TEXT_INTV * disp_size.x);
 
             pos_small.y += v_offs;
+            pos_big.y += v_offs;
         }
     }
 }
