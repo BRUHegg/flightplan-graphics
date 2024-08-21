@@ -1,2 +1,9 @@
-add_subdirectory(ND)
-add_subdirectory(CDU)
+file(GLOB_RECURSE DISPLAY_HDR ${CMAKE_CURRENT_SOURCE_DIR}/*.hpp)
+file(GLOB_RECURSE DISPLAY_SRC ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
+
+add_library(displays STATIC ${DISPLAY_SRC} ${DISPLAY_HDR})
+
+
+if(UNIX AND NOT APPLE)
+    set_property(TARGET displays PROPERTY POSITION_INDEPENDENT_CODE ON)
+endif()

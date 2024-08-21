@@ -6,7 +6,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Werror -fPIC -g")
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-add_subdirectory("src/fpln")
+add_subdirectory(src/fpln)
 add_subdirectory(src/displays)
 
 file(GLOB SRC_FILES "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
@@ -36,7 +36,7 @@ target_include_directories(fpln PUBLIC "${LIBNAV}/include" "${CMAKE_CURRENT_SOUR
 file(GLOB LIBNAV_LIBS ${LIBNAV}/${ARCH}/*.a)
 cmake_print_variables(LIBNAV_LIBS)
 target_link_libraries(fpln PUBLIC ${LIBNAV_LIBS})
-target_link_libraries(nd_display PUBLIC fpln)
+target_link_libraries(displays PUBLIC fpln)
 #target_link_libraries(fpln_graphics PUBLIC )
 
 # Configure gtk
@@ -47,15 +47,15 @@ pkg_check_modules(GTK3 REQUIRED gtk+-3.0)
 include_directories(${GTK3_INCLUDE_DIRS})
 link_directories(${GTK3_LIBRARY_DIRS})
 add_definitions(${GTK3_CFLAGS_OTHER})
-target_link_libraries(nd_display PUBLIC ${GTK3_LIBRARIES})
-target_link_libraries(fpln_graphics PUBLIC ${GTK3_LIBRARIES} fpln nd_display)
+target_link_libraries(displays PUBLIC ${GTK3_LIBRARIES})
+target_link_libraries(fpln_graphics PUBLIC ${GTK3_LIBRARIES} fpln displays)
 
-target_include_directories(nd_display PUBLIC "${LIBNAV}/include" "${CMAKE_CURRENT_SOURCE_DIR}/src" "${CMAKE_CURRENT_SOURCE_DIR}/src/displays" ${GTK3_INCLUDE_DIRS})
+target_include_directories(displays PUBLIC "${LIBNAV}/include" "${CMAKE_CURRENT_SOURCE_DIR}/src" "${CMAKE_CURRENT_SOURCE_DIR}/src/displays" ${GTK3_INCLUDE_DIRS})
 
 # Configure freetype
 
 find_package(Freetype REQUIRED)
 target_link_libraries(fpln_graphics PUBLIC ${FREETYPE_LIBRARIES})
-target_include_directories(nd_display PUBLIC ${FREETYPE_INCLUDE_DIRS})
-target_link_libraries(nd_display PUBLIC ${FREETYPE_LIBRARIES})
+target_include_directories(displays PUBLIC ${FREETYPE_INCLUDE_DIRS})
+target_link_libraries(displays PUBLIC ${FREETYPE_LIBRARIES})
 target_include_directories(fpln_graphics PUBLIC ${FREETYPE_INCLUDE_DIRS})
