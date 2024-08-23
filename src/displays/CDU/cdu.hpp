@@ -2,6 +2,7 @@
 #include <memory>
 #include <geom.hpp>
 #include "common/cairo_utils.hpp"
+#include "common/bytemap.hpp"
 
 
 namespace StratosphereAvionics
