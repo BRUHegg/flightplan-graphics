@@ -34,6 +34,8 @@ namespace test
     const std::string PREFS_FPL_DIR = "FPLDIR";
 
     const std::string BOEING_FONT_NAME = "BoeingFont.ttf";
+    const std::pair<std::string, std::string> CDU_BYTEMAP_NAME = {"cdu_key_map", 
+        StratosphereAvionics::CDU_TEXTURE_NAME};
     const std::string TEXTURES_PATH = "textures/";
 
     constexpr double WND_HEIGHT = 900;
@@ -139,6 +141,8 @@ namespace test
         std::shared_ptr<StratosphereAvionics::NDData> nd_data;
         std::shared_ptr<StratosphereAvionics::NDDisplay> nd_display;
         std::shared_ptr<StratosphereAvionics::CDUDisplay> cdu_display_l;
+
+        byteutils::bytemap_manager_t byte_mngr;
 
 
         CMDInterface()
@@ -367,10 +371,29 @@ namespace test
             }
         }
 
+        void load_bytemaps()
+        {
+            std::vector<std::pair<std::string, std::string>> tgt = {CDU_BYTEMAP_NAME};
+
+            for(size_t i = 0; i < tgt.size(); i++)
+            {
+                geom::vect2_t tex_sz = cairo_utils::get_surf_sz(
+                    tex_mngr->data[tgt[i].second]);
+                bool added = byte_mngr.add_bytemap(TEXTURES_PATH+tgt[i].first, 
+                    size_t(tex_sz.x), size_t(tex_sz.y));
+                if(!added)
+                {
+                    std::cout << "Failed to load bytemaps. Aborting\n";
+                    exit(0);
+                }
+            }
+        }
+
         void create_avionics()
         {
             load_fonts();
             load_textures();
+            load_bytemaps();
 
             avncs = std::make_shared<Avionics>(apt_dat_dir+"apt.dat", "777_arpt.dat", 
                 "777_rnw.dat", earth_nav_path+"earth_fix.dat", 

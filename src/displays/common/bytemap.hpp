@@ -69,29 +69,37 @@ namespace byteutils
 
     struct bytemap_manager_t
     {
-        std::map<std:string, Bytemap> data;
+        std::map<std::string, Bytemap*> data;
 
 
-        bool add_bytemap(std::string& path, size_t w, size_t h)
+        bool add_bytemap(std::string path, size_t w, size_t h)
         {
-            Bytemap tmp = Bytemap(w, h);
-            if(tmp.load(path))
+            Bytemap *tmp = new Bytemap(w, h);
+            if(tmp->load(path+BYTEMAP_FORMAT))
             {
                 data[path] = tmp;
+                return true;
             }
+
+            delete tmp;
 
             return false;
         }
 
-        void get_bytemap(std::string& path, Bytemap *out)
+        Bytemap* get_bytemap(std::string& path)
         {
             if(data.find(path) != data.end())
             {
-                *out = data[path];
-                return;
+                return data[path];
             }
 
-            *out = nullptr;
+            return nullptr;
+        }
+
+        void destroy()
+        {
+            for(auto i: data)
+                delete i.second;
         }
     };
 };
