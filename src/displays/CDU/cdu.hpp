@@ -3,6 +3,7 @@
 #include <geom.hpp>
 #include "common/cairo_utils.hpp"
 #include "common/bytemap.hpp"
+#include <iostream>
 
 
 namespace StratosphereAvionics
@@ -44,7 +45,9 @@ namespace StratosphereAvionics
     {
     public:
         CDUDisplay(geom::vect2_t pos, geom::vect2_t sz, cairo_font_face_t *ff,
-            std::shared_ptr<cairo_utils::texture_manager_t> tm);
+            std::shared_ptr<cairo_utils::texture_manager_t> tm, byteutils::Bytemap *bm);
+
+        void on_click(geom::vect2_t pos);
 
         void draw(cairo_t *cr);
     private:
@@ -57,6 +60,8 @@ namespace StratosphereAvionics
         cairo_font_face_t *font_face;
 
         std::shared_ptr<cairo_utils::texture_manager_t> tex_mngr;
+
+        byteutils::Bytemap *key_map;
 
 
         static int get_cdu_letter_idx(char c);

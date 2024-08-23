@@ -72,12 +72,12 @@ namespace byteutils
         std::map<std::string, Bytemap*> data;
 
 
-        bool add_bytemap(std::string path, size_t w, size_t h)
+        bool add_bytemap(std::string path, std::string f_name, size_t w, size_t h)
         {
             Bytemap *tmp = new Bytemap(w, h);
-            if(tmp->load(path+BYTEMAP_FORMAT))
+            if(tmp->load(path+f_name+BYTEMAP_FORMAT))
             {
-                data[path] = tmp;
+                data[f_name] = tmp;
                 return true;
             }
 
@@ -86,11 +86,11 @@ namespace byteutils
             return false;
         }
 
-        Bytemap* get_bytemap(std::string& path)
+        Bytemap* get_bytemap(std::string f_name)
         {
-            if(data.find(path) != data.end())
+            if(data.find(f_name) != data.end())
             {
-                return data[path];
+                return data[f_name];
             }
 
             return nullptr;

@@ -7,7 +7,7 @@ namespace StratosphereAvionics
     // Public member functions:
 
     CDUDisplay::CDUDisplay(geom::vect2_t pos, geom::vect2_t sz, cairo_font_face_t *ff,
-        std::shared_ptr<cairo_utils::texture_manager_t> tm)
+        std::shared_ptr<cairo_utils::texture_manager_t> tm, byteutils::Bytemap *bm)
     {
         scr_pos = pos;
         size = sz;
@@ -18,7 +18,18 @@ namespace StratosphereAvionics
 
         tex_mngr = tm;
 
+        key_map = bm;
+
         tex_scale = size / cairo_utils::get_surf_sz(tex_mngr->data[CDU_TEXTURE_NAME]);
+    }
+
+    void CDUDisplay::on_click(geom::vect2_t pos)
+    {
+        pos = (pos - scr_pos) / tex_scale;
+        if(pos.x >= 0 && pos.y >= 0 && pos.x < size.x && pos.y < size.y)
+        {
+            std::cout << int(key_map->get_at(size_t(pos.x), size_t(pos.y))) << "\n";
+        }
     }
 
     void CDUDisplay::draw(cairo_t *cr)

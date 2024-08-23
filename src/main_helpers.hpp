@@ -182,6 +182,11 @@ namespace test
             }
         }
 
+        void on_click(geom::vect2_t pos)
+        {
+            cdu_display_l->on_click(pos);
+        }
+
         void draw(cairo_t *cr)
         {
             nd_display->draw(cr);
@@ -379,7 +384,7 @@ namespace test
             {
                 geom::vect2_t tex_sz = cairo_utils::get_surf_sz(
                     tex_mngr->data[tgt[i].second]);
-                bool added = byte_mngr.add_bytemap(TEXTURES_PATH+tgt[i].first, 
+                bool added = byte_mngr.add_bytemap(TEXTURES_PATH, tgt[i].first, 
                     size_t(tex_sz.x), size_t(tex_sz.y));
                 if(!added)
                 {
@@ -404,8 +409,9 @@ namespace test
             nd_data = std::make_shared<StratosphereAvionics::NDData>(avncs->fpl_sys);
             nd_display = std::make_shared<StratosphereAvionics::NDDisplay>(
                 nd_data, tex_mngr, boeing_font_face, ND_POS, ND_SZ, false);
+            byteutils::Bytemap *cdu_map = byte_mngr.get_bytemap(CDU_BYTEMAP_NAME.first);
             cdu_display_l = std::make_shared<StratosphereAvionics::CDUDisplay>(
-                CDU_L_POS, CDU_L_SZ, boeing_font_face, tex_mngr
+                CDU_L_POS, CDU_L_SZ, boeing_font_face, tex_mngr, cdu_map
             );
 
             std::cout << "Avionics loaded\n";

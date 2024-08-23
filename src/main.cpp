@@ -73,6 +73,18 @@ static void do_drawing(cairo_t *cr)
     cmdint->draw(cr);
 }
 
+static gboolean clicked(GtkWidget *widget, GdkEventButton *event,
+    gpointer user_data)
+{
+    UNUSED(widget);
+    UNUSED(user_data);
+    
+    cmdint->on_click({event->x, event->y});
+
+    return TRUE;
+}
+
+
 int main(int argc, char *argv[])
 {
     cmdint = std::make_shared<test::CMDInterface>();
@@ -92,6 +104,8 @@ int main(int argc, char *argv[])
 
     g_signal_connect (G_OBJECT (window), "key_press_event",
         G_CALLBACK (keypress_handler), NULL);
+    g_signal_connect(window, "button-press-event", 
+      G_CALLBACK(clicked), NULL);
     g_signal_connect(G_OBJECT(darea), "draw",
         G_CALLBACK(on_draw_event), NULL);
     g_signal_connect(window, "destroy",
