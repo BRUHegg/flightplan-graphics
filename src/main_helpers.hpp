@@ -140,6 +140,7 @@ namespace test
         std::shared_ptr<cairo_utils::texture_manager_t> tex_mngr;
         std::shared_ptr<StratosphereAvionics::NDData> nd_data;
         std::shared_ptr<StratosphereAvionics::NDDisplay> nd_display;
+        std::shared_ptr<StratosphereAvionics::CDU> cdu_l;
         std::shared_ptr<StratosphereAvionics::CDUDisplay> cdu_display_l;
 
         byteutils::bytemap_manager_t byte_mngr;
@@ -409,9 +410,10 @@ namespace test
             nd_data = std::make_shared<StratosphereAvionics::NDData>(avncs->fpl_sys);
             nd_display = std::make_shared<StratosphereAvionics::NDDisplay>(
                 nd_data, tex_mngr, boeing_font_face, ND_POS, ND_SZ, false);
+            cdu_l = std::make_shared<StratosphereAvionics::CDU>(avncs->fpl_sys);
             byteutils::Bytemap *cdu_map = byte_mngr.get_bytemap(CDU_BYTEMAP_NAME.first);
             cdu_display_l = std::make_shared<StratosphereAvionics::CDUDisplay>(
-                CDU_L_POS, CDU_L_SZ, boeing_font_face, tex_mngr, cdu_map
+                CDU_L_POS, CDU_L_SZ, boeing_font_face, tex_mngr, cdu_l, cdu_map
             );
 
             std::cout << "Avionics loaded\n";

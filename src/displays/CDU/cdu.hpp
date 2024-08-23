@@ -3,11 +3,20 @@
 #include <geom.hpp>
 #include "common/cairo_utils.hpp"
 #include "common/bytemap.hpp"
-#include <iostream>
+#include "fpln/fpln_sys.hpp"
 
 
 namespace StratosphereAvionics
 {
+    enum class CDUPage
+    {
+        RTE1,
+        DEP_ARR_INTRO,
+        DEP,
+        ARR,
+        LEGS
+    };
+
     enum class CDUColor
     {
         WHITE,
@@ -56,11 +65,49 @@ namespace StratosphereAvionics
     const std::string CDU_MAGENTA_TEXT_NAME = "cdu_big_magenta";
 
 
+    struct cdu_scr_data_t
+    {
+        std::string heading_big, heading_small;
+        CDUColor heading_color;
+        std::vector<std::string> data_lines;
+    };
+
+    class CDU
+    {
+    public:
+        CDU(std::shared_ptr<test::FPLSys> fs);
+
+        void on_event(int event_key, std::string scratchpad);
+
+        cdu_scr_data_t get_screen_data();
+
+    private:
+        std::shared_ptr<test::FPLSys> fpl_sys;
+        CDUPage curr_page;
+        int n_subpg;
+        int curr_subpg;
+
+
+        void set_departure(std::string icao);
+
+        void set_arrival(std::string icao);
+
+        void load_rte();
+
+        void save_rte();
+
+
+        void handle_rte(int event_key, std::string scratchpad);
+
+        cdu_scr_data_t get_rte_page();
+    };
+
     class CDUDisplay
     {
     public:
         CDUDisplay(geom::vect2_t pos, geom::vect2_t sz, cairo_font_face_t *ff,
-            std::shared_ptr<cairo_utils::texture_manager_t> tm, byteutils::Bytemap *bm);
+            std::shared_ptr<cairo_utils::texture_manager_t> tm, 
+            std::shared_ptr<CDU> cdu, byteutils::Bytemap *bm);
 
         void on_click(geom::vect2_t pos);
 
@@ -75,6 +122,7 @@ namespace StratosphereAvionics
         cairo_font_face_t *font_face;
 
         std::shared_ptr<cairo_utils::texture_manager_t> tex_mngr;
+        std::shared_ptr<CDU> cdu_ptr;
 
         byteutils::Bytemap *key_map;
 

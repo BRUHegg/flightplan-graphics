@@ -2,11 +2,135 @@
 
 namespace StratosphereAvionics
 {
+    // CDU definitions:
+    // Public member functions:
+
+    CDU::CDU(std::shared_ptr<test::FPLSys> fs)
+    {
+        fpl_sys = fs;
+        curr_page = CDUPage::RTE1;
+        curr_subpg = 1;
+        n_subpg = 1;
+    }
+
+    void CDU::on_event(int event_key, std::string scratchpad)
+    {
+        if(curr_page == CDUPage::RTE1)
+        {
+            handle_rte(event_key, scratchpad);
+        }
+    }
+
+    cdu_scr_data_t CDU::get_screen_data()
+    {
+        if(curr_page == CDUPage::RTE1)
+        {
+            return get_rte_page();
+        }
+
+        return {};
+    }
+
+    // Private member functions:
+
+    void CDU::set_departure(std::string icao)
+    {
+        libnav::DbErr err = fpl_sys->fpl->set_dep(icao);
+        UNUSED(err);
+    }
+
+    void CDU::set_arrival(std::string icao)
+    {
+        libnav::DbErr err = fpl_sys->fpl->set_arr(icao);
+        UNUSED(err);
+    }
+
+    void CDU::load_rte()
+    {
+        std::string dep_nm = fpl_sys->fpl->get_dep_icao();
+        std::string arr_nm = fpl_sys->fpl->get_arr_icao();
+
+        if(dep_nm != "" && arr_nm != "")
+        {
+            std::string file_nm = fpl_sys->fpl_dir+dep_nm+arr_nm;
+            libnav::DbErr err = fpl_sys->fpl->load_from_fms(file_nm, false);
+            UNUSED(err);
+        }
+    }
+
+    void CDU::save_rte()
+    {
+        std::string dep_nm = fpl_sys->fpl->get_dep_icao();
+        std::string arr_nm = fpl_sys->fpl->get_arr_icao();
+
+        if(dep_nm != "" && arr_nm != "")
+        {
+            std::string out_nm = fpl_sys->fpl_dir+dep_nm+arr_nm;
+            fpl_sys->fpl->save_to_fms(out_nm);
+        }
+    }
+
+
+    void CDU::handle_rte(int event_key, std::string scratchpad)
+    {
+        if(curr_subpg == 1)
+        {
+            if(event_key == CDU_KEY_LSK_TOP)
+            {
+                set_departure(scratchpad);
+            }
+            else if(event_key == CDU_KEY_RSK_TOP)
+            {
+                set_arrival(scratchpad);
+            }
+            else if(event_key == CDU_KEY_LSK_TOP + 2)
+            {
+                load_rte();
+            }
+            else if(event_key == CDU_KEY_LSK_TOP + 4)
+            {
+                save_rte();
+            }
+        }
+    }
+
+    cdu_scr_data_t CDU::get_rte_page()
+    {
+        cdu_scr_data_t out = {};
+        if(curr_subpg == 1)
+        {
+            std::string rte_offs = std::string(6, ' ');
+            out.heading_big = rte_offs + "RTE1";
+            out.heading_color = CDUColor::CYAN;
+
+            std::string dest_offs = std::string(N_CDU_DATA_COLS-7-4, ' ');
+            std::string origin_dest = " ORIGIN" + dest_offs + "DEST";
+            out.data_lines.push_back(origin_dest);
+            std::string origin = fpl_sys->fpl->get_dep_icao();
+            std::string dest = fpl_sys->fpl->get_arr_icao();
+
+            if(origin == "")
+            {
+                origin = std::string(4, '@');
+            }
+            if(dest == "")
+            {
+                dest = std::string(4, '@');
+            }
+
+            std::string od_data = origin + std::string(N_CDU_DATA_COLS-4-4, ' ') + dest;
+            out.data_lines.push_back(od_data);
+        }
+
+        return out;
+    }
+
     // CDUDisplay definitions:
     // Public member functions:
 
     CDUDisplay::CDUDisplay(geom::vect2_t pos, geom::vect2_t sz, cairo_font_face_t *ff,
-                           std::shared_ptr<cairo_utils::texture_manager_t> tm, byteutils::Bytemap *bm)
+            std::shared_ptr<cairo_utils::texture_manager_t> tm, 
+            std::shared_ptr<CDU> cdu, byteutils::Bytemap *bm)
     {
         scr_pos = pos;
         size = sz;
@@ -16,6 +140,7 @@ namespace StratosphereAvionics
         font_face = ff;
 
         tex_mngr = tm;
+        cdu_ptr = cdu;
 
         key_map = bm;
 
@@ -32,6 +157,11 @@ namespace StratosphereAvionics
         {
             int event = int(key_map->get_at(size_t(pos.x), size_t(pos.y)));
 
+            if(event && event < CDU_KEY_A)
+            {
+                std::string scratch_proc = strutils::strip(scratchpad);
+                cdu_ptr->on_event(event, scratch_proc);
+            }
             update_scratchpad(event);
         }
     }
@@ -182,19 +312,29 @@ namespace StratosphereAvionics
         geom::vect2_t pos_small = disp_pos + small_offs;
         geom::vect2_t big_offs = {0, disp_size.y * (CDU_BIG_TEXT_OFFS + CDU_V_OFFS_FIRST)};
         geom::vect2_t pos_big = disp_pos + big_offs;
-        std::string test_str = std::string(24, 'X');
+        
+        cdu_scr_data_t curr_screen = cdu_ptr->get_screen_data();
 
-        draw_cdu_line(cr, test_str, disp_pos, CDU_BIG_TEXT_SZ,
-                      CDU_TEXT_INTV * disp_size.x);
-        for (int i = 0; i < N_CDU_DATA_LINES; i++)
+        draw_cdu_line(cr, curr_screen.heading_big, disp_pos, CDU_BIG_TEXT_SZ,
+                      CDU_TEXT_INTV * disp_size.x, curr_screen.heading_color);
+
+        size_t j = 0;
+        for (size_t i = 0; i < size_t(N_CDU_DATA_LINES); i++)
         {
-            draw_cdu_line(cr, test_str, pos_small, CDU_SMALL_TEXT_SZ,
-                          CDU_TEXT_INTV * disp_size.x, CDUColor::MAGENTA);
-            draw_cdu_line(cr, test_str, pos_big,
-                          CDU_BIG_TEXT_SZ, CDU_TEXT_INTV * disp_size.x, CDUColor::GREEN);
+            if(j < curr_screen.data_lines.size())
+            {
+                draw_cdu_line(cr, curr_screen.data_lines[j], pos_small, CDU_SMALL_TEXT_SZ,
+                                CDU_TEXT_INTV * disp_size.x);
+            }
+            if(j+1 < curr_screen.data_lines.size())
+            {
+                draw_cdu_line(cr, curr_screen.data_lines[j+1], pos_big,
+                                CDU_BIG_TEXT_SZ, CDU_TEXT_INTV * disp_size.x);
+            }
 
             pos_small.y += CDU_V_OFFS_REG * disp_size.y;
             pos_big.y += CDU_V_OFFS_REG * disp_size.y;
+            j += 2;
         }
 
         draw_cdu_line(cr, scratchpad, pos_small, CDU_BIG_TEXT_SZ,
