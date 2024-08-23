@@ -120,6 +120,22 @@ namespace StratosphereAvionics
 
             std::string od_data = origin + std::string(N_CDU_DATA_COLS-4-4, ' ') + dest;
             out.data_lines.push_back(od_data);
+            std::string rwy_flt_no = " RUNWAY" + std::string(N_CDU_DATA_COLS-7-6, ' ') + "FLT NO";
+            out.data_lines.push_back(rwy_flt_no);
+            std::string dep_rwy = fpl_sys->fpl->get_dep_rwy();
+            if(dep_rwy == "")
+                dep_rwy = std::string(5, '-');
+            else
+                dep_rwy = "RW" + dep_rwy;
+            std::string rf_data = dep_rwy + std::string(size_t(N_CDU_DATA_COLS)-dep_rwy.size()-10, ' ') + std::string(10, '-');
+            out.data_lines.push_back(rf_data);
+            out.data_lines.push_back(" ROUTE");
+            out.data_lines.push_back("<LOAD");
+            out.data_lines.push_back("");
+            out.data_lines.push_back("");
+            std::string rte_final = " ROUTE ";
+            out.data_lines.push_back(rte_final+std::string(size_t(N_CDU_DATA_COLS)-7, '-'));
+            out.data_lines.push_back("<SAVE");
         }
 
         return out;
