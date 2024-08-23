@@ -6,6 +6,15 @@
 
 namespace StratosphereAvionics
 {
+    enum class CDUColor
+    {
+        WHITE,
+        GREEN,
+        CYAN,
+        MAGENTA
+    };
+
+
     constexpr int N_CDU_DATA_LINES = 6;
 
     constexpr double CDU_V_OFFS_FIRST = 0.095;
@@ -51,10 +60,11 @@ namespace StratosphereAvionics
 
         static int get_cdu_letter_idx(char c);
 
-        void draw_cdu_letter(cairo_t *cr, char c, geom::vect2_t pos, geom::vect2_t scale);
+        void draw_cdu_letter(cairo_t *cr, char c, geom::vect2_t pos, geom::vect2_t scale,
+            cairo_surface_t *font_sfc);
 
         void draw_cdu_line(cairo_t *cr, std::string& s, geom::vect2_t pos, 
-            geom::vect2_t scale, double l_intv_px);
+            geom::vect2_t scale, double l_intv_px, CDUColor color=CDUColor::WHITE);
         
         void draw_screen(cairo_t *cr);
     };

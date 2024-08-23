@@ -73,7 +73,7 @@ namespace StratosphereAvionics
     }
 
     void CDUDisplay::draw_cdu_letter(cairo_t *cr, char c, geom::vect2_t pos, 
-        geom::vect2_t scale)
+        geom::vect2_t scale, cairo_surface_t *font_sfc)
     {
         if(scale.x == 0 || scale.y == 0)
             return;
@@ -83,8 +83,7 @@ namespace StratosphereAvionics
         geom::vect2_t img_pos = pos + offs;
         cairo_save(cr);
         cairo_scale(cr, scale.x, scale.y);
-        cairo_set_source_surface(cr, tex_mngr->data[CDU_WHITE_TEXT_NAME], 
-            img_pos.x/scale.x, img_pos.y/scale.y);
+        cairo_set_source_surface(cr, font_sfc, img_pos.x/scale.x, img_pos.y/scale.y);
         cairo_rectangle(cr, pos.x/scale.x, pos.y/scale.y, 
             CDU_LETTER_WIDTH, CDU_LETTER_HEIGHT);
         cairo_clip(cr);
@@ -93,11 +92,21 @@ namespace StratosphereAvionics
     }
 
     void CDUDisplay::draw_cdu_line(cairo_t *cr, std::string& s, geom::vect2_t pos, 
-        geom::vect2_t scale, double l_intv_px)
+        geom::vect2_t scale, double l_intv_px, CDUColor color)
     {
+        cairo_surface_t *font_sfc;
+        if(color == CDUColor::GREEN)
+            font_sfc = tex_mngr->data[CDU_GREEN_TEXT_NAME];
+        else if(color == CDUColor::CYAN)
+            font_sfc = tex_mngr->data[CDU_CYAN_TEXT_NAME];
+        else if(color == CDUColor::MAGENTA)
+            font_sfc = tex_mngr->data[CDU_MAGENTA_TEXT_NAME];
+        else
+            font_sfc = tex_mngr->data[CDU_WHITE_TEXT_NAME];
+
         for(size_t i = 0; i < s.size(); i++)
         {
-            draw_cdu_letter(cr, s[i], pos, scale);
+            draw_cdu_letter(cr, s[i], pos, scale, font_sfc);
             pos.x += l_intv_px;
         }
     }
@@ -115,9 +124,9 @@ namespace StratosphereAvionics
         for(int i = 0; i < N_CDU_DATA_LINES; i++)
         {
             draw_cdu_line(cr, test_str, pos_small, CDU_SMALL_TEXT_SZ, 
-                CDU_TEXT_INTV * disp_size.x);
+                CDU_TEXT_INTV * disp_size.x, CDUColor::MAGENTA);
             draw_cdu_line(cr, test_str, pos_big,
-                CDU_BIG_TEXT_SZ, CDU_TEXT_INTV * disp_size.x);
+                CDU_BIG_TEXT_SZ, CDU_TEXT_INTV * disp_size.x, CDUColor::GREEN);
 
             pos_small.y += CDU_V_OFFS_REG * disp_size.y;
             pos_big.y += CDU_V_OFFS_REG * disp_size.y;
