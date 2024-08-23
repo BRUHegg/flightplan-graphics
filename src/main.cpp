@@ -76,10 +76,10 @@ static void do_drawing(cairo_t *cr)
 static gboolean clicked(GtkWidget *widget, GdkEventButton *event,
     gpointer user_data)
 {
-    UNUSED(widget);
     UNUSED(user_data);
     
     cmdint->on_click({event->x, event->y});
+    gtk_widget_queue_draw(widget);
 
     return TRUE;
 }

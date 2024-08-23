@@ -18,6 +18,21 @@ namespace StratosphereAvionics
 
 
     constexpr int N_CDU_DATA_LINES = 6;
+    constexpr int N_CDU_DATA_COLS = 24;
+
+    // CDU keys:
+    constexpr int CDU_KEY_LSK_TOP = 1;
+    constexpr int CDU_KEY_RSK_TOP = 7;
+    constexpr int CDU_KEY_A = 27;
+    constexpr int CDU_KEY_SP = 53;
+    constexpr int CDU_KEY_DELETE = 54;
+    constexpr int CDU_KEY_SLASH = 55;
+    constexpr int CDU_KEY_CLR = 56;
+    constexpr int CDU_KEY_1 = 57;
+    constexpr int CDU_KEY_DOT = 66;
+    constexpr int CDU_KEY_0 = 67;
+    constexpr int CDU_KEY_PM = 68;  // +/- key
+    constexpr int CDU_KEY_EXEC = 69;
 
     constexpr double CDU_V_OFFS_FIRST = 0.095;
     constexpr double CDU_V_OFFS_REG = 0.134; // * screen height
@@ -63,6 +78,13 @@ namespace StratosphereAvionics
 
         byteutils::Bytemap *key_map;
 
+        std::string scratchpad;
+        size_t scratch_curr;
+
+
+        void add_to_scratchpad(char c);
+
+        void update_scratchpad(int event);
 
         static int get_cdu_letter_idx(char c);
 
