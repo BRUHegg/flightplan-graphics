@@ -31,36 +31,96 @@ namespace StratosphereAvionics
 
     // Private member functions:
 
-    void CDUDisplay::draw_text_line(cairo_t *cr, std::string& text, geom::vect2_t pos, 
-            geom::vect3_t color, double sz, double l_intv_px)
+    int CDUDisplay::get_cdu_letter_idx(char c)
     {
-        for(size_t i = 0; i < text.size(); i++)
+        if(c >= '0' && c <= '9')
+            return 1+c-'0';
+        else if(c >= 'A' && c <= 'Z')
+            return 11+c-'A';
+        else if(c == '%')
+            return 37;
+        else if(c == '(')
+            return 38;
+        else if(c == ')')
+            return 39;
+        else if(c == '-')
+            return 40;
+        else if(c == '_')
+            return 41;
+        else if(c == '+')
+            return 42;
+        else if(c == '=')
+            return 43;
+        else if(c == '|')
+            return 44;
+        else if(c == ':')
+            return 45;
+        else if(c == '<')
+            return 46;
+        else if(c == '.')
+            return 47;
+        else if(c == '>')
+            return 48;
+        else if(c == ',')
+            return 49;
+        else if(c == '/')
+            return 50;
+        else if(c == '*')
+            return 51;
+        else if(c == '@')
+            return 52;
+        return 0;
+    }
+
+    void CDUDisplay::draw_cdu_letter(cairo_t *cr, char c, geom::vect2_t pos, 
+        geom::vect2_t scale)
+    {
+        if(scale.x == 0 || scale.y == 0)
+            return;
+
+        int idx = get_cdu_letter_idx(c);
+        geom::vect2_t offs = {-CDU_LETTER_WIDTH * scale.x * double(idx), 0};
+        geom::vect2_t img_pos = pos + offs;
+        cairo_save(cr);
+        cairo_scale(cr, scale.x, scale.y);
+        cairo_set_source_surface(cr, tex_mngr->data[CDU_WHITE_TEXT_NAME], 
+            img_pos.x/scale.x, img_pos.y/scale.y);
+        cairo_rectangle(cr, pos.x/scale.x, pos.y/scale.y, 
+            CDU_LETTER_WIDTH, CDU_LETTER_HEIGHT);
+        cairo_clip(cr);
+        cairo_paint(cr);
+        cairo_restore(cr);
+    }
+
+    void CDUDisplay::draw_cdu_line(cairo_t *cr, std::string& s, geom::vect2_t pos, 
+        geom::vect2_t scale, double l_intv_px)
+    {
+        for(size_t i = 0; i < s.size(); i++)
         {
-            std::string curr = std::string(1, text[i]);
-            cairo_utils::draw_left_text(cr, font_face, curr, pos, 
-                color, sz);
-            
+            draw_cdu_letter(cr, s[i], pos, scale);
             pos.x += l_intv_px;
         }
     }
 
     void CDUDisplay::draw_screen(cairo_t *cr)
     {
-        double v_offs = disp_size.y / N_CDU_LINES;
-
-        geom::vect2_t pos_small = disp_pos;
-        geom::vect2_t big_offs = {0, disp_size.y * CDU_BIG_TEXT_OFFS};
+        geom::vect2_t small_offs = {0, disp_size.y * CDU_V_OFFS_FIRST};
+        geom::vect2_t pos_small = disp_pos + small_offs;
+        geom::vect2_t big_offs = {0, disp_size.y * (CDU_BIG_TEXT_OFFS + CDU_V_OFFS_FIRST)};
         geom::vect2_t pos_big = disp_pos + big_offs;
         std::string test_str = std::string(24, 'X');
-        for(int i = 0; i < int(N_CDU_LINES); i++)
-        {
-            draw_text_line(cr, test_str, pos_small, cairo_utils::WHITE, 
-                CDU_SMALL_TEXT_SZ, CDU_SMALL_TEXT_INTV * disp_size.x);
-            draw_text_line(cr, test_str, pos_big, cairo_utils::WHITE, 
-                CDU_BIG_TEXT_SZ, CDU_BIG_TEXT_INTV * disp_size.x);
 
-            pos_small.y += v_offs;
-            pos_big.y += v_offs;
+        draw_cdu_line(cr, test_str, disp_pos, CDU_BIG_TEXT_SZ, 
+                CDU_TEXT_INTV * disp_size.x);
+        for(int i = 0; i < N_CDU_DATA_LINES; i++)
+        {
+            draw_cdu_line(cr, test_str, pos_small, CDU_SMALL_TEXT_SZ, 
+                CDU_TEXT_INTV * disp_size.x);
+            draw_cdu_line(cr, test_str, pos_big,
+                CDU_BIG_TEXT_SZ, CDU_TEXT_INTV * disp_size.x);
+
+            pos_small.y += CDU_V_OFFS_REG * disp_size.y;
+            pos_big.y += CDU_V_OFFS_REG * disp_size.y;
         }
     }
 }

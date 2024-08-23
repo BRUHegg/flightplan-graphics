@@ -350,7 +350,11 @@ namespace test
                 StratosphereAvionics::PLN_BACKGND_INNER_NAME,
                 StratosphereAvionics::PLN_BACKGND_OUTER_NAME,
                 
-                StratosphereAvionics::CDU_TEXTURE_NAME
+                StratosphereAvionics::CDU_TEXTURE_NAME,
+                StratosphereAvionics::CDU_WHITE_TEXT_NAME,
+                StratosphereAvionics::CDU_GREEN_TEXT_NAME,
+                StratosphereAvionics::CDU_CYAN_TEXT_NAME,
+                StratosphereAvionics::CDU_MAGENTA_TEXT_NAME
                 };
             
             tex_mngr = std::make_shared<cairo_utils::texture_manager_t>();
