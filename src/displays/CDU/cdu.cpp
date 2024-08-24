@@ -8,17 +8,20 @@ namespace StratosphereAvionics
     CDU::CDU(std::shared_ptr<test::FPLSys> fs)
     {
         fpl_sys = fs;
+        fpln = fs->fpl;
         curr_page = CDUPage::RTE1;
         curr_subpg = 1;
         n_subpg = 1;
     }
 
-    void CDU::on_event(int event_key, std::string scratchpad)
+    std::string CDU::on_event(int event_key, std::string scratchpad)
     {
         if(curr_page == CDUPage::RTE1)
         {
-            handle_rte(event_key, scratchpad);
+            return handle_rte(event_key, scratchpad);
         }
+
+        return "";
     }
 
     cdu_scr_data_t CDU::get_screen_data()
@@ -33,65 +36,102 @@ namespace StratosphereAvionics
 
     // Private member functions:
 
-    void CDU::set_departure(std::string icao)
+    std::string CDU::set_departure(std::string icao)
     {
+        if(icao.size() != 4)
+            return INVALID_ENTRY_MSG;
         libnav::DbErr err = fpl_sys->fpl->set_dep(icao);
-        UNUSED(err);
+        if(err != libnav::DbErr::SUCCESS && err != libnav::DbErr::PARTIAL_LOAD)
+        {
+            return NOT_IN_DB_MSG;
+        }
+
+        return "";
     }
 
-    void CDU::set_arrival(std::string icao)
+    std::string CDU::set_arrival(std::string icao)
     {
         libnav::DbErr err = fpl_sys->fpl->set_arr(icao);
-        UNUSED(err);
+        if(err != libnav::DbErr::SUCCESS && err != libnav::DbErr::PARTIAL_LOAD)
+        {
+            return NOT_IN_DB_MSG;
+        }
+
+        return "";
     }
 
-    void CDU::load_rte()
+    std::string CDU::set_dep_rwy(std::string id)
     {
-        std::string dep_nm = fpl_sys->fpl->get_dep_icao();
-        std::string arr_nm = fpl_sys->fpl->get_arr_icao();
+        std::string dep_icao = fpln->get_dep_icao();
+        std::string arr_icao = fpln->get_arr_icao();
+        if(id.size() > 3 || dep_icao == "" || arr_icao == "")
+            return INVALID_ENTRY_MSG;
+
+        bool rwy_set = fpln->set_dep_rwy(id);
+
+        if(!rwy_set)
+            return NOT_IN_DB_MSG;
+
+        return "";
+    }
+
+    std::string CDU::load_rte()
+    {
+        std::string dep_nm = fpln->get_dep_icao();
+        std::string arr_nm = fpln->get_arr_icao();
 
         if(dep_nm != "" && arr_nm != "")
         {
             std::string file_nm = fpl_sys->fpl_dir+dep_nm+arr_nm;
-            libnav::DbErr err = fpl_sys->fpl->load_from_fms(file_nm, false);
+            libnav::DbErr err = fpln->load_from_fms(file_nm, false);
             UNUSED(err);
         }
+
+        return "";
     }
 
-    void CDU::save_rte()
+    std::string CDU::save_rte()
     {
-        std::string dep_nm = fpl_sys->fpl->get_dep_icao();
-        std::string arr_nm = fpl_sys->fpl->get_arr_icao();
+        std::string dep_nm = fpln->get_dep_icao();
+        std::string arr_nm = fpln->get_arr_icao();
 
         if(dep_nm != "" && arr_nm != "")
         {
             std::string out_nm = fpl_sys->fpl_dir+dep_nm+arr_nm;
-            fpl_sys->fpl->save_to_fms(out_nm);
+            fpln->save_to_fms(out_nm);
         }
+
+        return "";
     }
 
 
-    void CDU::handle_rte(int event_key, std::string scratchpad)
+    std::string CDU::handle_rte(int event_key, std::string scratchpad)
     {
         if(curr_subpg == 1)
         {
             if(event_key == CDU_KEY_LSK_TOP)
             {
-                set_departure(scratchpad);
+                return set_departure(scratchpad);
             }
             else if(event_key == CDU_KEY_RSK_TOP)
             {
-                set_arrival(scratchpad);
+                return set_arrival(scratchpad);
+            }
+            else if(event_key == CDU_KEY_LSK_TOP + 1)
+            {
+                return set_dep_rwy(scratchpad);
             }
             else if(event_key == CDU_KEY_LSK_TOP + 2)
             {
-                load_rte();
+                return load_rte();
             }
             else if(event_key == CDU_KEY_LSK_TOP + 4)
             {
-                save_rte();
+                return save_rte();
             }
         }
+
+        return "";
     }
 
     cdu_scr_data_t CDU::get_rte_page()
@@ -106,8 +146,8 @@ namespace StratosphereAvionics
             std::string dest_offs = std::string(N_CDU_DATA_COLS-7-4, ' ');
             std::string origin_dest = " ORIGIN" + dest_offs + "DEST";
             out.data_lines.push_back(origin_dest);
-            std::string origin = fpl_sys->fpl->get_dep_icao();
-            std::string dest = fpl_sys->fpl->get_arr_icao();
+            std::string origin = fpln->get_dep_icao();
+            std::string dest = fpln->get_arr_icao();
             bool incomplete = false;
 
             if(origin == "")
@@ -128,7 +168,7 @@ namespace StratosphereAvionics
             std::string dep_rwy = "";
             if(!incomplete)
             {
-                 dep_rwy = fpl_sys->fpl->get_dep_rwy();
+                 dep_rwy = fpln->get_dep_rwy();
                 if(dep_rwy == "")
                     dep_rwy = std::string(5, '-');
                 else
@@ -185,7 +225,12 @@ namespace StratosphereAvionics
             if(event && event < CDU_KEY_A)
             {
                 std::string scratch_proc = strutils::strip(scratchpad);
-                cdu_ptr->on_event(event, scratch_proc);
+                std::string msg = cdu_ptr->on_event(event, scratch_proc);
+
+                if(msg == "")
+                    clear_scratchpad();
+                else
+                    msg_stack.push(msg);
             }
             update_scratchpad(event);
         }
@@ -210,6 +255,16 @@ namespace StratosphereAvionics
         }
     }
 
+    void CDUDisplay::clear_scratchpad()
+    {
+        while(scratch_curr)
+        {
+            scratchpad[scratch_curr] = ' ';
+            scratch_curr--;
+        }
+        scratchpad[scratch_curr] = ' ';
+    }
+
     void CDUDisplay::update_scratchpad(int event)
     {
         if (event >= CDU_KEY_A && event < CDU_KEY_A + 26)
@@ -226,9 +281,16 @@ namespace StratosphereAvionics
         }
         else if (event == CDU_KEY_CLR)
         {
-            if (scratch_curr)
-                scratch_curr--;
-            scratchpad[scratch_curr] = ' ';
+            if(msg_stack.size())
+            {
+                msg_stack.pop();
+            }
+            else
+            {
+                if (scratch_curr)
+                    scratch_curr--;
+                scratchpad[scratch_curr] = ' ';
+            }
         }
         else if (event >= CDU_KEY_1 && event < CDU_KEY_1 + 9)
         {
@@ -362,7 +424,16 @@ namespace StratosphereAvionics
             j += 2;
         }
 
-        draw_cdu_line(cr, scratchpad, pos_small, CDU_BIG_TEXT_SZ,
+        std::string tgt_scratch;
+        if(msg_stack.size())
+        {
+            tgt_scratch = msg_stack.top();
+        }
+        else
+        {
+            tgt_scratch = scratchpad;
+        }
+        draw_cdu_line(cr, tgt_scratch, pos_small, CDU_BIG_TEXT_SZ,
                       CDU_TEXT_INTV * disp_size.x);
     }
 }

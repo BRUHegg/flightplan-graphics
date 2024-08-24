@@ -1,5 +1,6 @@
 #include <string>
 #include <memory>
+#include <stack>
 #include <geom.hpp>
 #include "common/cairo_utils.hpp"
 #include "common/bytemap.hpp"
@@ -58,13 +59,15 @@ namespace StratosphereAvionics
     constexpr geom::vect2_t CDU_SMALL_TEXT_SZ = {0.7, 0.7};
     constexpr geom::vect2_t CDU_BIG_TEXT_SZ = {0.9, 0.96};
 
+    const std::string INVALID_ENTRY_MSG = "INVALID ENTRY";
+    const std::string NOT_IN_DB_MSG = "NOT IN DATA BASE";
     const std::string CDU_TEXTURE_NAME = "cdu";
     const std::string CDU_WHITE_TEXT_NAME = "cdu_big_white";
     const std::string CDU_GREEN_TEXT_NAME = "cdu_big_green";
     const std::string CDU_CYAN_TEXT_NAME = "cdu_big_cyan";
     const std::string CDU_MAGENTA_TEXT_NAME = "cdu_big_magenta";
 
-
+    
     struct cdu_scr_data_t
     {
         std::string heading_big, heading_small;
@@ -77,27 +80,30 @@ namespace StratosphereAvionics
     public:
         CDU(std::shared_ptr<test::FPLSys> fs);
 
-        void on_event(int event_key, std::string scratchpad);
+        std::string on_event(int event_key, std::string scratchpad);
 
         cdu_scr_data_t get_screen_data();
 
     private:
         std::shared_ptr<test::FPLSys> fpl_sys;
+        std::shared_ptr<test::FplnInt> fpln;
         CDUPage curr_page;
         int n_subpg;
         int curr_subpg;
 
 
-        void set_departure(std::string icao);
+        std::string set_departure(std::string icao);
 
-        void set_arrival(std::string icao);
+        std::string set_arrival(std::string icao);
 
-        void load_rte();
+        std::string set_dep_rwy(std::string id);
 
-        void save_rte();
+        std::string load_rte();
+
+        std::string save_rte();
 
 
-        void handle_rte(int event_key, std::string scratchpad);
+        std::string handle_rte(int event_key, std::string scratchpad);
 
         cdu_scr_data_t get_rte_page();
     };
@@ -129,8 +135,12 @@ namespace StratosphereAvionics
         std::string scratchpad;
         size_t scratch_curr;
 
+        std::stack<std::string> msg_stack;
+
 
         void add_to_scratchpad(char c);
+
+        void clear_scratchpad();
 
         void update_scratchpad(int event);
 
