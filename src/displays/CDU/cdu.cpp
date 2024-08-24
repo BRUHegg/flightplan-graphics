@@ -167,6 +167,21 @@ namespace StratosphereAvionics
         return "";
     }
 
+    std::string CDU::delete_via(size_t next_idx)
+    {
+        test::seg_list_node_t *s_ptr = nullptr;
+        if(next_idx < n_seg_list_sz)
+        {
+            s_ptr = seg_list[next_idx].ptr;
+        }
+        double id = fpl_sys->seg_list_id;
+        bool retval = fpln->delete_via({s_ptr, id});
+
+        if(!retval)
+            return INVALID_DELETE_MSG;
+        return "";
+    }
+
     std::string CDU::add_to(size_t next_idx, std::string name)
     {
         if(name.size() > 5)
@@ -190,6 +205,21 @@ namespace StratosphereAvionics
 
         if(!retval)
             return NOT_IN_DB_MSG;
+        return "";
+    }
+
+    std::string CDU::delete_to(size_t next_idx)
+    {
+        test::seg_list_node_t *s_ptr = nullptr;
+        if(next_idx < n_seg_list_sz)
+        {
+            s_ptr = seg_list[next_idx].ptr;
+        }
+        double id = fpl_sys->seg_list_id;
+        bool retval = fpln->delete_seg_end({s_ptr, id});
+
+        if(!retval)
+            return INVALID_DELETE_MSG;
         return "";
     }
 
@@ -294,11 +324,15 @@ namespace StratosphereAvionics
             {
                 if(event_key >= CDU_KEY_RSK_TOP)
                 {
-                    return add_to(i_event+1, scratchpad);
+                    if(scratchpad[0] != DELETE_SYMBOL)
+                        return add_to(i_event+1, scratchpad);
+                    return delete_to(i_event);
                 }
                 else
                 {
-                    return add_via(i_event+1, scratchpad);
+                    if(scratchpad[0] != DELETE_SYMBOL)
+                        return add_via(i_event+1, scratchpad);
+                    return delete_via(i_event);
                 }
             }
         }
@@ -453,17 +487,17 @@ namespace StratosphereAvionics
 
     void CDUDisplay::update_scratchpad(int event)
     {
-        if (event >= CDU_KEY_A && event < CDU_KEY_A + 26)
+        if(event == CDU_KEY_DELETE)
         {
-            add_to_scratchpad('A' + char(event - CDU_KEY_A));
-        }
-        else if (event == CDU_KEY_SP)
-        {
-            add_to_scratchpad(' ');
-        }
-        else if (event == CDU_KEY_SLASH)
-        {
-            add_to_scratchpad('/');
+            if(scratchpad[0] == DELETE_SYMBOL)
+            {
+                scratchpad[0] = ' ';
+            }
+            else
+            {
+                clear_scratchpad();
+                scratchpad[0] = DELETE_SYMBOL;
+            }
         }
         else if (event == CDU_KEY_CLR)
         {
@@ -478,24 +512,40 @@ namespace StratosphereAvionics
                 scratchpad[scratch_curr] = ' ';
             }
         }
-        else if (event >= CDU_KEY_1 && event < CDU_KEY_1 + 9)
+
+        if(scratchpad[0] != DELETE_SYMBOL)
         {
-            add_to_scratchpad('1' + char(event - CDU_KEY_1));
-        }
-        else if (event == CDU_KEY_DOT)
-        {
-            add_to_scratchpad('.');
-        }
-        else if (event == CDU_KEY_0)
-        {
-            add_to_scratchpad('0');
-        }
-        else if (event == CDU_KEY_PM)
-        {
-            if (scratch_curr && scratchpad[scratch_curr-1] == '-')
-                scratchpad[scratch_curr-1] = '+';
-            else
-                add_to_scratchpad('-');
+            if (event >= CDU_KEY_A && event < CDU_KEY_A + 26)
+            {
+                add_to_scratchpad('A' + char(event - CDU_KEY_A));
+            }
+            else if (event == CDU_KEY_SP)
+            {
+                add_to_scratchpad(' ');
+            }
+            else if (event == CDU_KEY_SLASH)
+            {
+                add_to_scratchpad('/');
+            }
+            else if (event >= CDU_KEY_1 && event < CDU_KEY_1 + 9)
+            {
+                add_to_scratchpad('1' + char(event - CDU_KEY_1));
+            }
+            else if (event == CDU_KEY_DOT)
+            {
+                add_to_scratchpad('.');
+            }
+            else if (event == CDU_KEY_0)
+            {
+                add_to_scratchpad('0');
+            }
+            else if (event == CDU_KEY_PM)
+            {
+                if (scratch_curr && scratchpad[scratch_curr-1] == '-')
+                    scratchpad[scratch_curr-1] = '+';
+                else
+                    add_to_scratchpad('-');
+            }
         }
     }
 
@@ -619,6 +669,10 @@ namespace StratosphereAvionics
         if(msg_stack.size())
         {
             tgt_scratch = msg_stack.top();
+        }
+        else if(scratchpad[0] == DELETE_SYMBOL)
+        {
+            tgt_scratch = DELETE_MSG;
         }
         else
         {

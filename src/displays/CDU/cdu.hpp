@@ -56,6 +56,8 @@ namespace StratosphereAvionics
     constexpr int CDU_KEY_PM = 68;  // +/- key
     constexpr int CDU_KEY_EXEC = 69;
 
+    constexpr char DELETE_SYMBOL = 'd';
+
     constexpr double CDU_V_OFFS_FIRST = 0.095;
     constexpr double CDU_V_OFFS_SMALL_FIRST = 0.027;
     constexpr double CDU_V_OFFS_REG = 0.134; // * screen height
@@ -67,13 +69,15 @@ namespace StratosphereAvionics
 
     constexpr double CDU_TEXTURE_ASPECT_RATIO = (488.0/751.0);
 
-    const geom::vect2_t DISPLAY_OFFS = {0.14, 0.068};
-    const geom::vect2_t DISPLAY_SZ = {0.9, 0.378};
+    constexpr geom::vect2_t DISPLAY_OFFS = {0.14, 0.068};
+    constexpr geom::vect2_t DISPLAY_SZ = {0.9, 0.378};
     constexpr geom::vect2_t CDU_SMALL_TEXT_SZ = {0.7, 0.7};
     constexpr geom::vect2_t CDU_BIG_TEXT_SZ = {0.9, 0.96};
 
     const std::string INVALID_ENTRY_MSG = "INVALID ENTRY";
     const std::string NOT_IN_DB_MSG = "NOT IN DATA BASE";
+    const std::string INVALID_DELETE_MSG = "INVALID DELETE";
+    const std::string DELETE_MSG = "DELETE";
     const std::string CDU_TEXTURE_NAME = "cdu";
     const std::string CDU_WHITE_TEXT_NAME = "cdu_big_white";
     const std::string CDU_GREEN_TEXT_NAME = "cdu_big_green";
@@ -142,7 +146,11 @@ namespace StratosphereAvionics
 
         std::string add_via(size_t next_idx, std::string name);
 
+        std::string delete_via(size_t next_idx);
+
         std::string add_to(size_t next_idx, std::string name);
+
+        std::string delete_to(size_t next_idx);
 
         void get_seg_page(cdu_scr_data_t *in);
 
