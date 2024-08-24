@@ -70,6 +70,7 @@ static gboolean on_draw_event(GtkWidget *widget, cairo_t *cr,
 
 static void do_drawing(cairo_t *cr)
 {
+    cmdint->update();
     cmdint->draw(cr);
 }
 
@@ -79,6 +80,7 @@ static gboolean clicked(GtkWidget *widget, GdkEventButton *event,
     UNUSED(user_data);
     
     cmdint->on_click({event->x, event->y});
+    cmdint->update();
     gtk_widget_queue_draw(widget);
 
     return TRUE;

@@ -157,31 +157,33 @@ namespace test
 
     act_leg_info_t FPLSys::get_act_leg_info()
     {
-        leg_seg_t act_seg = leg_list[act_leg_idx].data.misc_data;
-        geo::point curr_pos = {ac_lat_deg * geo::DEG_TO_RAD, 
-            ac_lon_deg * geo::DEG_TO_RAD};
-        
-        act_leg_info_t out;
-        out.name = act_seg.calc_wpt.id;
+        act_leg_info_t out = {};
+        out.dist_nm = "----";
         out.dist_sz = DIST_FONT_SZ_DD;
-        double dist_nm = -1;
-        if(act_seg.has_calc_wpt)
-            dist_nm = curr_pos.get_gc_dist_nm(act_seg.end);
 
-        if(dist_nm == -1)
+        if(act_leg_idx != -1)
         {
-            out.dist_nm = "----";
-        }
-        else
-        {
-            uint8_t out_prec = 0;
-            if(dist_nm < 10)
-                out_prec = 1;
-
-            if(dist_nm >= 100)
-                out.dist_sz = DIST_FONT_SZ_TD;
+            leg_seg_t act_seg = leg_list[act_leg_idx].data.misc_data;
+            geo::point curr_pos = {ac_lat_deg * geo::DEG_TO_RAD, 
+                ac_lon_deg * geo::DEG_TO_RAD};
             
-            out.dist_nm = strutils::double_to_str(dist_nm, out_prec);
+            out.name = act_seg.calc_wpt.id;
+            out.dist_sz = DIST_FONT_SZ_DD;
+            double dist_nm = -1;
+            if(act_seg.has_calc_wpt)
+                dist_nm = curr_pos.get_gc_dist_nm(act_seg.end);
+
+            if(dist_nm != -1)
+            {
+                uint8_t out_prec = 0;
+                if(dist_nm < 10)
+                    out_prec = 1;
+
+                if(dist_nm >= 100)
+                    out.dist_sz = DIST_FONT_SZ_TD;
+                
+                out.dist_nm = strutils::double_to_str(dist_nm, out_prec);
+            }
         }
 
         return out;

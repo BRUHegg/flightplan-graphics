@@ -507,6 +507,7 @@ namespace test
             start = next;
         }
         
+        update_id();
     }
 
     void FlightPlan::delete_between(leg_list_node_t* start, leg_list_node_t* end)
@@ -563,6 +564,7 @@ namespace test
             }
         }
         
+        update_id();
     }
 
     void FlightPlan::add_singl_leg(leg_list_node_t *next, leg_list_data_t data)
