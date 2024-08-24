@@ -11,11 +11,22 @@ namespace StratosphereAvionics
 {
     enum class CDUPage
     {
-        RTE1,
+        RTE,
         DEP_ARR_INTRO,
         DEP,
         ARR,
-        LEGS
+        LEGS,
+        INIT_REF,
+        ALTN,
+        VNAV,
+        FIX,
+        HOLD,
+        FMC_COMM,
+        PROG,
+        MENU,
+        NAV_RAD,
+        PREV_PAGE,
+        NEXT_PAGE
     };
 
     enum class CDUColor
@@ -33,6 +44,7 @@ namespace StratosphereAvionics
     // CDU keys:
     constexpr int CDU_KEY_LSK_TOP = 1;
     constexpr int CDU_KEY_RSK_TOP = 7;
+    constexpr int CDU_KEY_INIT_REF = 13;
     constexpr int CDU_KEY_A = 27;
     constexpr int CDU_KEY_SP = 53;
     constexpr int CDU_KEY_DELETE = 54;
@@ -45,6 +57,7 @@ namespace StratosphereAvionics
     constexpr int CDU_KEY_EXEC = 69;
 
     constexpr double CDU_V_OFFS_FIRST = 0.095;
+    constexpr double CDU_V_OFFS_SMALL_FIRST = 0.027;
     constexpr double CDU_V_OFFS_REG = 0.134; // * screen height
     constexpr double CDU_SMALL_TEXT_OFFS_X = 0.003;
     constexpr double CDU_BIG_TEXT_OFFS = 0.05;
@@ -66,6 +79,25 @@ namespace StratosphereAvionics
     const std::string CDU_GREEN_TEXT_NAME = "cdu_big_green";
     const std::string CDU_CYAN_TEXT_NAME = "cdu_big_cyan";
     const std::string CDU_MAGENTA_TEXT_NAME = "cdu_big_magenta";
+    const std::string DISCO_AFTER_SEG = "-- ROUTE DISCONTINUITY --";
+    const std::string SEG_LAST = "-----              -----";
+
+
+    const std::vector<CDUPage> CDU_PAGE_FACES = {
+        CDUPage::INIT_REF,
+        CDUPage::RTE,
+        CDUPage::DEP_ARR_INTRO,
+        CDUPage::ALTN,
+        CDUPage::VNAV,
+        CDUPage::FIX,
+        CDUPage::LEGS,
+        CDUPage::HOLD,
+        CDUPage::FMC_COMM,
+        CDUPage::PROG,
+        CDUPage::MENU,
+        CDUPage::NAV_RAD,
+        CDUPage::PREV_PAGE,
+        CDUPage::NEXT_PAGE};
 
     
     struct cdu_scr_data_t
@@ -80,7 +112,9 @@ namespace StratosphereAvionics
     public:
         CDU(std::shared_ptr<test::FPLSys> fs);
 
-        std::string on_event(int event_key, std::string scratchpad);
+        void update();
+
+        std::string on_event(int event_key, std::string scratchpad, std::string *s_out);
 
         cdu_scr_data_t get_screen_data();
 
@@ -91,10 +125,14 @@ namespace StratosphereAvionics
         int n_subpg;
         int curr_subpg;
 
+        size_t n_seg_list_sz, n_leg_list_sz;
+        std::vector<test::list_node_ref_t<test::fpl_seg_t>> seg_list;
+        std::vector<test::list_node_ref_t<test::leg_list_data_t>> leg_list;
 
-        std::string set_departure(std::string icao);
 
-        std::string set_arrival(std::string icao);
+        std::string set_departure(std::string icao, std::string *s_out);
+
+        std::string set_arrival(std::string icao, std::string *s_out);
 
         std::string set_dep_rwy(std::string id);
 
@@ -102,8 +140,14 @@ namespace StratosphereAvionics
 
         std::string save_rte();
 
+        void get_seg_page(cdu_scr_data_t *in);
 
-        std::string handle_rte(int event_key, std::string scratchpad);
+        std::string get_small_heading();
+
+
+        int get_n_rte_subpg();
+
+        std::string handle_rte(int event_key, std::string scratchpad, std::string *s_out);
 
         cdu_scr_data_t get_rte_page();
     };

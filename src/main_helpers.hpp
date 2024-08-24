@@ -190,6 +190,7 @@ namespace test
 
         void draw(cairo_t *cr)
         {
+            cdu_l->update();
             nd_display->draw(cr);
             cdu_display_l->draw(cr);
         }
