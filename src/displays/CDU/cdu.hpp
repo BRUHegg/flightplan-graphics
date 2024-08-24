@@ -79,8 +79,8 @@ namespace StratosphereAvionics
     const std::string CDU_GREEN_TEXT_NAME = "cdu_big_green";
     const std::string CDU_CYAN_TEXT_NAME = "cdu_big_cyan";
     const std::string CDU_MAGENTA_TEXT_NAME = "cdu_big_magenta";
-    const std::string DISCO_AFTER_SEG = "-- ROUTE DISCONTINUITY --";
-    const std::string SEG_LAST = "-----              -----";
+    const std::string DISCO_AFTER_SEG = "-- ROUTE DISCONTINUITY -";
+    const std::string SEG_LAST = "-------            -----";
 
 
     const std::vector<CDUPage> CDU_PAGE_FACES = {
@@ -139,6 +139,10 @@ namespace StratosphereAvionics
         std::string load_rte();
 
         std::string save_rte();
+
+        std::string add_via(size_t next_idx, std::string name);
+
+        std::string add_to(size_t next_idx, std::string name);
 
         void get_seg_page(cdu_scr_data_t *in);
 

@@ -29,7 +29,7 @@ namespace test
     constexpr size_t N_FPL_SEG_CACHE_SZ = 100;
     constexpr size_t N_FPL_REF_SZ = 9;
     const std::string DISCON_SEG_NAME = "DISCONTINUITY";
-    const std::string DCT_LEG_NAME = "DCT";
+    const std::string DCT_LEG_NAME = "DIRECT";
 
     enum fpl_segment_types
     {

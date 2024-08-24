@@ -150,6 +150,49 @@ namespace StratosphereAvionics
         return "";
     }
 
+    std::string CDU::add_via(size_t next_idx, std::string name)
+    {
+        if(name.size() > 7)
+            return INVALID_ENTRY_MSG;
+        test::seg_list_node_t *s_ptr = nullptr;
+        if(next_idx < n_seg_list_sz)
+        {
+            s_ptr = seg_list[next_idx].ptr;
+        }
+        double id = fpl_sys->seg_list_id;
+        bool retval = fpl_sys->fpl->add_enrt_seg({s_ptr, id}, name);
+
+        if(!retval)
+            return NOT_IN_DB_MSG;
+        return "";
+    }
+
+    std::string CDU::add_to(size_t next_idx, std::string name)
+    {
+        if(name.size() > 5)
+            return INVALID_ENTRY_MSG;
+        std::vector<libnav::waypoint_entry_t> wpt_entr;
+        size_t n_found = fpl_sys->navaid_db_ptr->get_wpt_data(name, &wpt_entr);
+
+        if(n_found == 0)
+            return NOT_IN_DB_MSG;
+
+        libnav::waypoint_entry_t tgt = wpt_entr[0];
+
+        test::seg_list_node_t *s_ptr = nullptr;
+        if(next_idx < n_seg_list_sz)
+        {
+            s_ptr = seg_list[next_idx].ptr;
+        }
+        libnav::waypoint_t tgt_wpt = {name, tgt};
+        double id = fpl_sys->seg_list_id;
+        bool retval = fpl_sys->fpl->awy_insert({s_ptr, id}, tgt_wpt.get_awy_id());
+
+        if(!retval)
+            return NOT_IN_DB_MSG;
+        return "";
+    }
+
     void CDU::get_seg_page(cdu_scr_data_t *in)
     {
         std::string via_to = " VIA" + std::string(N_CDU_DATA_COLS-6, ' ') + "TO";
@@ -163,15 +206,20 @@ namespace StratosphereAvionics
             auto curr_sg = seg_list[i];
             test::leg_list_node_t *end_leg = curr_sg.data.end;
             std::string end_nm = "";
+            std::string seg_nm = curr_sg.data.name;
             if(end_leg != nullptr)
             {
                 end_nm = end_leg->data.leg.main_fix.id;
+            }
+            
+            if(seg_nm == test::DISCON_SEG_NAME)
+            {
+                seg_nm = std::string(7, '-');
             }
             if(end_nm == "")
             {
                 in->data_lines[in->data_lines.size()-1] = std::string(10, ' ') + "THEN";
                 end_nm = std::string(5, '@');
-                std::string seg_nm = curr_sg.data.name;
                 std::string curr_seg = seg_nm + std::string(N_CDU_DATA_COLS-seg_nm.size()-end_nm.size(), ' ') + end_nm;
                 in->data_lines.push_back(curr_seg);
                 in->data_lines.push_back(DISCO_AFTER_SEG);
@@ -231,6 +279,27 @@ namespace StratosphereAvionics
             else if(event_key == CDU_KEY_LSK_TOP + 4)
             {
                 return save_rte();
+            }
+        }
+        else
+        {
+            size_t i_start = 1 + 6 * size_t(curr_subpg-2);
+            size_t i_end = std::min(n_seg_list_sz-1, i_start + 6);
+            size_t i_event = i_start + size_t(event_key-1) % 6;
+            if(i_event > i_end)
+            {
+                return INVALID_ENTRY_MSG;
+            }
+            else
+            {
+                if(event_key >= CDU_KEY_RSK_TOP)
+                {
+                    return add_to(i_event+1, scratchpad);
+                }
+                else
+                {
+                    return add_via(i_event+1, scratchpad);
+                }
             }
         }
 
