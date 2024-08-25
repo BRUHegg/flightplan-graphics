@@ -222,6 +222,7 @@ namespace StratosphereAvionics
                 sel_des_id = id;
                 sel_des_data = wpt_entr;
                 sel_des_nm = name;
+                curr_subpg = 1;
                 sel_des = true;
                 return "";
             }
@@ -424,12 +425,16 @@ namespace StratosphereAvionics
 
         for(size_t i = start_idx; i < end_idx; i++)
         {
-            std::string wpt_tp = libnav::navaid_to_str(sel_des_data[i].type);
+            std::string wpt_tp = sel_des_nm + " " + libnav::navaid_to_str(sel_des_data[i].type);
             std::string lat_str = strutils::lat_to_str(sel_des_data[i].pos.lat_rad 
                 * geo::RAD_TO_DEG);
             std::string lon_str = strutils::lon_to_str(sel_des_data[i].pos.lon_rad 
                 * geo::RAD_TO_DEG);
             std::string main_str = lat_str + " " + lon_str;
+            if(sel_des_data[i].navaid)
+            {
+                main_str = strutils::freq_to_str(sel_des_data[i].navaid->freq) + " " + main_str;   
+            }
             out.data_lines.push_back(wpt_tp);
             out.data_lines.push_back(main_str);
         }
