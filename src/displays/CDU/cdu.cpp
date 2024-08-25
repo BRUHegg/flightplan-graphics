@@ -152,6 +152,7 @@ namespace StratosphereAvionics
 
     std::string CDU::add_via(size_t next_idx, std::string name)
     {
+        double id = fpl_sys->seg_list_id;
         if(name.size() > 7)
             return INVALID_ENTRY_MSG;
         test::seg_list_node_t *s_ptr = nullptr;
@@ -159,7 +160,7 @@ namespace StratosphereAvionics
         {
             s_ptr = seg_list[next_idx].ptr;
         }
-        double id = fpl_sys->seg_list_id;
+
         bool retval = fpl_sys->fpl->add_enrt_seg({s_ptr, id}, name);
 
         if(!retval)
@@ -169,12 +170,12 @@ namespace StratosphereAvionics
 
     std::string CDU::delete_via(size_t next_idx)
     {
+        double id = fpl_sys->seg_list_id;
         test::seg_list_node_t *s_ptr = nullptr;
         if(next_idx < n_seg_list_sz)
         {
             s_ptr = seg_list[next_idx].ptr;
         }
-        double id = fpl_sys->seg_list_id;
         bool retval = fpln->delete_via({s_ptr, id});
 
         if(!retval)
@@ -184,6 +185,7 @@ namespace StratosphereAvionics
 
     std::string CDU::add_to(size_t next_idx, std::string name)
     {
+        double id = fpl_sys->seg_list_id;
         if(name.size() > 5)
             return INVALID_ENTRY_MSG;
         std::vector<libnav::waypoint_entry_t> wpt_entr;
@@ -200,7 +202,7 @@ namespace StratosphereAvionics
             s_ptr = seg_list[next_idx].ptr;
         }
         libnav::waypoint_t tgt_wpt = {name, tgt};
-        double id = fpl_sys->seg_list_id;
+        
         bool retval = fpl_sys->fpl->awy_insert({s_ptr, id}, tgt_wpt.get_awy_id());
 
         if(!retval)
@@ -210,12 +212,13 @@ namespace StratosphereAvionics
 
     std::string CDU::delete_to(size_t next_idx)
     {
+        double id = fpl_sys->seg_list_id;
         test::seg_list_node_t *s_ptr = nullptr;
         if(next_idx < n_seg_list_sz)
         {
             s_ptr = seg_list[next_idx].ptr;
         }
-        double id = fpl_sys->seg_list_id;
+        
         bool retval = fpln->delete_seg_end({s_ptr, id});
 
         if(!retval)
