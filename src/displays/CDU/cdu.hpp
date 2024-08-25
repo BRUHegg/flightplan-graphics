@@ -5,6 +5,7 @@
 #include "common/cairo_utils.hpp"
 #include "common/bytemap.hpp"
 #include "fpln/fpln_sys.hpp"
+#include <iostream>
 
 
 namespace StratosphereAvionics
@@ -58,6 +59,7 @@ namespace StratosphereAvionics
 
     constexpr char DELETE_SYMBOL = 'd';
 
+    constexpr double CDU_RES_COEFF = 1.0 / 900.0;
     constexpr double CDU_V_OFFS_FIRST = 0.095;
     constexpr double CDU_V_OFFS_SMALL_FIRST = 0.027;
     constexpr double CDU_V_OFFS_REG = 0.134; // * screen height
@@ -179,6 +181,7 @@ namespace StratosphereAvionics
         geom::vect2_t size;
         geom::vect2_t disp_pos; // position of the CDU display on the screen
         geom::vect2_t disp_size;
+        geom::vect2_t tex_size;
         geom::vect2_t tex_scale;
 
         cairo_font_face_t *font_face;

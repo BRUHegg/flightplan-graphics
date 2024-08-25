@@ -420,7 +420,8 @@ namespace StratosphereAvionics
 
         key_map = bm;
 
-        tex_scale = size / cairo_utils::get_surf_sz(tex_mngr->data[CDU_TEXTURE_NAME]);
+        tex_size = cairo_utils::get_surf_sz(tex_mngr->data[CDU_TEXTURE_NAME]);
+        tex_scale = size / tex_size;
 
         scratchpad = std::string(size_t(N_CDU_DATA_COLS), ' ');
         scratch_curr = 0;
@@ -429,7 +430,7 @@ namespace StratosphereAvionics
     void CDUDisplay::on_click(geom::vect2_t pos)
     {
         pos = (pos - scr_pos) / tex_scale;
-        if (pos.x >= 0 && pos.y >= 0 && pos.x < size.x && pos.y < size.y)
+        if (pos.x >= 0 && pos.y >= 0 && pos.x < tex_size.x && pos.y < tex_size.y)
         {
             int event = int(key_map->get_at(size_t(pos.x), size_t(pos.y)));
 
@@ -621,6 +622,9 @@ namespace StratosphereAvionics
             font_sfc = tex_mngr->data[CDU_MAGENTA_TEXT_NAME];
         else
             font_sfc = tex_mngr->data[CDU_WHITE_TEXT_NAME];
+
+        double res_ratio = size.y * CDU_RES_COEFF;
+        scale = scale.scmul(res_ratio);
 
         for (size_t i = 0; i < s.size(); i++)
         {

@@ -38,7 +38,7 @@ namespace test
         StratosphereAvionics::CDU_TEXTURE_NAME};
     const std::string TEXTURES_PATH = "textures/";
 
-    constexpr double WND_HEIGHT = 900;
+    constexpr double WND_HEIGHT = 700;
     constexpr double CDU_WIDTH = (StratosphereAvionics::CDU_TEXTURE_ASPECT_RATIO * WND_HEIGHT);
     constexpr double ND_WIDTH = WND_HEIGHT;
     constexpr double WND_WIDTH = CDU_WIDTH + ND_WIDTH;
