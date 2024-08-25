@@ -185,7 +185,9 @@ namespace test
 
         // End MUST be an airway id
 
-        bool awy_insert(timed_ptr_t<seg_list_node_t> next, std::string end_id);
+        bool awy_insert_str(timed_ptr_t<seg_list_node_t> next, std::string end_id);
+        
+        bool awy_insert(timed_ptr_t<seg_list_node_t> next, libnav::waypoint_t end);
 
         bool delete_via(timed_ptr_t<seg_list_node_t> next);
 

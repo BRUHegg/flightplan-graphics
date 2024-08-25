@@ -492,7 +492,7 @@ namespace test
         }
         libnav::waypoint_t tgt_wpt = {in[1], tgt};
         double id = fpl_sys->seg_list_id;
-        bool retval = fpl_sys->fpl->awy_insert({s_ptr, id}, tgt_wpt.get_awy_id());
+        bool retval = fpl_sys->fpl->awy_insert_str({s_ptr, id}, tgt_wpt.get_awy_id());
 
         if(!retval)
         {

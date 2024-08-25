@@ -313,14 +313,14 @@ namespace test
                             if (awy_last != "" && end_last != "")
                             {
                                 add_enrt_seg({nullptr, seg_list.id}, awy_last);
-                                awy_insert({&(seg_list.tail), seg_list.id},
+                                awy_insert_str({&(seg_list.tail), seg_list.id},
                                            end_last);
                             }
                             awy_last = "";
                             end_last = "";
 
                             if (wpt_id != "")
-                                awy_insert({nullptr, seg_list.id}, wpt_id);
+                                awy_insert_str({nullptr, seg_list.id}, wpt_id);
                         }
                     }
                 }
@@ -744,8 +744,11 @@ namespace test
                     if (end_leg != nullptr)
                     {
                         libnav::waypoint_t end_fix = end_leg->data.leg.main_fix;
-                        std::string end_leg_awy_id = end_fix.get_awy_id();
-                        add_seg = awy_db->is_in_awy(name, end_leg_awy_id);
+                        if(end_fix.data.area_code == "ENRT")
+                        {
+                            std::string end_leg_awy_id = end_fix.get_awy_id();
+                            add_seg = awy_db->is_in_awy(name, end_leg_awy_id);
+                        }
                     }
                     else if (prev->prev->data.seg_type > FPL_SEG_DEP_RWY)
                     {
@@ -795,7 +798,7 @@ namespace test
                     libnav::waypoint_t end_fix = end_leg->data.leg.main_fix;
                     std::string end_leg_awy_id = end_fix.get_awy_id();
 
-                    if (awy_db->is_in_awy(name, end_leg_awy_id))
+                    if (end_fix.data.area_code == "ENRT" && awy_db->is_in_awy(name, end_leg_awy_id))
                     {
                         if (prev_end_leg != nullptr && !(prev->data.is_discon))
                         {
@@ -844,7 +847,18 @@ namespace test
         return false;
     }
 
-    bool FplnInt::awy_insert(timed_ptr_t<seg_list_node_t> next, std::string end_id)
+    bool FplnInt::awy_insert_str(timed_ptr_t<seg_list_node_t> next, std::string end_id)
+    {
+        std::vector<libnav::waypoint_entry_t> cand;
+        std::vector<std::string> id_split = strutils::str_split(end_id, libnav::AUX_ID_SEP);
+        size_t n_cand = navaid_db->get_wpt_by_awy_str(end_id, &cand);
+        assert(n_cand != 0);
+        libnav::waypoint_t wpt = {id_split[0], cand[0]};
+
+        return awy_insert(next, wpt);
+    }
+
+    bool FplnInt::awy_insert(timed_ptr_t<seg_list_node_t> next, libnav::waypoint_t end)
     {
         std::lock_guard<std::mutex> lock(fpl_mtx);
 
@@ -855,7 +869,9 @@ namespace test
                 seg_list_node_t *prev = seg_list.tail.prev;
                 if (prev->data.end != nullptr)
                 {
-                    leg_t dir_leg = get_awy_tf_leg(end_id);
+                    leg_t dir_leg = {};
+                    dir_leg.leg_type = "TF";
+                    dir_leg.set_main_fix(end);
                     add_direct_leg(dir_leg, &(leg_list.tail));
                     return true;
                 }
@@ -869,7 +885,10 @@ namespace test
                     std::string prev_name = prev->data.name;
                     seg_list_node_t *prev_full = prev->prev;
 
-                    bool in_awy = awy_db->is_in_awy(prev_name, end_id);
+                    std::string end_id = end.get_awy_id();
+
+                    bool in_awy = end.data.area_code == "ENRT" &&
+                         awy_db->is_in_awy(prev_name, end_id);
                     if (prev_full->data.end != nullptr && in_awy)
                     {
                         leg_list_node_t *prev_leg = prev_full->data.end;
@@ -891,7 +910,9 @@ namespace test
                     else if (prev_full->data.end != nullptr && !in_awy)
                     {
                         delete_segment(prev, true, true);
-                        leg_t dir_leg = get_awy_tf_leg(end_id);
+                        leg_t dir_leg = {};
+                        dir_leg.leg_type = "TF";
+                        dir_leg.set_main_fix(end);
                         add_direct_leg(dir_leg, prev_full->data.end->next);
 
                         return true;

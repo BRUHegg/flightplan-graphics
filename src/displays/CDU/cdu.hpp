@@ -87,6 +87,7 @@ namespace StratosphereAvionics
     const std::string CDU_MAGENTA_TEXT_NAME = "cdu_big_magenta";
     const std::string DISCO_AFTER_SEG = "-- ROUTE DISCONTINUITY -";
     const std::string SEG_LAST = "-------            -----";
+    const std::string SEL_DES_WPT_HDG = " SELECT DESIRED WPT";
 
 
     const std::vector<CDUPage> CDU_PAGE_FACES = {
@@ -131,9 +132,16 @@ namespace StratosphereAvionics
         int n_subpg;
         int curr_subpg;
 
+        int sel_des_idx;
+        int sel_des_event;
+        double sel_des_id;
+        bool sel_des;
+
         size_t n_seg_list_sz, n_leg_list_sz;
         std::vector<test::list_node_ref_t<test::fpl_seg_t>> seg_list;
         std::vector<test::list_node_ref_t<test::leg_list_data_t>> leg_list;
+        std::vector<libnav::waypoint_entry_t> sel_des_data;
+        std::string sel_des_nm;
 
 
         std::string set_departure(std::string icao, std::string *s_out);
@@ -159,9 +167,15 @@ namespace StratosphereAvionics
         std::string get_small_heading();
 
 
+        int get_n_sel_des_subpg();
+
         int get_n_rte_subpg();
 
+        std::string handle_sel_des(int event_key);
+
         std::string handle_rte(int event_key, std::string scratchpad, std::string *s_out);
+
+        cdu_scr_data_t get_sel_des_page();
 
         cdu_scr_data_t get_rte_page();
     };
