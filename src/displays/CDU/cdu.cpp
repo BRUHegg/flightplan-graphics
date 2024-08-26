@@ -19,6 +19,15 @@ namespace StratosphereAvionics
         sel_des_id = 0;
         sel_des = false;
 
+        dep_arr_rwy_filter = false;
+        dep_arr_proc_filter = false;
+
+        procs = {};
+        trans = {};
+        apprs = {};
+        rwys = {};
+        vias = {};
+
         sel_des_nm = "";
     }
 
@@ -36,6 +45,11 @@ namespace StratosphereAvionics
             if (curr_page == CDUPage::RTE)
             {
                 n_subpg = get_n_rte_subpg();
+            }
+            else if(curr_page == CDUPage::DEP_ARR_INTRO || 
+                curr_page == CDUPage::DEP || curr_page == CDUPage::ARR)
+            {
+                n_subpg = get_n_dep_arr_subpg();
             }
         }
 
@@ -58,6 +72,12 @@ namespace StratosphereAvionics
             else if (pg == CDUPage::PREV_PAGE)
             {
                 curr_subpg--;
+            }
+            else
+            {
+                curr_page = pg;
+                curr_subpg = 1;
+                sel_des = false;
             }
 
             if (curr_subpg > n_subpg)
@@ -88,6 +108,9 @@ namespace StratosphereAvionics
 
         if (curr_page == CDUPage::RTE)
             return get_rte_page();
+        
+        if(curr_page == CDUPage::DEP_ARR_INTRO)
+            return get_dep_arr_page();
 
         return {};
     }
@@ -325,6 +348,44 @@ namespace StratosphereAvionics
         return out;
     }
 
+    void CDU::set_procs(test::ProcType ptp, bool is_arr)
+    {
+        procs = fpln->get_arpt_proc(ptp, is_arr, 
+            dep_arr_rwy_filter, dep_arr_proc_filter);
+        if(ptp == test::PROC_TYPE_STAR)
+        {
+            apprs = fpln->get_arpt_proc(test::PROC_TYPE_APPCH, is_arr, 
+                dep_arr_rwy_filter, dep_arr_proc_filter);
+        }
+        else
+        {
+            apprs = {};
+        }
+        if(dep_arr_proc_filter)
+        {
+            trans = fpln->get_arpt_proc_trans(ptp, 
+                false, is_arr);
+            if(ptp == test::PROC_TYPE_STAR)
+            {
+                vias = fpln->get_arpt_proc_trans(test::PROC_TYPE_APPCH, false, is_arr);
+            }
+            else
+            {
+                vias = {};
+            }
+        }
+        else
+        {
+            trans = {};
+            vias = {};
+        }
+
+        if(!is_arr)
+            rwys = fpln->get_dep_rwys(dep_arr_rwy_filter, dep_arr_proc_filter);
+        else
+            rwys = fpln->get_arr_rwys();
+    }
+
     int CDU::get_n_sel_des_subpg()
     {
         return int(sel_des_data.size()) / 6 + bool(int(sel_des_data.size()) % 6);
@@ -338,6 +399,33 @@ namespace StratosphereAvionics
             size_t n_seg_act = n_seg_list_sz - 1;
             return 1 + (n_seg_act / 6) + bool(n_seg_act % 6);
         }
+        return 1;
+    }
+
+    int CDU::get_n_dep_arr_subpg()
+    {
+        std::string dep_icao = fpln->get_dep_icao();
+        std::string arr_icao = fpln->get_arr_icao();
+        if((curr_page == CDUPage::DEP && dep_icao == "") || 
+            (curr_page == CDUPage::ARR && arr_icao == ""))
+        {
+            curr_page = CDUPage::DEP_ARR_INTRO;
+        }
+
+        if(curr_page == CDUPage::DEP)
+        {
+            set_procs(test::PROC_TYPE_SID, false);
+            size_t max_cnt = std::max(rwys.size(), procs.size()+trans.size());
+            return int(max_cnt) / 6 + bool(max_cnt % 6);
+        }
+        else if(curr_page == CDUPage::ARR)
+        {
+            set_procs(test::PROC_TYPE_STAR, true);
+            size_t max_cnt = std::max(procs.size()+trans.size(), 
+                apprs.size()+vias.size());
+            return int(max_cnt) / 6 + bool(max_cnt % 6);
+        }
+
         return 1;
     }
 
@@ -504,6 +592,47 @@ namespace StratosphereAvionics
         {
             get_seg_page(&out);
         }
+
+        return out;
+    }
+
+    cdu_scr_data_t CDU::get_dep_arr_page()
+    {
+        cdu_scr_data_t out = {};
+        out.heading_small = get_small_heading();
+        std::string hdg_offs = std::string((N_CDU_DATA_COLS-DEP_ARR_HDG.size())/2, ' ');
+        out.heading_big = hdg_offs + DEP_ARR_HDG;
+        out.heading_color = CDUColor::WHITE;
+
+        std::string dep = fpln->get_dep_icao();
+        std::string arr = fpln->get_arr_icao();
+
+        if(dep != "" || arr != "")
+        {
+            out.data_lines.push_back(std::string(8, ' ') + "RTE 1");
+            if(dep != "")
+                out.data_lines.push_back(DEP_ARR_DEP_OPT + dep + DEP_ARR_ARR_OPT);
+            out.data_lines.push_back("");
+            if(arr != "")
+                out.data_lines.push_back(std::string(DEP_ARR_DEP_OPT.size(), ' ') + arr + DEP_ARR_ARR_OPT);
+            
+        }
+        else
+        {
+            out.data_lines.push_back(DEP_ARR_IDX_DASH_L + "RTE 1 " + DEP_ARR_IDX_DASH_R);
+            out.data_lines.push_back("");
+            out.data_lines.push_back("");
+            out.data_lines.push_back("");
+        }
+
+        out.data_lines.push_back(DEP_ARR_IDX_DASH_L + "RTE 2 " + DEP_ARR_IDX_DASH_R);
+        out.data_lines.push_back("");
+        out.data_lines.push_back("");
+        out.data_lines.push_back("");
+        out.data_lines.push_back(std::string(N_CDU_DATA_COLS, '-'));
+        out.data_lines.push_back("");
+        out.data_lines.push_back(DEP_ARR_IDX_OTHER);
+        out.data_lines.push_back(DEP_ARR_ARROWS);
 
         return out;
     }

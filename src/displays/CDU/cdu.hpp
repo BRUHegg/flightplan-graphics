@@ -88,6 +88,13 @@ namespace StratosphereAvionics
     const std::string DISCO_AFTER_SEG = "-- ROUTE DISCONTINUITY -";
     const std::string SEG_LAST = "-------            -----";
     const std::string SEL_DES_WPT_HDG = " SELECT DESIRED WPT";
+    const std::string DEP_ARR_HDG = "DEP/ARR INDEX";
+    const std::string DEP_ARR_IDX_DASH_L = std::string(8, '-');
+    const std::string DEP_ARR_IDX_DASH_R = std::string(10, '-');
+    const std::string DEP_ARR_DEP_OPT = "<DEP" + std::string(6, ' ');
+    const std::string DEP_ARR_ARR_OPT = std::string(6, ' ') + "ARR>";
+    const std::string DEP_ARR_IDX_OTHER = " DEP      OTHER      ARR";
+    const std::string DEP_ARR_ARROWS = "<----" + std::string(N_CDU_DATA_COLS-10, ' ') + "---->";
 
 
     const std::vector<CDUPage> CDU_PAGE_FACES = {
@@ -132,11 +139,17 @@ namespace StratosphereAvionics
         int n_subpg;
         int curr_subpg;
 
+        // sel des data
         int sel_des_idx;
         int sel_des_event;
         int sel_des_subpg;
         double sel_des_id;
         bool sel_des;
+
+        // DEP/ARR data:
+        bool dep_arr_rwy_filter;
+        bool dep_arr_proc_filter;
+        std::vector<std::string> procs, trans, apprs, rwys, vias;
 
         size_t n_seg_list_sz, n_leg_list_sz;
         std::vector<test::list_node_ref_t<test::fpl_seg_t>> seg_list;
@@ -170,10 +183,14 @@ namespace StratosphereAvionics
 
         std::string get_small_heading();
 
+        void set_procs(test::ProcType ptp, bool is_arr);
+
 
         int get_n_sel_des_subpg();
 
         int get_n_rte_subpg();
+
+        int get_n_dep_arr_subpg();
 
         std::string handle_sel_des(int event_key);
 
@@ -182,6 +199,12 @@ namespace StratosphereAvionics
         cdu_scr_data_t get_sel_des_page();
 
         cdu_scr_data_t get_rte_page();
+
+        cdu_scr_data_t get_dep_arr_page();
+
+        cdu_scr_data_t get_dep_page();
+
+        cdu_scr_data_t get_arr_page();
     };
 
     class CDUDisplay
