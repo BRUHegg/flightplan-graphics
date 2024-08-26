@@ -134,6 +134,7 @@ namespace StratosphereAvionics
 
         int sel_des_idx;
         int sel_des_event;
+        int sel_des_subpg;
         double sel_des_id;
         bool sel_des;
 

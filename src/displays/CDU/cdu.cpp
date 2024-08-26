@@ -14,6 +14,7 @@ namespace StratosphereAvionics
         n_subpg = 1;
 
         sel_des_idx = -1;
+        sel_des_subpg = 0;
         sel_des_event = 0;
         sel_des_id = 0;
         sel_des = false;
@@ -222,6 +223,7 @@ namespace StratosphereAvionics
                 sel_des_id = id;
                 sel_des_data = wpt_entr;
                 sel_des_nm = name;
+                sel_des_subpg = curr_subpg;
                 curr_subpg = 1;
                 sel_des = true;
                 return "";
@@ -345,6 +347,7 @@ namespace StratosphereAvionics
             sel_des_idx = curr_idx;
             sel_des = false;
             std::string tmp;
+            curr_subpg = sel_des_subpg;
             on_event(sel_des_event, "", &tmp);
         }
             
@@ -430,7 +433,7 @@ namespace StratosphereAvionics
                 * geo::RAD_TO_DEG);
             std::string lon_str = strutils::lon_to_str(sel_des_data[i].pos.lon_rad 
                 * geo::RAD_TO_DEG);
-            std::string main_str = lat_str + " " + lon_str;
+            std::string main_str = lat_str + lon_str;
             if(sel_des_data[i].navaid)
             {
                 main_str = strutils::freq_to_str(sel_des_data[i].navaid->freq) + " " + main_str;   
@@ -686,7 +689,7 @@ namespace StratosphereAvionics
             return 49;
         else if (c == '/')
             return 50;
-        else if (c == '*')
+        else if (c == strutils::DEGREE_SYMBOL)
             return 51;
         else if (c == '@')
             return 52;
