@@ -145,6 +145,9 @@ namespace StratosphereAvionics
         std::string sel_des_nm;
 
 
+        void set_sel_des_state(double id, std::string& name, 
+            std::vector<libnav::waypoint_entry_t>& w_e);
+        
         std::string set_departure(std::string icao, std::string *s_out);
 
         std::string set_arrival(std::string icao, std::string *s_out);
