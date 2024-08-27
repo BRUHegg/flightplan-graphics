@@ -185,6 +185,10 @@ namespace StratosphereAvionics
 
         void get_seg_page(cdu_scr_data_t *in);
 
+        void get_procs(cdu_scr_data_t *in, std::string curr_proc, std::string curr_trans);
+
+        void get_rwys(cdu_scr_data_t *in, std::string curr_rwy);
+
         std::string get_small_heading();
 
         void set_procs(test::ProcType ptp, bool is_arr);

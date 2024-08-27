@@ -359,6 +359,52 @@ namespace StratosphereAvionics
         in->data_lines.push_back(SEG_LAST);
     }
 
+    void CDU::get_procs(cdu_scr_data_t *in, std::string curr_proc, std::string curr_trans)
+    {
+        size_t start_idx = size_t((curr_subpg - 1) * 5);
+        size_t j = 1;
+
+        for(size_t i = start_idx; i < start_idx + 6 && i < procs.size(); i++)
+        {
+            std::string curr = procs[i];
+            if(curr == curr_proc)
+                curr = curr + " <SEL>";
+            in->data_lines[j] = curr;
+            j += 2;
+        }
+        if(trans.size() && procs.size() == 1)
+        {
+            size_t trans_start = size_t((curr_subpg - 1) * 4);
+            in->data_lines[j-1] = " TRANS";
+            for(size_t i = trans_start; i < trans_start + 4 && i < trans.size(); i++)
+            {
+                std::string curr = trans[i];
+                if(curr == curr_trans)
+                    curr = curr + " <SEL>";
+                in->data_lines[j] = curr;
+                j += 2;
+            }
+        }
+    }
+
+    void CDU::get_rwys(cdu_scr_data_t *in, std::string curr_rwy)
+    {
+        size_t start_idx = size_t((curr_subpg - 1) * 5);
+        size_t j = 1;
+
+        for(size_t i = start_idx; i < start_idx + 6 && i < rwys.size(); i++)
+        {
+            std::string curr = rwys[i];
+            if(curr == curr_rwy)
+            {
+                curr = "<SEL> " + curr;
+            }
+            size_t n_sp = size_t(N_CDU_DATA_COLS) - curr.size() - in->data_lines[j].size();
+            in->data_lines[j] = in->data_lines[j] + std::string(n_sp, ' ') + curr;
+            j += 2;
+        }
+    }
+
     std::string CDU::get_small_heading()
     {
         std::string curr_spg = std::to_string(curr_subpg);
@@ -743,46 +789,12 @@ namespace StratosphereAvionics
         }
         out.data_lines[0] = DEP_COLS;
 
-        size_t start_idx = size_t((curr_subpg - 1) * 5);
-        size_t j = 1;
         std::string curr_sid = fpln->get_curr_proc(test::PROC_TYPE_SID);
-
-        for(size_t i = start_idx; i < start_idx + 6 && i < procs.size(); i++)
-        {
-            std::string curr = procs[i];
-            if(curr == curr_sid)
-                curr = curr + " <SEL>";
-            out.data_lines[j] = curr;
-            j += 2;
-        }
-        if(trans.size() && procs.size() == 1)
-        {
-            size_t trans_start = size_t((curr_subpg - 1) * 4);
-            out.data_lines[j-1] = " TRANS";
-            std::string curr_trans = fpln->get_curr_proc(test::PROC_TYPE_SID, true);
-            for(size_t i = trans_start; i < trans_start + 4 && i < trans.size(); i++)
-            {
-                std::string curr = trans[i];
-                if(curr == curr_trans)
-                    curr = curr + " <SEL>";
-                out.data_lines[j] = curr;
-                j += 2;
-            }
-        }
+        std::string curr_trans = fpln->get_curr_proc(test::PROC_TYPE_SID, true);
+        get_procs(&out, curr_sid, curr_trans);
         
         std::string dep_rwy = fpln->get_dep_rwy();
-        j = 1;
-        for(size_t i = start_idx; i < start_idx + 6 && i < rwys.size(); i++)
-        {
-            std::string curr = rwys[i];
-            if(curr == dep_rwy)
-            {
-                curr = "<SEL> " + curr;
-            }
-            size_t n_sp = size_t(N_CDU_DATA_COLS) - curr.size() - out.data_lines[j].size();
-            out.data_lines[j] = out.data_lines[j] + std::string(n_sp, ' ') + curr;
-            j += 2;
-        }
+        get_rwys(&out, dep_rwy);
 
         out.data_lines[10] = std::string(N_CDU_DATA_COLS, '-');
         out.data_lines[11] = DEP_ARR_BOTTOM;
@@ -803,6 +815,13 @@ namespace StratosphereAvionics
             out.data_lines.push_back("");
         }
         out.data_lines[0] = ARR_COLS;
+
+        std::string curr_star = fpln->get_curr_proc(test::PROC_TYPE_STAR);
+        std::string curr_trans = fpln->get_curr_proc(test::PROC_TYPE_STAR, true);
+        get_procs(&out, curr_star, curr_trans);
+        
+        std::string arr_rwy = fpln->get_arr_rwy();
+        get_rwys(&out, arr_rwy);
 
         out.data_lines[10] = std::string(N_CDU_DATA_COLS, '-');
         out.data_lines[11] = DEP_ARR_BOTTOM;
