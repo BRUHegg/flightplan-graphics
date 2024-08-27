@@ -547,10 +547,32 @@ namespace StratosphereAvionics
             curr_page = CDUPage::INIT_REF;
             curr_subpg = 1;
         }
-        if(event_key == CDU_KEY_RSK_TOP + 5)
+        else if(event_key == CDU_KEY_RSK_TOP + 5)
         {
             curr_page = CDUPage::RTE;
             curr_subpg = 1;
+        }
+        else if(event_key && event_key < CDU_KEY_LSK_TOP + 5)
+        {
+            int start_idx = (curr_subpg-1) * 5;
+            int sz = procs.size();
+            int curr_idx = start_idx + event_key-CDU_KEY_LSK_TOP;
+            if(curr_idx < sz)
+            {
+                fpln->set_arpt_proc(test::PROC_TYPE_SID, procs[size_t(curr_idx)], false);
+                dep_arr_rwy_filter = !dep_arr_rwy_filter;
+            }
+        }
+        else if(event_key >= CDU_KEY_RSK_TOP && event_key < CDU_KEY_RSK_TOP + 5)
+        {
+            int start_idx = (curr_subpg-1) * 5;
+            int sz = rwys.size();
+            int curr_idx = start_idx + event_key-CDU_KEY_RSK_TOP;
+            if(curr_idx < sz)
+            {
+                fpln->set_dep_rwy(rwys[size_t(curr_idx)]);
+                dep_arr_proc_filter = !dep_arr_proc_filter;
+            }
         }
         return "";
     }
@@ -712,6 +734,46 @@ namespace StratosphereAvionics
             out.data_lines.push_back("");
         }
         out.data_lines[0] = DEP_COLS;
+
+        size_t start_idx = size_t((curr_subpg - 1) * 5);
+        size_t j = 1;
+        std::vector<std::string> curr_sids = fpln->get_arpt_proc(test::PROC_TYPE_SID, 
+            false, true, true);
+        std::string curr_sid = "";
+        if(curr_sids.size() == 1)
+            curr_sid = curr_sids[0];
+        for(size_t i = start_idx; i < start_idx + 6 && i < procs.size(); i++)
+        {
+            std::string curr = procs[i];
+            if(curr == curr_sid)
+                curr = curr + " <SEL>";
+            out.data_lines[j] = curr;
+            j += 2;
+        }
+        if(trans.size() && procs.size() == 1)
+        {
+            size_t trans_start = size_t((curr_subpg - 1) * 4);
+            out.data_lines[j-1] = " TRANS";
+            for(size_t i = trans_start; i < trans_start + 4 && i < trans.size(); i++)
+            {
+                out.data_lines[j] = trans[i];
+                j += 2;
+            }
+        }
+        
+        std::string dep_rwy = fpln->get_dep_rwy();
+        j = 1;
+        for(size_t i = start_idx; i < start_idx + 6 && i < rwys.size(); i++)
+        {
+            std::string curr = rwys[i];
+            if(curr == dep_rwy)
+            {
+                curr = "<SEL> " + curr;
+            }
+            size_t n_sp = size_t(N_CDU_DATA_COLS) - curr.size() - out.data_lines[j].size();
+            out.data_lines[j] = out.data_lines[j] + std::string(n_sp, ' ') + curr;
+            j += 2;
+        }
 
         out.data_lines[10] = std::string(N_CDU_DATA_COLS, '-');
         out.data_lines[11] = DEP_ARR_BOTTOM;
