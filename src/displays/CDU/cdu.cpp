@@ -558,11 +558,17 @@ namespace StratosphereAvionics
         {
             int start_idx = (curr_subpg-1) * 5;
             int sz = procs.size();
+            int trans_sz = trans.size();
             int curr_idx = start_idx + event_key-CDU_KEY_LSK_TOP;
             if(curr_idx < sz)
             {
-                fpln->set_arpt_proc(test::PROC_TYPE_SID, procs[size_t(curr_idx)], false);
+                fpln->set_arpt_proc(test::PROC_TYPE_SID, procs[size_t(curr_idx)]);
                 dep_arr_rwy_filter = !dep_arr_rwy_filter;
+            }
+            else if(curr_idx < sz+trans_sz)
+            {
+                int tr_idx = curr_idx-sz;
+                fpln->set_arpt_proc_trans(test::PROC_TYPE_SID, trans[size_t(tr_idx)]);
             }
         }
         else if(event_key >= CDU_KEY_RSK_TOP && event_key < CDU_KEY_RSK_TOP + 5)
@@ -753,9 +759,13 @@ namespace StratosphereAvionics
         {
             size_t trans_start = size_t((curr_subpg - 1) * 4);
             out.data_lines[j-1] = " TRANS";
+            std::string curr_trans = fpln->get_curr_proc(test::PROC_TYPE_SID, true);
             for(size_t i = trans_start; i < trans_start + 4 && i < trans.size(); i++)
             {
-                out.data_lines[j] = trans[i];
+                std::string curr = trans[i];
+                if(curr == curr_trans)
+                    curr = curr + " <SEL>";
+                out.data_lines[j] = curr;
                 j += 2;
             }
         }
