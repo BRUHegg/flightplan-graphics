@@ -170,6 +170,8 @@ namespace test
 
         // Airport procedure functions:
 
+        std::string get_curr_proc(ProcType tp, bool trans=false);
+
         std::vector<std::string> get_arpt_proc(ProcType tp, bool is_arr=false, 
             bool filter_rwy=false, bool filter_proc=false);
 

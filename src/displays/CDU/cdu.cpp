@@ -78,6 +78,8 @@ namespace StratosphereAvionics
                 curr_page = pg;
                 curr_subpg = 1;
                 sel_des = false;
+                dep_arr_proc_filter = false;
+                dep_arr_rwy_filter = false;
             }
 
             if (curr_subpg > n_subpg)
@@ -737,11 +739,8 @@ namespace StratosphereAvionics
 
         size_t start_idx = size_t((curr_subpg - 1) * 5);
         size_t j = 1;
-        std::vector<std::string> curr_sids = fpln->get_arpt_proc(test::PROC_TYPE_SID, 
-            false, true, true);
-        std::string curr_sid = "";
-        if(curr_sids.size() == 1)
-            curr_sid = curr_sids[0];
+        std::string curr_sid = fpln->get_curr_proc(test::PROC_TYPE_SID);
+
         for(size_t i = start_idx; i < start_idx + 6 && i < procs.size(); i++)
         {
             std::string curr = procs[i];

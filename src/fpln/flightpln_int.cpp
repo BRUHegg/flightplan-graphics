@@ -644,6 +644,24 @@ namespace test
         return false;
     }
 
+    std::string FplnInt::get_curr_proc(ProcType tp, bool trans)
+    {
+        std::lock_guard<std::mutex> lock(fpl_mtx);
+        fpl_segment_types s_tp = get_proc_tp(tp);
+
+        if(trans)
+        {
+            if(s_tp == FPL_SEG_SID)
+                s_tp = FPL_SEG_SID_TRANS;
+            else if(s_tp == FPL_SEG_STAR)
+                s_tp = FPL_SEG_STAR_TRANS;
+            else
+                s_tp = FPL_SEG_APPCH_TRANS;
+        }
+
+        return fpl_refs[s_tp].name;
+    }
+
     std::vector<std::string> FplnInt::get_arpt_proc(ProcType tp, bool is_arr,
                                                     bool filter_rwy, bool filter_proc)
     {
