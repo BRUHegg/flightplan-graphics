@@ -95,6 +95,9 @@ namespace StratosphereAvionics
     const std::string DEP_ARR_ARR_OPT = std::string(6, ' ') + "ARR>";
     const std::string DEP_ARR_IDX_OTHER = " DEP      OTHER      ARR";
     const std::string DEP_ARR_ARROWS = "<----" + std::string(N_CDU_DATA_COLS-10, ' ') + "---->";
+    const std::string DEP_COLS = " SIDS    RTE 1   RUNWAYS";
+    const std::string ARR_COLS = " STARS   RTE 1APPROACHES";
+    const std::string DEP_ARR_BOTTOM = "<INDEX            ROUTE>";
 
 
     const std::vector<CDUPage> CDU_PAGE_FACES = {
@@ -195,6 +198,12 @@ namespace StratosphereAvionics
         std::string handle_sel_des(int event_key);
 
         std::string handle_rte(int event_key, std::string scratchpad, std::string *s_out);
+
+        std::string handle_dep_arr(int event_key);
+
+        std::string handle_dep(int event_key);
+
+        std::string handle_arr(int event_key);
 
         cdu_scr_data_t get_sel_des_page();
 

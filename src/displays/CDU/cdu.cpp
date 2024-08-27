@@ -97,6 +97,18 @@ namespace StratosphereAvionics
         {
             return handle_rte(event_key, scratchpad, s_out);
         }
+        else if(curr_page == CDUPage::DEP_ARR_INTRO)
+        {
+            return handle_dep_arr(event_key);
+        }
+        else if(curr_page == CDUPage::DEP)
+        {
+            return handle_dep(event_key);
+        }
+        else if(curr_page == CDUPage::ARR)
+        {
+            return handle_arr(event_key);
+        }
 
         return "";
     }
@@ -111,6 +123,12 @@ namespace StratosphereAvionics
         
         if(curr_page == CDUPage::DEP_ARR_INTRO)
             return get_dep_arr_page();
+
+        if(curr_page == CDUPage::DEP)
+            return get_dep_page();
+
+        if(curr_page == CDUPage::ARR)
+            return get_arr_page();
 
         return {};
     }
@@ -508,6 +526,50 @@ namespace StratosphereAvionics
         return "";
     }
 
+    std::string CDU::handle_dep_arr(int event_key)
+    {
+        if(event_key == CDU_KEY_LSK_TOP)
+        {
+            curr_page = CDUPage::DEP;
+        }
+        else if(event_key == CDU_KEY_RSK_TOP+1)
+        {
+            curr_page = CDUPage::ARR;
+        }
+
+        return "";
+    }
+
+    std::string CDU::handle_dep(int event_key)
+    {
+        if(event_key == CDU_KEY_LSK_TOP + 5)
+        {
+            curr_page = CDUPage::INIT_REF;
+            curr_subpg = 1;
+        }
+        if(event_key == CDU_KEY_RSK_TOP + 5)
+        {
+            curr_page = CDUPage::RTE;
+            curr_subpg = 1;
+        }
+        return "";
+    }
+
+    std::string CDU::handle_arr(int event_key)
+    {
+        if(event_key == CDU_KEY_LSK_TOP + 5)
+        {
+            curr_page = CDUPage::INIT_REF;
+            curr_subpg = 1;
+        }
+        if(event_key == CDU_KEY_RSK_TOP + 5)
+        {
+            curr_page = CDUPage::RTE;
+            curr_subpg = 1;
+        }
+        return "";
+    }
+
     cdu_scr_data_t CDU::get_sel_des_page()
     {
         cdu_scr_data_t out = {};
@@ -633,6 +695,46 @@ namespace StratosphereAvionics
         out.data_lines.push_back("");
         out.data_lines.push_back(DEP_ARR_IDX_OTHER);
         out.data_lines.push_back(DEP_ARR_ARROWS);
+
+        return out;
+    }
+
+    cdu_scr_data_t CDU::get_dep_page()
+    {
+        std::string dep = fpln->get_dep_icao();
+        cdu_scr_data_t out = {};
+        out.heading_small = get_small_heading();
+        out.heading_big = "   " + dep + " DEPARTURES";
+        out.heading_color = CDUColor::WHITE;
+
+        for(int i = 0; i < 12; i++)
+        {
+            out.data_lines.push_back("");
+        }
+        out.data_lines[0] = DEP_COLS;
+
+        out.data_lines[10] = std::string(N_CDU_DATA_COLS, '-');
+        out.data_lines[11] = DEP_ARR_BOTTOM;
+
+        return out;
+    }
+
+    cdu_scr_data_t CDU::get_arr_page()
+    {
+        std::string arr = fpln->get_arr_icao();
+        cdu_scr_data_t out = {};
+        out.heading_small = get_small_heading();
+        out.heading_big = "   " + arr + " ARRIVALS";
+        out.heading_color = CDUColor::WHITE;
+
+        for(int i = 0; i < 12; i++)
+        {
+            out.data_lines.push_back("");
+        }
+        out.data_lines[0] = ARR_COLS;
+
+        out.data_lines[10] = std::string(N_CDU_DATA_COLS, '-');
+        out.data_lines[11] = DEP_ARR_BOTTOM;
 
         return out;
     }
