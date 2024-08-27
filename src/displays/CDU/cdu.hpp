@@ -41,6 +41,7 @@ namespace StratosphereAvionics
 
     constexpr int N_CDU_DATA_LINES = 6;
     constexpr int N_CDU_DATA_COLS = 24;
+    constexpr int N_DEP_ARR_ROW_DSP = 5;
 
     // CDU keys:
     constexpr int CDU_KEY_LSK_TOP = 1;

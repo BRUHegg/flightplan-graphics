@@ -434,14 +434,14 @@ namespace StratosphereAvionics
         {
             set_procs(test::PROC_TYPE_SID, false);
             size_t max_cnt = std::max(rwys.size(), procs.size()+trans.size());
-            return int(max_cnt) / 6 + bool(max_cnt % 6);
+            return int(max_cnt) / N_DEP_ARR_ROW_DSP + bool(max_cnt % N_DEP_ARR_ROW_DSP);
         }
         else if(curr_page == CDUPage::ARR)
         {
             set_procs(test::PROC_TYPE_STAR, true);
             size_t max_cnt = std::max(procs.size()+trans.size(), 
                 apprs.size()+vias.size());
-            return int(max_cnt) / 6 + bool(max_cnt % 6);
+            return int(max_cnt) / N_DEP_ARR_ROW_DSP + bool(max_cnt % N_DEP_ARR_ROW_DSP);
         }
 
         return 1;
