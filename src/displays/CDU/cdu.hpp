@@ -99,6 +99,7 @@ namespace StratosphereAvionics
     const std::string DEP_COLS = " SIDS    RTE 1   RUNWAYS";
     const std::string ARR_COLS = " STARS   RTE 1APPROACHES";
     const std::string DEP_ARR_BOTTOM = "<INDEX            ROUTE>";
+    const std::string ARR_RWYS = std::string(17, ' ') + "RUNWAYS";
 
 
     const std::vector<CDUPage> CDU_PAGE_FACES = {
@@ -153,6 +154,8 @@ namespace StratosphereAvionics
         // DEP/ARR data:
         bool dep_arr_rwy_filter;
         bool dep_arr_proc_filter;
+        bool dep_arr_trans_filter;
+        bool dep_arr_via_filter;
         std::vector<std::string> procs, trans, apprs, rwys, vias;
 
         size_t n_seg_list_sz, n_leg_list_sz;
@@ -161,6 +164,8 @@ namespace StratosphereAvionics
         std::vector<libnav::waypoint_entry_t> sel_des_data;
         std::string sel_des_nm;
 
+
+        void set_page(CDUPage pg);
 
         void set_sel_des_state(double id, std::string& name, 
             std::vector<libnav::waypoint_entry_t>& w_e);
@@ -187,7 +192,8 @@ namespace StratosphereAvionics
 
         void get_procs(cdu_scr_data_t *in, std::string curr_proc, std::string curr_trans);
 
-        void get_rwys(cdu_scr_data_t *in, std::string curr_rwy);
+        void get_rwys(cdu_scr_data_t *in, std::string curr_rwy, 
+            std::string curr_appr="", bool get_appr=false);
 
         std::string get_small_heading();
 
