@@ -513,6 +513,26 @@ namespace StratosphereAvionics
             rwys = fpln->get_arr_rwys();
     }
 
+    void CDU::set_fpl_proc(int event, test::ProcType ptp, bool is_arr)
+    {
+        int start_idx = (curr_subpg-1) * 5;
+        int sz = procs.size();
+        int trans_sz = trans.size();
+        int curr_idx = start_idx + event-CDU_KEY_LSK_TOP;
+        if(curr_idx < sz)
+        {
+            fpln->set_arpt_proc(ptp, procs[size_t(curr_idx)], is_arr);
+            dep_arr_rwy_filter = !dep_arr_rwy_filter;
+        }
+        else if(curr_idx < sz+trans_sz)
+        {
+            int tr_idx = curr_idx-sz;
+            fpln->set_arpt_proc_trans(ptp, trans[size_t(tr_idx)], is_arr);
+            dep_arr_trans_filter = !dep_arr_trans_filter;
+        }
+    }
+
+
     int CDU::get_n_sel_des_subpg()
     {
         return int(sel_des_data.size()) / 6 + bool(int(sel_des_data.size()) % 6);
@@ -667,21 +687,7 @@ namespace StratosphereAvionics
         }
         else if(event_key && event_key < CDU_KEY_LSK_TOP + 5)
         {
-            int start_idx = (curr_subpg-1) * 5;
-            int sz = procs.size();
-            int trans_sz = trans.size();
-            int curr_idx = start_idx + event_key-CDU_KEY_LSK_TOP;
-            if(curr_idx < sz)
-            {
-                fpln->set_arpt_proc(test::PROC_TYPE_SID, procs[size_t(curr_idx)]);
-                dep_arr_rwy_filter = !dep_arr_rwy_filter;
-            }
-            else if(curr_idx < sz+trans_sz)
-            {
-                int tr_idx = curr_idx-sz;
-                fpln->set_arpt_proc_trans(test::PROC_TYPE_SID, trans[size_t(tr_idx)]);
-                dep_arr_trans_filter = !dep_arr_trans_filter;
-            }
+            set_fpl_proc(event_key, test::PROC_TYPE_SID, false);
         }
         else if(event_key >= CDU_KEY_RSK_TOP && event_key < CDU_KEY_RSK_TOP + 5)
         {
@@ -706,6 +712,21 @@ namespace StratosphereAvionics
         else if(event_key == CDU_KEY_RSK_TOP + 5)
         {
             set_page(CDUPage::RTE);
+        }
+        else if(event_key && event_key < CDU_KEY_LSK_TOP + 5)
+        {
+            set_fpl_proc(event_key, test::PROC_TYPE_STAR, true);
+        }
+        else if(event_key >= CDU_KEY_RSK_TOP && event_key < CDU_KEY_RSK_TOP + 5)
+        {
+            int start_idx = (curr_subpg-1) * 5;
+            int curr_idx = start_idx + event_key-CDU_KEY_RSK_TOP;
+
+            if(curr_idx < int(apprs.size()))
+            {
+                fpln->set_arpt_proc(test::PROC_TYPE_APPCH, apprs[size_t(curr_idx)], true);
+                dep_arr_proc_filter = !dep_arr_proc_filter;
+            }
         }
         return "";
     }

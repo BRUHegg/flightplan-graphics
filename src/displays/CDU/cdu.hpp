@@ -199,6 +199,8 @@ namespace StratosphereAvionics
 
         void set_procs(test::ProcType ptp, bool is_arr);
 
+        void set_fpl_proc(int event, test::ProcType ptp, bool is_arr);
+
 
         int get_n_sel_des_subpg();
 
