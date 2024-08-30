@@ -379,7 +379,11 @@ namespace StratosphereAvionics
         {
             std::string curr = procs[i];
             if(curr == curr_proc)
-                curr = curr + " <SEL>";
+            {
+                curr = curr + std::string(6-curr.size(), ' ');
+                curr = curr + "<SEL>";
+            }
+                
             in->data_lines[j] = curr;
             j += 2;
         }
@@ -391,7 +395,10 @@ namespace StratosphereAvionics
             {
                 std::string curr = trans[i];
                 if(curr == curr_trans)
-                    curr = curr + " <SEL>";
+                {
+                    curr = curr + std::string(6-curr.size(), ' ');
+                    curr = curr + "<SEL>";
+                }
                 in->data_lines[j] = curr;
                 j += 2;
             }
@@ -423,6 +430,7 @@ namespace StratosphereAvionics
                 std::string curr = apprs[i];
                 if(curr == curr_appr)
                 {
+                    curr = std::string(7-curr.size(), ' ') + curr;
                     curr = "<SEL> " + curr;
                 }
                 size_t n_sp = size_t(N_CDU_DATA_COLS) - curr.size() - in->data_lines[j].size();
@@ -450,7 +458,8 @@ namespace StratosphereAvionics
                 std::string curr = rwys[i];
                 if(curr == curr_rwy)
                 {
-                    curr = "<SEL> " + curr;
+                    curr = std::string(7-curr.size(), ' ') + curr;
+                    curr = "<SEL>" + curr;
                 }
                 size_t n_sp = size_t(N_CDU_DATA_COLS) - curr.size() - in->data_lines[j].size();
                 in->data_lines[j] = in->data_lines[j] + std::string(n_sp, ' ') + curr;
