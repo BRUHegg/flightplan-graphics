@@ -496,6 +496,8 @@ namespace test
 
         delete_between(leg_start, leg_end);
 
+        act_leg = nullptr;
+
         seg_list_node_t *start = seg_start;
         while (start != &(seg_list.tail))
         {

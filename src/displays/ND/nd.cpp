@@ -316,6 +316,7 @@ namespace StratosphereAvionics
                 }
 
                 if (*sz_ptr && !prev_skipped && !m_leg_data[i].leg_data.has_disc)
+                //if(false && prev_skipped)
                 {
                     size_t bwd_offs = 1;
                     if(prev_bypassed)

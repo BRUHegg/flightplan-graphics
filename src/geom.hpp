@@ -312,6 +312,7 @@ namespace geom
 
         double ang_start_rad = atan2(v_start.y, v_start.x);
         double ang_end_rad = atan2(v_end.y, v_end.x);
+        assert(!isnanl(ang_start_rad) && !isnanl(ang_end_rad));
 
         if(ang_start_rad < 0)
             ang_start_rad += 2 * M_PI;
@@ -361,8 +362,9 @@ namespace geom
             left_turn = c1 > 0;
         }
 
-        if (abs(c) < sin(str_join_deg * DEG_TO_RAD) && qs.dot_prod(sb) >= 0 && 
-            abs(qs.cross_prod(sa)) < sin(str_join_deg * DEG_TO_RAD))
+        if ((sa.x == 0 && sa.y == 0) || (abs(c) < sin(str_join_deg * DEG_TO_RAD) && 
+            qs.dot_prod(sb) >= 0 && 
+            abs(qs.cross_prod(sa)) < sin(str_join_deg * DEG_TO_RAD)))
         {
             out.tp = JointType::LINE;
             out.line.start = ps;
