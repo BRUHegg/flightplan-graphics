@@ -481,10 +481,12 @@ namespace StratosphereAvionics
     {
         procs = fpln->get_arpt_proc(ptp, is_arr, 
             dep_arr_rwy_filter, dep_arr_proc_filter);
+        sort(procs.begin(), procs.end());
         if(ptp == test::PROC_TYPE_STAR)
         {
             apprs = fpln->get_arpt_proc(test::PROC_TYPE_APPCH, is_arr, 
                 dep_arr_rwy_filter, dep_arr_proc_filter);
+            sort(apprs.begin(), apprs.end());
         }
         else
         {
@@ -496,6 +498,7 @@ namespace StratosphereAvionics
             {
                 trans = fpln->get_arpt_proc_trans(ptp, 
                     false, is_arr);
+                sort(trans.begin(), trans.end());
             }
             else
             {
@@ -504,6 +507,7 @@ namespace StratosphereAvionics
             if(ptp == test::PROC_TYPE_STAR)
             {
                 vias = fpln->get_arpt_proc_trans(test::PROC_TYPE_APPCH, false, is_arr);
+                sort(vias.begin(), vias.end());
             }
             else
             {
@@ -520,6 +524,7 @@ namespace StratosphereAvionics
             rwys = fpln->get_dep_rwys(dep_arr_rwy_filter, dep_arr_proc_filter);
         else
             rwys = fpln->get_arr_rwys();
+        sort(rwys.begin(), rwys.end());
     }
 
     void CDU::set_fpl_proc(int event, test::ProcType ptp, bool is_arr)
