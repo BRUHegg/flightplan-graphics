@@ -53,7 +53,7 @@ namespace test
             left_turn = is_ang_greater(ang1, ang2);
         else
             left_turn = is_ang_greater(ang1, brng_12);
-            
+
         double turn_rad = ang2 - ang1;
 
         if (left_turn && turn_rad > 0)
@@ -2041,13 +2041,17 @@ namespace test
         }
         else
         {
-            double rnp_nm = get_rnp(leg);
-            if(rnp_nm < dist_nm)
+            std::string leg_tp = leg->data.leg.leg_type;
+            if(leg_tp == "TF")
             {
-                dist_nm -= rnp_nm;
-                double brng_rad = prev_leg->data.misc_data.true_trk_deg * geo::DEG_TO_RAD;
-                prev_leg->data.misc_data.end = geo::get_pos_from_brng_dist(prev_start,
-                                                                        brng_rad, dist_nm);
+                double rnp_nm = get_rnp(leg);
+                if(rnp_nm < dist_nm)
+                {
+                    dist_nm -= rnp_nm;
+                    double brng_rad = prev_leg->data.misc_data.true_trk_deg * geo::DEG_TO_RAD;
+                    prev_leg->data.misc_data.end = geo::get_pos_from_brng_dist(prev_start,
+                                                                            brng_rad, dist_nm);
+                }
             }
         }
     }
