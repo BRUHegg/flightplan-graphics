@@ -48,7 +48,12 @@ namespace test
         if (brng_12 < 0)
             brng_12 += 2 * M_PI;
 
-        bool left_turn = is_ang_greater(ang1, brng_12);
+        bool left_turn;
+        if(ang1 == brng_12)
+            left_turn = is_ang_greater(ang1, ang2);
+        else
+            left_turn = is_ang_greater(ang1, brng_12);
+            
         double turn_rad = ang2 - ang1;
 
         if (left_turn && turn_rad > 0)
@@ -2009,17 +2014,14 @@ namespace test
         turn_rad = abs(turn_rad);
 
         double prev_turn_rad_nm = prev_leg->data.misc_data.turn_rad_nm;
+        double dist_nm = prev_start.get_gc_dist_nm(prev_end);
 
         if(turn_rad < M_PI / 2 && turn_rad != 0)
         {
-            double dist_end_start_nm = prev_end.get_gc_dist_nm(curr_start);
             double ang_rad = M_PI - turn_rad;
             double turn_offs_nm = prev_turn_rad_nm * cos(ang_rad/2) / sin(ang_rad/2);
+            double dist_end_start_nm = prev_end.get_gc_dist_nm(curr_start);
             turn_offs_nm = turn_offs_nm - dist_end_start_nm;
-
-            geo::point prev_start = prev_leg->data.misc_data.start;
-            geo::point prev_end = prev_leg->data.misc_data.end;
-            double dist_nm = prev_start.get_gc_dist_nm(prev_end);
 
             if (turn_offs_nm < dist_nm)
             {
@@ -2035,6 +2037,17 @@ namespace test
             {
                 leg->data.misc_data.is_bypassed = true;
                 leg->data.misc_data.is_to_inhibited = true;
+            }
+        }
+        else
+        {
+            double rnp_nm = get_rnp(leg);
+            if(rnp_nm < dist_nm)
+            {
+                dist_nm -= rnp_nm;
+                double brng_rad = prev_leg->data.misc_data.true_trk_deg * geo::DEG_TO_RAD;
+                prev_leg->data.misc_data.end = geo::get_pos_from_brng_dist(prev_start,
+                                                                        brng_rad, dist_nm);
             }
         }
     }
@@ -2198,6 +2211,8 @@ namespace test
 
         leg->data.misc_data = {};
         leg->data.misc_data.turn_rad_nm = -1;
+        if(leg->data.leg.main_fix.id == "DF416")
+            assert(!isnanl(leg->data.misc_data.turn_rad_nm));
 
         if (curr_arinc_leg.has_main_fix && 
             curr_arinc_leg.main_fix.data.type == libnav::NavaidType::RWY)
