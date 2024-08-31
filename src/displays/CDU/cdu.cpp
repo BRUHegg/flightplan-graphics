@@ -449,7 +449,7 @@ namespace StratosphereAvionics
             {
                 start_idx = 0;
             }
-            if(j-1 < in->data_lines.size())
+            if(j-1 < in->data_lines.size() && get_appr)
                 in->data_lines[j-1] = ARR_RWYS;
             for(size_t i = start_idx; i < start_idx + 6 && i < rwys.size(); i++)
             {
@@ -523,7 +523,7 @@ namespace StratosphereAvionics
         if(!is_arr)
             rwys = fpln->get_dep_rwys(dep_arr_rwy_filter, dep_arr_proc_filter);
         else
-            rwys = fpln->get_arr_rwys();
+            rwys = fpln->get_arr_rwys(dep_arr_rwy_filter, dep_arr_proc_filter);
         sort(rwys.begin(), rwys.end());
     }
 
@@ -740,6 +740,15 @@ namespace StratosphereAvionics
             {
                 fpln->set_arpt_proc(test::PROC_TYPE_APPCH, apprs[size_t(curr_idx)], true);
                 dep_arr_proc_filter = !dep_arr_proc_filter;
+            }
+            else if(curr_idx >= int(apprs.size()))
+            {
+                curr_idx -= int(apprs.size());
+                if(curr_idx < int(rwys.size()))
+                {
+                    fpln->set_arr_rwy(rwys[size_t(curr_idx)]);
+                    dep_arr_proc_filter = !dep_arr_proc_filter;
+                }
             }
         }
         return "";

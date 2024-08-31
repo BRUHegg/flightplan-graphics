@@ -245,6 +245,9 @@ namespace test
 
         has_dep_rnw_data = false;
         has_arr_rnw_data = false;
+
+        arr_rwy = "";
+        appr_is_rwy = false;
     }
 
     libnav::DbErr FplnInt::load_from_fms(std::string &file_nm, bool set_arpts)
@@ -510,14 +513,33 @@ namespace test
         return out;
     }
 
-    std::vector<std::string> FplnInt::get_arr_rwys()
+    std::vector<std::string> FplnInt::get_arr_rwys(bool filter_rwy, bool filter_star,
+        bool is_arr)
     {
         std::lock_guard<std::mutex> lock(fpl_mtx);
-        if (arrival != nullptr)
+        std::vector<std::string> out = {};
+
+        std::string curr_rwy = arr_rwy;
+        if (filter_star && curr_rwy != "")
         {
-            return arrival->get_rwys();
+            out.push_back(curr_rwy);
         }
-        return {};
+        else
+        {
+            std::string curr_star = fpl_refs[FPL_SEG_STAR].name;
+            size_t db_idx = get_proc_db_idx(PROC_TYPE_STAR, is_arr);
+
+            for (auto i : arr_rnw)
+            {
+                if (filter_rwy && curr_star != "" &&
+                    proc_db[db_idx][curr_star].find(i.first) == proc_db[db_idx][curr_star].end())
+                {
+                    continue;
+                }
+                out.push_back(i.first);
+            }
+        }
+        return out;
     }
 
     bool FplnInt::set_dep_rwy(std::string &rwy)
@@ -623,6 +645,7 @@ namespace test
 
                 add_legs(rwy_leg, legs, FPL_SEG_APPCH, arr_rwy);
                 fpl_refs[size_t(FPL_SEG_APPCH)].name = arr_rwy;
+                appr_is_rwy = true;
             }
 
             return true;
@@ -664,6 +687,8 @@ namespace test
                 s_tp = FPL_SEG_APPCH_TRANS;
         }
 
+        if(s_tp == FPL_SEG_APPCH && appr_is_rwy)
+            return "";
         return fpl_refs[s_tp].name;
     }
 
@@ -674,9 +699,17 @@ namespace test
         fpl_segment_types s_tp = get_proc_tp(tp);
         size_t tp_idx = size_t(s_tp);
 
-        if (filter_rwy && fpl_refs[tp_idx].name != "")
+        
+        if (tp != PROC_TYPE_APPCH && filter_rwy && fpl_refs[tp_idx].name != "")
         {
             return {fpl_refs[tp_idx].name};
+        }
+        else if(tp == PROC_TYPE_APPCH && filter_proc && fpl_refs[tp_idx].name != "")
+        {
+            if(appr_is_rwy)
+                return {};
+            else
+                return {fpl_refs[tp_idx].name};
         }
 
         size_t db_idx = get_proc_db_idx(tp, is_arr);
@@ -697,7 +730,19 @@ namespace test
                 }
             }
 
-            return get_proc(proc_db[db_idx], rwy, tp == PROC_TYPE_APPCH);
+            if(tp == PROC_TYPE_APPCH)
+            {
+                std::string star_nm = "";
+                if(filter_rwy)
+                    star_nm = fpl_refs[FPL_SEG_STAR].name;
+                size_t star_idx = get_proc_db_idx(PROC_TYPE_STAR, is_arr);
+                return get_apprs(proc_db[star_idx], proc_db[db_idx], 
+                    star_nm, filter_rwy);
+            }
+            else
+            {
+                return get_proc(proc_db[db_idx], rwy);
+            }
         }
 
         return {};
@@ -706,6 +751,9 @@ namespace test
     std::vector<std::string> FplnInt::get_arpt_proc_trans(ProcType tp, bool is_rwy, bool is_arr)
     {
         std::lock_guard<std::mutex> lock(fpl_mtx);
+
+        if(tp == PROC_TYPE_APPCH && appr_is_rwy)
+            return {};
 
         size_t ref_idx = size_t(get_proc_tp(tp));
         std::string proc_name = fpl_refs[ref_idx].name;
@@ -1139,26 +1187,41 @@ namespace test
         }
     }
 
-    std::vector<std::string> FplnInt::get_proc(libnav::str_umap_t &db, std::string rw, bool is_appch)
+    std::vector<std::string> FplnInt::get_proc(libnav::str_umap_t &db, std::string rw)
     {
         std::vector<std::string> out;
 
         for (auto i : db)
         {
-            if (rw != "" && i.second.find(rw) == i.second.end() && !is_appch)
+            if (rw != "" && i.second.find(rw) == i.second.end())
             {
                 continue;
             }
-            else if (is_appch && rw != "")
-            {
-                std::string curr_nm = i.first;
-                std::string c_rnw = get_appr_rwy(curr_nm);
-                if (c_rnw != rw)
-                {
-                    continue;
-                }
-            }
             out.push_back(i.first);
+        }
+
+        return out;
+    }
+
+    std::vector<std::string> FplnInt::get_apprs(libnav::str_umap_t& proc_db, 
+        libnav::str_umap_t& appr_db, std::string proc, bool filter)
+    {
+        if(filter)
+            assert(proc_db.find(proc) != proc_db.end());
+
+        std::vector<std::string> out;
+        for (auto i: appr_db)
+        {
+            std::string curr_nm = i.first;
+            if(filter)
+            {
+                std::string c_rnw = get_appr_rwy(curr_nm);
+
+                if(proc_db[proc].find(c_rnw) == proc_db[proc].end())
+                    continue;
+            }
+
+            out.push_back(curr_nm);
         }
 
         return out;
@@ -1623,6 +1686,8 @@ namespace test
     bool FplnInt::set_appch(std::string appch)
     {
         size_t db_idx = get_proc_db_idx(PROC_TYPE_APPCH, true);
+        appr_is_rwy = false;
+
         if (proc_db[db_idx].find(appch) != proc_db[db_idx].end())
         {
             std::string curr_star = fpl_refs[FPL_SEG_STAR].name;
@@ -1657,6 +1722,7 @@ namespace test
         }
 
         arr_rwy = "";
+        
         delete_ref(FPL_SEG_STAR_TRANS);
         delete_ref(FPL_SEG_STAR);
         delete_ref(FPL_SEG_APPCH_TRANS);

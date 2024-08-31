@@ -154,7 +154,8 @@ namespace test
 
         std::vector<std::string> get_dep_rwys(bool filter_rwy=false, bool filter_sid=false);
 
-        std::vector<std::string> get_arr_rwys();
+        std::vector<std::string> get_arr_rwys(bool filter_rwy=false, 
+            bool filter_star=false, bool is_arr=true);
 
         bool set_dep_rwy(std::string& rwy);
 
@@ -210,6 +211,7 @@ namespace test
 
     private:
         std::string arr_rwy;
+        bool appr_is_rwy;
 
         std::vector<libnav::str_umap_t> proc_db;
         std::shared_ptr<libnav::AwyDB> awy_db;
@@ -230,8 +232,10 @@ namespace test
 
         static fpl_segment_types get_trans_tp(ProcType tp);
 
-        static std::vector<std::string> get_proc(libnav::str_umap_t& db, std::string rw="", 
-            bool is_appch=false);
+        static std::vector<std::string> get_proc(libnav::str_umap_t& db, std::string rw="");
+
+        static std::vector<std::string> get_apprs(libnav::str_umap_t& proc_db, 
+            libnav::str_umap_t& appr_db, std::string proc, bool filter=false);
 
         static std::vector<std::string> get_proc_trans(std::string proc, libnav::str_umap_t& db, 
             libnav::arinc_rwy_db_t& rwy_db, bool is_rwy=false);
