@@ -271,6 +271,8 @@ namespace test
 
         libnav::arinc_rwy_data_t get_rwy_data(std::string nm, bool is_arr=false);
 
+        std::string get_curr_proc_imp(ProcType tp, bool trans=false);
+
         bool add_fpl_seg(libnav::arinc_leg_seq_t& legs, fpl_segment_types seg_tp, std::string seg_nm,
             seg_list_node_t *next=nullptr, bool set_ref=true);
 

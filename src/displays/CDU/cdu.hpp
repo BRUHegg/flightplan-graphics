@@ -165,6 +165,9 @@ namespace StratosphereAvionics
         std::string sel_des_nm;
 
 
+        static std::string get_cdu_line(std::string in, std::string line, 
+            bool align_right=false);
+
         void set_page(CDUPage pg);
 
         void set_sel_des_state(double id, std::string& name, 
@@ -193,7 +196,7 @@ namespace StratosphereAvionics
         void get_procs(cdu_scr_data_t *in, std::string curr_proc, std::string curr_trans);
 
         void get_rwys(cdu_scr_data_t *in, std::string curr_rwy, 
-            std::string curr_appr="", bool get_appr=false);
+            std::string curr_appr="", std::string curr_via="", bool get_appr=false);
 
         std::string get_small_heading();
 

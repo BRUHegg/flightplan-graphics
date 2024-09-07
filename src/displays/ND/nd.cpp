@@ -487,9 +487,8 @@ namespace StratosphereAvionics
 
     geom::vect2_t NDDisplay::get_screen_coords(geom::vect2_t src)
     {
-        geom::vect2_t out = src * scale_factor + map_ctr;
-        out.y = size.y - out.y;
-        out = out + scr_pos;
+        src.y *= -1;
+        geom::vect2_t out = src * scale_factor + map_ctr + scr_pos;
 
         return out;
     }

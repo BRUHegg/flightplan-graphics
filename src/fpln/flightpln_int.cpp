@@ -675,21 +675,7 @@ namespace test
     std::string FplnInt::get_curr_proc(ProcType tp, bool trans)
     {
         std::lock_guard<std::mutex> lock(fpl_mtx);
-        fpl_segment_types s_tp = get_proc_tp(tp);
-
-        if(trans)
-        {
-            if(s_tp == FPL_SEG_SID)
-                s_tp = FPL_SEG_SID_TRANS;
-            else if(s_tp == FPL_SEG_STAR)
-                s_tp = FPL_SEG_STAR_TRANS;
-            else
-                s_tp = FPL_SEG_APPCH_TRANS;
-        }
-
-        if(s_tp == FPL_SEG_APPCH && appr_is_rwy)
-            return "";
-        return fpl_refs[s_tp].name;
+        return get_curr_proc_imp(tp, trans);
     }
 
     std::vector<std::string> FplnInt::get_arpt_proc(ProcType tp, bool is_arr,
@@ -775,6 +761,10 @@ namespace test
 
         size_t db_idx = get_proc_db_idx(tp, is_arr);
 
+        std::string curr_proc = get_curr_proc_imp(tp);
+        if(proc_nm == curr_proc)
+            return false;
+
         switch (db_idx)
         {
         case PROC_TYPE_SID:
@@ -793,6 +783,10 @@ namespace test
     bool FplnInt::set_arpt_proc_trans(ProcType tp, std::string trans, bool is_arr)
     {
         std::lock_guard<std::mutex> lock(fpl_mtx);
+
+        std::string curr_trans = get_curr_proc_imp(tp, true);
+        if(trans == curr_trans)
+            return false;
 
         return set_proc_trans(tp, trans, is_arr);
     }
@@ -1467,6 +1461,25 @@ namespace test
         }
 
         return out;
+    }
+
+    std::string FplnInt::get_curr_proc_imp(ProcType tp, bool trans)
+    {
+        fpl_segment_types s_tp = get_proc_tp(tp);
+
+        if(trans)
+        {
+            if(s_tp == FPL_SEG_SID)
+                s_tp = FPL_SEG_SID_TRANS;
+            else if(s_tp == FPL_SEG_STAR)
+                s_tp = FPL_SEG_STAR_TRANS;
+            else
+                s_tp = FPL_SEG_APPCH_TRANS;
+        }
+
+        if(s_tp == FPL_SEG_APPCH && appr_is_rwy)
+            return "";
+        return fpl_refs[s_tp].name;
     }
 
     bool FplnInt::add_fpl_seg(libnav::arinc_leg_seq_t &legs, fpl_segment_types seg_tp, std::string seg_nm,
