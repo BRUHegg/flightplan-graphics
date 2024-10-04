@@ -1482,8 +1482,8 @@ namespace test
         return fpl_refs[s_tp].name;
     }
 
-    bool FplnInt::add_fpl_seg(libnav::arinc_leg_seq_t &legs, fpl_segment_types seg_tp, std::string seg_nm,
-                              seg_list_node_t *next, bool set_ref)
+    bool FplnInt::add_fpl_seg(libnav::arinc_leg_seq_t& legs, fpl_segment_types seg_tp, std::string ref_nm,
+            std::string seg_nm, seg_list_node_t *next, bool set_ref)
     {
         if (legs.size())
         {
@@ -1496,9 +1496,11 @@ namespace test
                 legs_ins.push_back(legs[i]);
             }
 
+            if(seg_nm == "")
+                seg_nm = ref_nm;
             add_legs(start, legs_ins, seg_tp, seg_nm, next);
             if (set_ref)
-                fpl_refs[seg_idx].name = seg_nm;
+                fpl_refs[seg_idx].name = ref_nm;
 
             return true;
         }
@@ -1683,7 +1685,7 @@ namespace test
                 if (appr_seg != nullptr)
                 {
                     seg_list_node_t *seg_ins = fpl_refs[size_t(FPL_SEG_APPCH)].ptr->next;
-                    return add_fpl_seg(ga_legs, FPL_SEG_APPCH, MISSED_APPR_SEG_NM, seg_ins, false);
+                    return add_fpl_seg(ga_legs, FPL_SEG_APPCH, "", MISSED_APPR_SEG_NM, seg_ins, false);
                 }
                 else
                 {
@@ -1743,21 +1745,64 @@ namespace test
         return false;
     }
 
+    bool FplnInt::add_trans_legs(ProcType tp, std::string trans, 
+        libnav::arinc_leg_seq_t& pr_legs, libnav::arinc_leg_seq_t& tr_legs)
+    {
+        libnav::arinc_leg_seq_t all_legs;
+
+        if(tp == PROC_TYPE_SID)
+        {
+            all_legs = pr_legs;
+            for(size_t i = 1; i < tr_legs.size(); i++)
+            {
+                all_legs.push_back(tr_legs[i]);
+            }
+        }
+        else
+        {
+            all_legs = tr_legs;
+            for(size_t i = 1; i < pr_legs.size(); i++)
+            {
+                all_legs.push_back(pr_legs[i]);
+            }
+        }
+
+        fpl_segment_types seg_tp = get_proc_tp(tp);
+        size_t t_tp = size_t(get_trans_tp(tp));
+        if(all_legs.size() == 0)
+        {
+            fpl_refs[t_tp].name = "";
+            delete_ref(seg_tp);
+            return false;
+        }
+
+        std::string proc_name = fpl_refs[size_t(seg_tp)].name;
+        std::string seg_name = proc_name;
+        if(trans != "")
+            seg_name += "." + trans;
+        add_fpl_seg(all_legs, seg_tp, proc_name, seg_name);
+        fpl_refs[t_tp].name = trans;
+
+        return true;
+    }
+
     bool FplnInt::set_proc_trans(ProcType tp, std::string trans, bool is_arr)
     {
         if (trans == "NONE")
         {
             trans = "";
         }
+        
+        fpl_segment_types seg_tp = get_proc_tp(tp);
+        fpl_segment_types t_tp = get_trans_tp(tp);
 
         size_t db_idx = get_proc_db_idx(tp, is_arr);
-        size_t seg_tp = size_t(get_proc_tp(tp));
-        fpl_segment_types t_tp = get_trans_tp(tp);
+        size_t seg_idx = size_t(seg_tp);
         size_t t_idx = size_t(t_tp);
 
-        std::string curr_proc = fpl_refs[seg_tp].name;
+        std::string curr_proc = fpl_refs[seg_idx].name;
 
-        if (curr_proc != "" && fpl_refs[seg_tp].ptr == nullptr &&
+        if (curr_proc != "" && fpl_refs[seg_idx].ptr == nullptr &&
             proc_db[db_idx][curr_proc].find(trans) != proc_db[db_idx][curr_proc].end())
         {
             delete_ref(t_tp);
@@ -1777,32 +1822,32 @@ namespace test
             apt = arrival;
         }
 
+        libnav::arinc_leg_seq_t legs_main = {};
         libnav::arinc_leg_seq_t legs = {};
+
+        std::string rwy;
+        if (tp == ProcType::PROC_TYPE_SID)
+            rwy = fpl_refs[FPL_SEG_DEP_RWY].name;
+        else
+            rwy = arr_rwy;
 
         if (tp == PROC_TYPE_SID)
         {
+            legs_main = apt->get_sid(curr_proc, rwy);
             legs = apt->get_sid(curr_proc, trans);
         }
         else if (tp == PROC_TYPE_STAR)
         {
+            legs_main = apt->get_star(curr_proc, rwy);
             legs = apt->get_star(curr_proc, trans);
         }
         else if (tp == PROC_TYPE_APPCH)
         {
+            legs_main = apt->get_appch(curr_proc, rwy);
             legs = apt->get_appch(curr_proc, trans);
         }
 
-        bool added = add_fpl_seg(legs, t_tp, trans);
-        if (!added)
-        {
-            delete_ref(t_tp);
-        }
-        else
-        {
-            return true;
-        }
-
-        return false;
+        return add_trans_legs(tp, trans, legs_main, legs);
     }
 
     double FplnInt::get_leg_mag_var_deg(leg_list_node_t *leg)

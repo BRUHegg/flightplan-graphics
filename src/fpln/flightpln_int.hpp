@@ -273,8 +273,8 @@ namespace test
 
         std::string get_curr_proc_imp(ProcType tp, bool trans=false);
 
-        bool add_fpl_seg(libnav::arinc_leg_seq_t& legs, fpl_segment_types seg_tp, std::string seg_nm,
-            seg_list_node_t *next=nullptr, bool set_ref=true);
+        bool add_fpl_seg(libnav::arinc_leg_seq_t& legs, fpl_segment_types seg_tp, std::string ref_nm,
+            std::string seg_nm="", seg_list_node_t *next=nullptr, bool set_ref=true);
 
         /*
             Function: get_awy_tf_leg
@@ -295,6 +295,9 @@ namespace test
             libnav::arinc_leg_seq_t legs);
 
         bool set_appch(std::string appch);
+
+        bool add_trans_legs(ProcType tp, std::string trans, 
+            libnav::arinc_leg_seq_t& pr_legs, libnav::arinc_leg_seq_t& tr_legs);
 
         bool set_proc_trans(ProcType tp, std::string trans, bool is_arr=false);
 
