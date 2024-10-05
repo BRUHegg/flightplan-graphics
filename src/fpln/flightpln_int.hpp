@@ -244,6 +244,8 @@ namespace test
 
         // Non-static member functions:
 
+        void update_act_leg();
+
         // Auxiliury functions for import from .fms:
 
         /*

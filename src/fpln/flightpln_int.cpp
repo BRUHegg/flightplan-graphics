@@ -49,7 +49,7 @@ namespace test
             brng_12 += 2 * M_PI;
 
         bool left_turn;
-        if(ang1 == brng_12)
+        if (ang1 == brng_12)
             left_turn = is_ang_greater(ang1, ang2);
         else
             left_turn = is_ang_greater(ang1, brng_12);
@@ -168,18 +168,18 @@ namespace test
         return curr;
     }
 
-    geo::point get_dme_end_point(geo::point start, double true_brng_rad, 
-        geo::point st, double dist_nm)
+    geo::point get_dme_end_point(geo::point start, double true_brng_rad,
+                                 geo::point st, double dist_nm)
     {
         geom::vect2_t start_proj = {0, 0};
         geom::vect2_t st_proj = geom::project_point(st, start);
 
         geom::vect2_t vec = {sin(true_brng_rad), cos(true_brng_rad)};
 
-        double dist_end = geom::get_vect_circ_isect_dist(start_proj, st_proj, vec, 
-            dist_nm);
-        
-        if(dist_end == -1)
+        double dist_end = geom::get_vect_circ_isect_dist(start_proj, st_proj, vec,
+                                                         dist_nm);
+
+        if (dist_end == -1)
         {
             return start;
         }
@@ -191,7 +191,7 @@ namespace test
 
     libnav::waypoint_t get_ca_va_wpt(geo::point pos, int n_ft)
     {
-        libnav::waypoint_t out  = {};
+        libnav::waypoint_t out = {};
         out.id = "(" + std::to_string(n_ft) + ")";
         out.data.pos = pos;
         out.data.arinc_type = 0;
@@ -205,7 +205,7 @@ namespace test
 
     libnav::waypoint_t get_xd_wpt(geo::point pos, std::string main_nm, int dme_nm)
     {
-        libnav::waypoint_t out  = {};
+        libnav::waypoint_t out = {};
         out.id = "(" + main_nm + "/" + std::to_string(dme_nm) + ")";
         out.data.pos = pos;
         out.data.arinc_type = 0;
@@ -322,7 +322,7 @@ namespace test
                             {
                                 add_enrt_seg({nullptr, seg_list.id}, awy_last);
                                 awy_insert_str({&(seg_list.tail), seg_list.id},
-                                           end_last);
+                                               end_last);
                             }
                             awy_last = "";
                             end_last = "";
@@ -514,7 +514,7 @@ namespace test
     }
 
     std::vector<std::string> FplnInt::get_arr_rwys(bool filter_rwy, bool filter_star,
-        bool is_arr)
+                                                   bool is_arr)
     {
         std::lock_guard<std::mutex> lock(fpl_mtx);
         std::vector<std::string> out = {};
@@ -631,8 +631,7 @@ namespace test
                 arr_rwy = rwy;
 
                 libnav::arinc_rwy_data_t rwy_data = arr_rnw[rwy];
-                libnav::waypoint_t rwy_wpt = {arr_rwy, {libnav::NavaidType::RWY, 0, 
-                    rwy_data.pos, arrival->icao_code, "", nullptr}};
+                libnav::waypoint_t rwy_wpt = {arr_rwy, {libnav::NavaidType::RWY, 0, rwy_data.pos, arrival->icao_code, "", nullptr}};
                 leg_t rwy_leg{};
                 rwy_leg.leg_type = "TF";
                 rwy_leg.set_main_fix(rwy_wpt);
@@ -685,14 +684,13 @@ namespace test
         fpl_segment_types s_tp = get_proc_tp(tp);
         size_t tp_idx = size_t(s_tp);
 
-        
         if (tp != PROC_TYPE_APPCH && filter_rwy && fpl_refs[tp_idx].name != "")
         {
             return {fpl_refs[tp_idx].name};
         }
-        else if(tp == PROC_TYPE_APPCH && filter_proc && fpl_refs[tp_idx].name != "")
+        else if (tp == PROC_TYPE_APPCH && filter_proc && fpl_refs[tp_idx].name != "")
         {
-            if(appr_is_rwy)
+            if (appr_is_rwy)
                 return {};
             else
                 return {fpl_refs[tp_idx].name};
@@ -716,14 +714,14 @@ namespace test
                 }
             }
 
-            if(tp == PROC_TYPE_APPCH)
+            if (tp == PROC_TYPE_APPCH)
             {
                 std::string star_nm = "";
-                if(filter_rwy)
+                if (filter_rwy)
                     star_nm = fpl_refs[FPL_SEG_STAR].name;
                 size_t star_idx = get_proc_db_idx(PROC_TYPE_STAR, is_arr);
-                return get_apprs(proc_db[star_idx], proc_db[db_idx], 
-                    star_nm, filter_rwy);
+                return get_apprs(proc_db[star_idx], proc_db[db_idx],
+                                 star_nm, filter_rwy);
             }
             else
             {
@@ -738,7 +736,7 @@ namespace test
     {
         std::lock_guard<std::mutex> lock(fpl_mtx);
 
-        if(tp == PROC_TYPE_APPCH && appr_is_rwy)
+        if (tp == PROC_TYPE_APPCH && appr_is_rwy)
             return {};
 
         size_t ref_idx = size_t(get_proc_tp(tp));
@@ -762,7 +760,7 @@ namespace test
         size_t db_idx = get_proc_db_idx(tp, is_arr);
 
         std::string curr_proc = get_curr_proc_imp(tp);
-        if(proc_nm == curr_proc)
+        if (proc_nm == curr_proc)
             return false;
 
         switch (db_idx)
@@ -785,7 +783,7 @@ namespace test
         std::lock_guard<std::mutex> lock(fpl_mtx);
 
         std::string curr_trans = get_curr_proc_imp(tp, true);
-        if(trans == curr_trans)
+        if (trans == curr_trans)
             return false;
 
         return set_proc_trans(tp, trans, is_arr);
@@ -809,7 +807,7 @@ namespace test
                     if (end_leg != nullptr)
                     {
                         libnav::waypoint_t end_fix = end_leg->data.leg.main_fix;
-                        if(end_fix.data.area_code == "ENRT")
+                        if (end_fix.data.area_code == "ENRT")
                         {
                             std::string end_leg_awy_id = end_fix.get_awy_id();
                             add_seg = awy_db->is_in_awy(name, end_leg_awy_id);
@@ -953,7 +951,7 @@ namespace test
                     std::string end_id = end.get_awy_id();
 
                     bool in_awy = end.data.area_code == "ENRT" &&
-                         awy_db->is_in_awy(prev_name, end_id);
+                                  awy_db->is_in_awy(prev_name, end_id);
                     if (prev_full->data.end != nullptr && in_awy)
                     {
                         leg_list_node_t *prev_leg = prev_full->data.end;
@@ -996,7 +994,7 @@ namespace test
         if (curr.id == seg_list.id && curr.ptr != &(seg_list.head) && curr.ptr != nullptr &&
             curr.ptr->prev != &(seg_list.head))
         {
-            if(curr.ptr == act_leg->data.seg)
+            if (curr.ptr == act_leg->data.seg)
                 return false;
             if (!curr.ptr->data.is_discon && !curr.ptr->data.is_direct)
             {
@@ -1015,7 +1013,7 @@ namespace test
         if (curr.id == seg_list.id && curr.ptr != &(seg_list.head) && curr.ptr != nullptr &&
             !curr.ptr->data.is_discon)
         {
-            if(curr.ptr == act_leg->data.seg)
+            if (curr.ptr == act_leg->data.seg)
                 return false;
 
             seg_list_node_t *next = curr.ptr->next;
@@ -1039,7 +1037,7 @@ namespace test
 
         if (from.id == leg_list.id && from.id == to.id)
         {
-            if(to.ptr->prev == act_leg)
+            if (to.ptr->prev == act_leg)
                 act_leg = from.ptr;
             delete_range(from.ptr, to.ptr);
         }
@@ -1127,12 +1125,13 @@ namespace test
                         curr_alt_ft = arr_data.thresh_elev_msl_ft;
                     }
                     calculate_leg(leg_curr, hdg_trk_diff, curr_alt_ft);
-                    if(leg_curr->data.leg.alt1_ft != 0)
+                    if (leg_curr->data.leg.alt1_ft != 0)
                         curr_alt_ft = leg_curr->data.leg.alt1_ft;
                 }
 
                 leg_curr = next_leg;
             }
+            update_act_leg();
             fpl_id_calc = fpl_id_curr;
         }
     }
@@ -1197,21 +1196,21 @@ namespace test
         return out;
     }
 
-    std::vector<std::string> FplnInt::get_apprs(libnav::str_umap_t& proc_db, 
-        libnav::str_umap_t& appr_db, std::string proc, bool filter)
+    std::vector<std::string> FplnInt::get_apprs(libnav::str_umap_t &proc_db,
+                                                libnav::str_umap_t &appr_db, std::string proc, bool filter)
     {
-        if(filter)
+        if (filter)
             assert(proc_db.find(proc) != proc_db.end());
 
         std::vector<std::string> out;
-        for (auto i: appr_db)
+        for (auto i : appr_db)
         {
             std::string curr_nm = i.first;
-            if(filter)
+            if (filter)
             {
                 std::string c_rnw = get_appr_rwy(curr_nm);
 
-                if(proc_db[proc].find(c_rnw) == proc_db[proc].end())
+                if (proc_db[proc].find(c_rnw) == proc_db[proc].end())
                     continue;
             }
 
@@ -1275,6 +1274,25 @@ namespace test
     }
 
     // Non-static member functions:
+
+    void FplnInt::update_act_leg()
+    {
+        if (act_leg == nullptr)
+        {
+            size_t idx = FPL_SEG_SID;
+            seg_list_node_t *seg = fpl_refs[idx].ptr;
+            while (seg == nullptr && idx < FPL_SEG_APPCH)
+            {
+                idx++;
+                seg = fpl_refs[idx].ptr;
+            }
+
+            if(seg != nullptr)
+            {
+                act_leg = seg->prev->data.end->next;
+            }
+        }
+    }
 
     libnav::DbErr FplnInt::process_dfms_proc_line(std::vector<std::string> &l_split,
                                                   bool set_arpts, dfms_arr_data_t *arr_data)
@@ -1452,10 +1470,10 @@ namespace test
 
         libnav::arinc_rwy_db_t *db = &dep_rnw;
 
-        if(is_arr)
+        if (is_arr)
             db = &arr_rnw;
 
-        if(db->find(nm) != db->end())
+        if (db->find(nm) != db->end())
         {
             out = db->at(nm);
         }
@@ -1467,23 +1485,23 @@ namespace test
     {
         fpl_segment_types s_tp = get_proc_tp(tp);
 
-        if(trans)
+        if (trans)
         {
-            if(s_tp == FPL_SEG_SID)
+            if (s_tp == FPL_SEG_SID)
                 s_tp = FPL_SEG_SID_TRANS;
-            else if(s_tp == FPL_SEG_STAR)
+            else if (s_tp == FPL_SEG_STAR)
                 s_tp = FPL_SEG_STAR_TRANS;
             else
                 s_tp = FPL_SEG_APPCH_TRANS;
         }
 
-        if(s_tp == FPL_SEG_APPCH && appr_is_rwy)
+        if (s_tp == FPL_SEG_APPCH && appr_is_rwy)
             return "";
         return fpl_refs[s_tp].name;
     }
 
-    bool FplnInt::add_fpl_seg(libnav::arinc_leg_seq_t& legs, fpl_segment_types seg_tp, std::string ref_nm,
-            std::string seg_nm, seg_list_node_t *next, bool set_ref)
+    bool FplnInt::add_fpl_seg(libnav::arinc_leg_seq_t &legs, fpl_segment_types seg_tp, std::string ref_nm,
+                              std::string seg_nm, seg_list_node_t *next, bool set_ref)
     {
         if (legs.size())
         {
@@ -1496,7 +1514,7 @@ namespace test
                 legs_ins.push_back(legs[i]);
             }
 
-            if(seg_nm == "")
+            if (seg_nm == "")
                 seg_nm = ref_nm;
             add_legs(start, legs_ins, seg_tp, seg_nm, next);
             if (set_ref)
@@ -1629,18 +1647,6 @@ namespace test
                 }
                 else
                 {
-                    if(act_leg == nullptr)
-                    {
-                        size_t idx = size_t(proc_seg) - 1;
-                        seg_list_node_t *prev_seg = fpl_refs[idx].ptr;
-                        while(prev_seg == nullptr)
-                        {
-                            idx--;
-                            prev_seg = fpl_refs[idx].ptr;
-                        }
-
-                        act_leg = prev_seg->data.end->next;
-                    }
                     set_proc_trans(proc_tp, trans_nm, is_star);
                 }
 
@@ -1737,7 +1743,7 @@ namespace test
         }
 
         arr_rwy = "";
-        
+
         delete_ref(FPL_SEG_STAR_TRANS);
         delete_ref(FPL_SEG_STAR);
         delete_ref(FPL_SEG_APPCH_TRANS);
@@ -1745,13 +1751,13 @@ namespace test
         return false;
     }
 
-    bool FplnInt::add_trans_legs(ProcType tp, std::string trans, 
-        libnav::arinc_leg_seq_t& pr_legs, libnav::arinc_leg_seq_t& tr_legs)
+    bool FplnInt::add_trans_legs(ProcType tp, std::string trans,
+                                 libnav::arinc_leg_seq_t &pr_legs, libnav::arinc_leg_seq_t &tr_legs)
     {
         fpl_segment_types seg_tp = get_proc_tp(tp);
         fpl_segment_types t_tp = get_trans_tp(tp);
         size_t t_idx = size_t(t_tp);
-        if(tr_legs.size() == 0 && trans != "")
+        if (tr_legs.size() == 0 && trans != "")
         {
             delete_ref(t_tp);
             return false;
@@ -1759,10 +1765,10 @@ namespace test
 
         libnav::arinc_leg_seq_t all_legs;
 
-        if(tp == PROC_TYPE_SID)
+        if (tp == PROC_TYPE_SID)
         {
             all_legs = pr_legs;
-            for(size_t i = 1; i < tr_legs.size(); i++)
+            for (size_t i = 1; i < tr_legs.size(); i++)
             {
                 all_legs.push_back(tr_legs[i]);
             }
@@ -1770,13 +1776,13 @@ namespace test
         else
         {
             all_legs = tr_legs;
-            for(size_t i = 1; i < pr_legs.size(); i++)
+            for (size_t i = 1; i < pr_legs.size(); i++)
             {
                 all_legs.push_back(pr_legs[i]);
             }
         }
-        
-        if(all_legs.size() == 0)
+
+        if (all_legs.size() == 0)
         {
             delete_ref(t_tp);
             return false;
@@ -1784,11 +1790,11 @@ namespace test
 
         std::string proc_name = fpl_refs[size_t(seg_tp)].name;
         std::string seg_name = proc_name;
-        if(trans != "")
+        if (trans != "")
             seg_name += "." + trans;
 
         bool ret = true;
-        if(tp != PROC_TYPE_APPCH)
+        if (tp != PROC_TYPE_APPCH)
             add_fpl_seg(all_legs, seg_tp, proc_name, seg_name);
         else
             ret = set_appch_legs(proc_name, arr_rwy, all_legs, seg_name);
@@ -1803,7 +1809,7 @@ namespace test
         {
             trans = "";
         }
-        
+
         fpl_segment_types seg_tp = get_proc_tp(tp);
         fpl_segment_types t_tp = get_trans_tp(tp);
 
@@ -1840,7 +1846,7 @@ namespace test
         std::string rwy = NONE_TRANS;
         if (tp == ProcType::PROC_TYPE_SID)
             rwy = fpl_refs[FPL_SEG_DEP_RWY].name;
-        else if(tp == PROC_TYPE_STAR)
+        else if (tp == PROC_TYPE_STAR)
             rwy = arr_rwy;
 
         if (tp == PROC_TYPE_SID)
@@ -1899,12 +1905,12 @@ namespace test
 
         bool left_turn = next.turn_dir == libnav::TurnDir::LEFT;
 
-        if(next.turn_dir == libnav::TurnDir::EITHER)
+        if (next.turn_dir == libnav::TurnDir::EITHER)
             left_turn = dist1 < dist2;
 
         if (left_turn) // left turn
         {
-            if(TURN_RADIUS_NM > dist1)
+            if (TURN_RADIUS_NM > dist1)
                 return true;
 
             if (dist1 == 0)
@@ -1918,7 +1924,7 @@ namespace test
         }
         else
         {
-            if(TURN_RADIUS_NM > dist2)
+            if (TURN_RADIUS_NM > dist2)
                 return true;
 
             if (dist2 == 0)
@@ -1934,15 +1940,15 @@ namespace test
         return false;
     }
 
-    void FplnInt::get_to_leg_start(leg_seg_t curr_seg, leg_t next, 
-        double mag_var_deg, double hdg_trk_diff, geo::point *out)
+    void FplnInt::get_to_leg_start(leg_seg_t curr_seg, leg_t next,
+                                   double mag_var_deg, double hdg_trk_diff, geo::point *out)
     {
         double brng_end_start = curr_seg.true_trk_deg * geo::DEG_TO_RAD + M_PI;
         double crs_rad = double(next.outbd_crs_deg) * geo::DEG_TO_RAD;
 
         crs_rad -= mag_var_deg * geo::DEG_TO_RAD;
 
-        if(next.leg_type[0] == 'V')
+        if (next.leg_type[0] == 'V')
             crs_rad -= hdg_trk_diff;
 
         if (brng_end_start < 0)
@@ -1985,8 +1991,8 @@ namespace test
         }
     }
 
-    bool FplnInt::get_cf_leg_start(leg_seg_t curr_seg, leg_t curr_leg, leg_t next, 
-            double mag_var_deg, geo::point *out, bool *to_inh, double *turn_radius_out)
+    bool FplnInt::get_cf_leg_start(leg_seg_t curr_seg, leg_t curr_leg, leg_t next,
+                                   double mag_var_deg, geo::point *out, bool *to_inh, double *turn_radius_out)
     {
         double outbd_brng_deg = double(next.outbd_crs_deg);
 
@@ -2008,27 +2014,28 @@ namespace test
         {
             *to_inh = true;
             *turn_radius_out = std::max(get_cf_big_turn_isect(curr_seg, next,
-                mag_var * geo::DEG_TO_RAD, &intc), TURN_RADIUS_NM);
+                                                              mag_var * geo::DEG_TO_RAD, &intc),
+                                        TURN_RADIUS_NM);
         }
         else
         {
             // Replace with straight leg if course deviation is small enough
             *turn_radius_out = TURN_RADIUS_NM;
-            
+
             double brng_end_to_main_fix = curr_seg.end.get_gc_bearing_rad(
-                    next.main_fix.data.pos);
-            if(next.leg_type[0] == 'F')
+                next.main_fix.data.pos);
+            if (next.leg_type[0] == 'F')
                 brng_end_to_main_fix += M_PI;
-            
-            double diff = abs(brng_end_to_main_fix-brng_next_rad);
-            
-            if(diff < CF_STRAIGHT_DEV_RAD && abs(turn_rad) < CF_STRAIGHT_DEV_RAD)
+
+            double diff = abs(brng_end_to_main_fix - brng_next_rad);
+
+            if (diff < CF_STRAIGHT_DEV_RAD && abs(turn_rad) < CF_STRAIGHT_DEV_RAD)
             {
                 double new_brng_rad = brng_next_rad;
                 double brng_from_next = brng_next_rad;
-                if(curr_leg.leg_type == "CF")
+                if (curr_leg.leg_type == "CF")
                     brng_from_next += M_PI;
-                if(is_ang_greater(brng_end_to_main_fix, brng_next_rad))
+                if (is_ang_greater(brng_end_to_main_fix, brng_next_rad))
                 {
                     new_brng_rad += M_PI / 2;
                 }
@@ -2036,8 +2043,8 @@ namespace test
                 {
                     new_brng_rad -= M_PI / 2;
                 }
-                intc = geo::get_pos_from_intc(curr_seg.end, next.main_fix.data.pos, 
-                    new_brng_rad, brng_from_next);
+                intc = geo::get_pos_from_intc(curr_seg.end, next.main_fix.data.pos,
+                                              new_brng_rad, brng_from_next);
                 *to_inh = true;
                 *out = intc;
                 return false;
@@ -2057,15 +2064,15 @@ namespace test
             }
 
             geo::point intc1 = geo::get_pos_from_intc(curr_seg.start,
-                                          next.main_fix.data.pos, curr_brng_rad, 
-                                          brng_next_rad);
+                                                      next.main_fix.data.pos, curr_brng_rad,
+                                                      brng_next_rad);
             geo::point intc2 = geo::get_pos_from_intc(curr_seg.start,
-                                          next.main_fix.data.pos, curr_brng_rad, 
-                                          brng_next_rad - M_PI);
+                                                      next.main_fix.data.pos, curr_brng_rad,
+                                                      brng_next_rad - M_PI);
 
             double dist1 = next.main_fix.data.pos.get_gc_dist_nm(intc1);
             double dist2 = next.main_fix.data.pos.get_gc_dist_nm(intc2);
-            if(dist1 < dist2)
+            if (dist1 < dist2)
             {
                 intc = intc1;
             }
@@ -2079,9 +2086,9 @@ namespace test
         return is_bp;
     }
 
-    bool FplnInt::get_leg_start(leg_seg_t curr_seg, leg_t curr_leg, leg_t next, 
-            double mag_var_deg, double hdg_trk_diff, geo::point *out, 
-            bool *to_inh, double *turn_radius_nm)
+    bool FplnInt::get_leg_start(leg_seg_t curr_seg, leg_t curr_leg, leg_t next,
+                                double mag_var_deg, double hdg_trk_diff, geo::point *out,
+                                bool *to_inh, double *turn_radius_nm)
     {
         if (curr_leg.leg_type == "IF")
         {
@@ -2107,13 +2114,13 @@ namespace test
         }
         else if (next.leg_type == "CF")
         {
-            return get_cf_leg_start(curr_seg, curr_leg, next, mag_var_deg, out, to_inh, 
-                turn_radius_nm);
+            return get_cf_leg_start(curr_seg, curr_leg, next, mag_var_deg, out, to_inh,
+                                    turn_radius_nm);
         }
         else if (next.leg_type[0] == 'F')
         {
-            get_cf_leg_start(curr_seg, curr_leg, next, mag_var_deg, out, to_inh, 
-                turn_radius_nm);
+            get_cf_leg_start(curr_seg, curr_leg, next, mag_var_deg, out, to_inh,
+                             turn_radius_nm);
             return false;
         }
 
@@ -2152,10 +2159,10 @@ namespace test
         double prev_turn_rad_nm = prev_leg->data.misc_data.turn_rad_nm;
         double dist_nm = prev_start.get_gc_dist_nm(prev_end);
 
-        if(turn_rad < M_PI / 2 && turn_rad != 0)
+        if (turn_rad < M_PI / 2 && turn_rad != 0)
         {
             double ang_rad = M_PI - turn_rad;
-            double turn_offs_nm = prev_turn_rad_nm * cos(ang_rad/2) / sin(ang_rad/2);
+            double turn_offs_nm = prev_turn_rad_nm * cos(ang_rad / 2) / sin(ang_rad / 2);
             double dist_end_start_nm = prev_end.get_gc_dist_nm(curr_start);
             turn_offs_nm = turn_offs_nm - dist_end_start_nm;
 
@@ -2164,12 +2171,12 @@ namespace test
                 dist_nm -= turn_offs_nm;
                 double brng_rad = prev_leg->data.misc_data.true_trk_deg * geo::DEG_TO_RAD;
                 prev_leg->data.misc_data.end = geo::get_pos_from_brng_dist(prev_start,
-                                                                        brng_rad, dist_nm);
+                                                                           brng_rad, dist_nm);
             }
 
             double curr_dist_nm = curr_start.get_gc_dist_nm(curr_end);
 
-            if(turn_offs_nm > curr_dist_nm)
+            if (turn_offs_nm > curr_dist_nm)
             {
                 leg->data.misc_data.is_bypassed = true;
                 leg->data.misc_data.is_to_inhibited = true;
@@ -2178,15 +2185,15 @@ namespace test
         else
         {
             std::string leg_tp = leg->data.leg.leg_type;
-            if(leg_tp == "TF")
+            if (leg_tp == "TF")
             {
                 double rnp_nm = get_rnp(leg);
-                if(rnp_nm < dist_nm)
+                if (rnp_nm < dist_nm)
                 {
                     dist_nm -= rnp_nm;
                     double brng_rad = prev_leg->data.misc_data.true_trk_deg * geo::DEG_TO_RAD;
                     prev_leg->data.misc_data.end = geo::get_pos_from_brng_dist(prev_start,
-                                                                            brng_rad, dist_nm);
+                                                                               brng_rad, dist_nm);
                 }
             }
         }
@@ -2194,14 +2201,14 @@ namespace test
 
     // The following functions are used to calculate ends of arinc424 legs.
 
-    void FplnInt::calculate_alt_leg(leg_list_node_t *leg, double hdg_trk_diff, 
-        double curr_alt_ft)
+    void FplnInt::calculate_alt_leg(leg_list_node_t *leg, double hdg_trk_diff,
+                                    double curr_alt_ft)
     {
         leg_t curr_arinc_leg = leg->data.leg;
 
         libnav::runway_entry_t *rwy_ent = nullptr;
 
-        if(curr_arinc_leg.leg_type != "FA")
+        if (curr_arinc_leg.leg_type != "FA")
         {
             if (leg->prev->data.seg->data.seg_type == FPL_SEG_DEP_RWY)
             {
@@ -2212,7 +2219,7 @@ namespace test
                 rwy_ent = &arr_rnw_data;
             }
 
-            if(rwy_ent)
+            if (rwy_ent)
                 leg->data.misc_data.start = rwy_ent->end;
         }
 
@@ -2228,8 +2235,8 @@ namespace test
         geo::point ref_wpt = leg->data.misc_data.start;
 
         geo::point end_pt = get_xa_end_point(ref_wpt,
-                                             curr_arinc_leg.outbd_crs_deg + mag_var_deg, 
-                                             abs(curr_alt_ft-curr_arinc_leg.alt1_ft));
+                                             curr_arinc_leg.outbd_crs_deg + mag_var_deg,
+                                             abs(curr_alt_ft - curr_arinc_leg.alt1_ft));
         libnav::waypoint_t end_wpt = get_ca_va_wpt(end_pt, int(curr_arinc_leg.alt1_ft));
 
         leg->data.misc_data.is_arc = false;
@@ -2273,13 +2280,13 @@ namespace test
 
         double true_brng_rad = double(curr_arinc_leg.outbd_crs_deg) * geo::DEG_TO_RAD;
 
-        if(!curr_arinc_leg.outbd_crs_true)
+        if (!curr_arinc_leg.outbd_crs_true)
         {
             true_brng_rad -= curr_arinc_leg.get_mag_var_deg() * geo::DEG_TO_RAD;
         }
 
-        geo::point leg_end = geo::get_pos_from_brng_dist(leg->data.misc_data.start, 
-            true_brng_rad, double(curr_arinc_leg.outbd_dist_time));
+        geo::point leg_end = geo::get_pos_from_brng_dist(leg->data.misc_data.start,
+                                                         true_brng_rad, double(curr_arinc_leg.outbd_dist_time));
 
         leg->data.misc_data.true_trk_deg = true_brng_rad * geo::RAD_TO_DEG;
         leg->data.misc_data.is_arc = false;
@@ -2293,18 +2300,17 @@ namespace test
         leg_t curr_arinc_leg = leg->data.leg;
 
         double true_brng_rad = double(curr_arinc_leg.outbd_crs_deg) * geo::DEG_TO_RAD;
-        if(!curr_arinc_leg.outbd_crs_true)
+        if (!curr_arinc_leg.outbd_crs_true)
         {
             true_brng_rad -= curr_arinc_leg.get_mag_var_deg() * geo::DEG_TO_RAD;
         }
-        if(curr_arinc_leg.leg_type == "VD")
+        if (curr_arinc_leg.leg_type == "VD")
         {
             true_brng_rad += hdg_trk_diff;
         }
 
-        geo::point end = get_dme_end_point(leg->data.misc_data.start, true_brng_rad, 
-            curr_arinc_leg.recd_navaid.data.pos, curr_arinc_leg.outbd_dist_time);
-        
+        geo::point end = get_dme_end_point(leg->data.misc_data.start, true_brng_rad,
+                                           curr_arinc_leg.recd_navaid.data.pos, curr_arinc_leg.outbd_dist_time);
 
         leg->data.misc_data.is_arc = false;
         leg->data.misc_data.is_finite = true;
@@ -2314,7 +2320,7 @@ namespace test
         leg->data.misc_data.turn_rad_nm = TURN_RADIUS_NM;
 
         leg->data.misc_data.set_calc_wpt(get_xd_wpt(end, leg->data.leg.recd_navaid.id,
-            int(leg->data.leg.outbd_dist_time)));
+                                                    int(leg->data.leg.outbd_dist_time)));
     }
 
     void FplnInt::calculate_crs_trk_dir_leg(leg_list_node_t *leg)
@@ -2344,17 +2350,17 @@ namespace test
         leg->data.misc_data.set_calc_wpt(leg->data.leg.main_fix);
     }
 
-    void FplnInt::calculate_leg(leg_list_node_t *leg, double hdg_trk_diff, 
-        double curr_alt_ft)
+    void FplnInt::calculate_leg(leg_list_node_t *leg, double hdg_trk_diff,
+                                double curr_alt_ft)
     {
         leg_t curr_arinc_leg = leg->data.leg;
 
         leg->data.misc_data = {};
         leg->data.misc_data.turn_rad_nm = -1;
-        if(leg->data.leg.main_fix.id == "DF416")
+        if (leg->data.leg.main_fix.id == "DF416")
             assert(!isnanl(leg->data.misc_data.turn_rad_nm));
 
-        if (curr_arinc_leg.has_main_fix && 
+        if (curr_arinc_leg.has_main_fix &&
             curr_arinc_leg.main_fix.data.type == libnav::NavaidType::RWY)
         {
             leg->data.misc_data.is_rwy = true;
@@ -2363,7 +2369,7 @@ namespace test
         leg_list_node_t *prev_leg = leg->prev;
         bool intc_bp = false;
 
-        if(prev_leg != &(leg_list.head))
+        if (prev_leg != &(leg_list.head))
         {
             if (prev_leg->data.misc_data.is_bypassed)
             {
@@ -2374,13 +2380,13 @@ namespace test
                 prev_leg = prev_leg->prev;
             }
         }
-        
+
         if (prev_leg != &(leg_list.head) && !prev_leg->data.is_discon)
         {
             double m_var = get_leg_mag_var_deg(leg);
             leg->data.misc_data.is_bypassed = get_leg_start(prev_leg->data.misc_data,
                                                             prev_leg->data.leg, curr_arinc_leg,
-                                                            m_var, hdg_trk_diff, 
+                                                            m_var, hdg_trk_diff,
                                                             &leg->data.misc_data.start,
                                                             &leg->data.misc_data.is_to_inhibited,
                                                             &prev_leg->data.misc_data.turn_rad_nm);
@@ -2399,7 +2405,7 @@ namespace test
         {
             leg->data.misc_data = prev_leg->data.misc_data;
             leg->data.misc_data.is_bypassed = true;
-            if(leg->data.leg.has_main_fix)
+            if (leg->data.leg.has_main_fix)
                 leg->data.misc_data.set_calc_wpt(leg->data.leg.main_fix);
             leg->data.misc_data.is_finite = true;
             leg->data.misc_data.turn_rad_nm = -1;
@@ -2416,12 +2422,12 @@ namespace test
             leg->data.misc_data.turn_rad_nm = 0;
             leg->data.misc_data.set_calc_wpt(curr_arinc_leg.main_fix);
         }
-        else if (curr_arinc_leg.leg_type == "CA" || curr_arinc_leg.leg_type == "VA" || 
-            curr_arinc_leg.leg_type == "FA")
+        else if (curr_arinc_leg.leg_type == "CA" || curr_arinc_leg.leg_type == "VA" ||
+                 curr_arinc_leg.leg_type == "FA")
         {
             calculate_alt_leg(leg, hdg_trk_diff, curr_alt_ft);
         }
-        else if(curr_arinc_leg.leg_type == "FC")
+        else if (curr_arinc_leg.leg_type == "FC")
         {
             calculate_fc_leg(leg);
         }
@@ -2434,8 +2440,8 @@ namespace test
         {
             calculate_crs_trk_dir_leg(leg);
         }
-        else if(curr_arinc_leg.leg_type == "FD" || curr_arinc_leg.leg_type == "CD" ||
-            curr_arinc_leg.leg_type == "VD")
+        else if (curr_arinc_leg.leg_type == "FD" || curr_arinc_leg.leg_type == "CD" ||
+                 curr_arinc_leg.leg_type == "VD")
         {
             calculate_dme_leg(leg, hdg_trk_diff);
         }
@@ -2456,7 +2462,7 @@ namespace test
             }
         }
 
-        if(leg->prev != &(leg_list.head) && leg->prev->data.is_discon)
+        if (leg->prev != &(leg_list.head) && leg->prev->data.is_discon)
         {
             leg->data.misc_data.has_disc = true;
         }
