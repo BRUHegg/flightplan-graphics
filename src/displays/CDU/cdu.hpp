@@ -99,6 +99,7 @@ namespace StratosphereAvionics
     const std::string DEP_COLS = " SIDS    RTE 1   RUNWAYS";
     const std::string ARR_COLS = " STARS   RTE 1APPROACHES";
     const std::string DEP_ARR_BOTTOM = "<INDEX            ROUTE>";
+    const std::string ARR_RWYS_STARS = " STARS   RTE 1   RUNWAYS";
     const std::string ARR_RWYS = std::string(17, ' ') + "RUNWAYS";
 
 

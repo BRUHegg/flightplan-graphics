@@ -486,7 +486,13 @@ namespace StratosphereAvionics
                 start_idx = 0;
             }
             if(j-1 < in->data_lines.size() && get_appr)
-                in->data_lines[j-1] = ARR_RWYS;
+            {
+                if(j-1)
+                    in->data_lines[j-1] = ARR_RWYS;
+                else
+                    in->data_lines[j-1] = ARR_RWYS_STARS;
+            }
+                
             for(size_t i = start_idx; i < start_idx + 6 && i < rwys.size(); i++)
             {
                 if(j > 11)
