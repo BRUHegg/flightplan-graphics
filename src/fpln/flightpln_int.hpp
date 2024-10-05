@@ -292,7 +292,7 @@ namespace test
         bool set_sid_star(std::string proc_nm, bool is_star=false, bool reset_rwy=true);
 
         bool set_appch_legs(std::string appch, std::string& arr_rwy, 
-            libnav::arinc_leg_seq_t legs);
+            libnav::arinc_leg_seq_t legs, std::string appch_seg="");
 
         bool set_appch(std::string appch);
 

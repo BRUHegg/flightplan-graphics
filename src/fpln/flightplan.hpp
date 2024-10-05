@@ -252,6 +252,8 @@ namespace test
         void add_segment(std::vector<leg_t>& legs, fpl_segment_types seg_tp,
             std::string seg_name, seg_list_node_t *next, bool is_direct=false);
 
+        void add_arinc_leg(leg_list_node_t *next, seg_list_node_t *seg, leg_t leg);
+
         void add_discon(seg_list_node_t *next);
 
         void add_legs(leg_t start, std::vector<leg_t>& legs, fpl_segment_types seg_tp,

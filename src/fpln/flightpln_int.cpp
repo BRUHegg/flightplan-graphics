@@ -1652,7 +1652,7 @@ namespace test
     }
 
     bool FplnInt::set_appch_legs(std::string appch, std::string &arr_rwy,
-                                 libnav::arinc_leg_seq_t legs)
+                                 libnav::arinc_leg_seq_t legs, std::string appch_seg)
     {
         size_t rwy_idx = 0;
         bool rwy_found = false;
@@ -1670,7 +1670,7 @@ namespace test
             }
         }
 
-        bool added = add_fpl_seg(appch_legs, FPL_SEG_APPCH, appch);
+        bool added = add_fpl_seg(appch_legs, FPL_SEG_APPCH, appch, appch_seg);
 
         if (added)
         {
@@ -1786,10 +1786,15 @@ namespace test
         std::string seg_name = proc_name;
         if(trans != "")
             seg_name += "." + trans;
-        add_fpl_seg(all_legs, seg_tp, proc_name, seg_name);
+
+        bool ret = true;
+        if(tp != PROC_TYPE_APPCH)
+            add_fpl_seg(all_legs, seg_tp, proc_name, seg_name);
+        else
+            ret = set_appch_legs(proc_name, arr_rwy, all_legs, seg_name);
         fpl_refs[t_idx].name = trans;
 
-        return true;
+        return ret;
     }
 
     bool FplnInt::set_proc_trans(ProcType tp, std::string trans, bool is_arr)
@@ -1832,10 +1837,10 @@ namespace test
         libnav::arinc_leg_seq_t legs_main = {};
         libnav::arinc_leg_seq_t legs = {};
 
-        std::string rwy;
+        std::string rwy = NONE_TRANS;
         if (tp == ProcType::PROC_TYPE_SID)
             rwy = fpl_refs[FPL_SEG_DEP_RWY].name;
-        else
+        else if(tp == PROC_TYPE_STAR)
             rwy = arr_rwy;
 
         if (tp == PROC_TYPE_SID)

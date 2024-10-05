@@ -327,6 +327,17 @@ namespace test
         }
     }
 
+    void FlightPlan::add_arinc_leg(leg_list_node_t *next, seg_list_node_t *seg, 
+        leg_t leg)
+    {
+        leg_list_data_t data = {};
+        data.is_discon = false;
+        data.leg = leg;
+        data.seg = seg;
+        
+        add_singl_leg(next, data);
+    }
+
     void FlightPlan::add_discon(seg_list_node_t *next)
     {
         seg_list_node_t *prev = next->prev;
