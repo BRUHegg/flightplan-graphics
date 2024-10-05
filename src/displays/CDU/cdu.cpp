@@ -349,7 +349,7 @@ namespace StratosphereAvionics
         in->data_lines.push_back(via_to);
 
         size_t i_start = 1 + 6 * size_t(curr_subpg - 2);
-        size_t i_end = std::min(n_seg_list_sz - 1, i_start + 6);
+        size_t i_end = std::min(seg_list.size() - 1, i_start + 6);
 
         for (size_t i = i_start; i < i_end; i++)
         {
@@ -409,6 +409,8 @@ namespace StratosphereAvionics
         {
             size_t trans_start = size_t((curr_subpg - 1) * 4);
             in->data_lines[j-1] = " TRANS";
+            if(curr_trans == "")
+                curr_trans = test::NONE_TRANS;
             for(size_t i = trans_start; i < trans_start + 4 && i < trans.size(); i++)
             {
                 std::string curr = trans[i];

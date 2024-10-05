@@ -65,13 +65,13 @@ namespace test
 
     std::vector<list_node_ref_t<fpl_seg_t>> FPLSys::get_seg_list(size_t *sz)
     {
-        *sz = n_act_seg_list_sz;
+        *sz = seg_list.size();
         return seg_list;
     }
 
     std::vector<list_node_ref_t<leg_list_data_t>> FPLSys::get_leg_list(size_t *sz)
     {
-        *sz = n_act_leg_list_sz;
+        *sz = leg_list.size();
         return leg_list;
     }
 
