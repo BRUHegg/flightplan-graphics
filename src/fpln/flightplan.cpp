@@ -241,6 +241,7 @@ namespace test
     {
         size_t ref_idx = size_t(ref);
         seg_list_node_t *seg_ptr = fpl_refs[ref_idx].ptr;
+        fpl_refs[ref_idx].name = "";
         if(seg_ptr != nullptr)
         {
             while(seg_ptr->data.seg_type == ref && seg_ptr != &(seg_list.head))

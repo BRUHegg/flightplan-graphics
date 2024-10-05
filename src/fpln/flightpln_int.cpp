@@ -1748,6 +1748,15 @@ namespace test
     bool FplnInt::add_trans_legs(ProcType tp, std::string trans, 
         libnav::arinc_leg_seq_t& pr_legs, libnav::arinc_leg_seq_t& tr_legs)
     {
+        fpl_segment_types seg_tp = get_proc_tp(tp);
+        fpl_segment_types t_tp = get_trans_tp(tp);
+        size_t t_idx = size_t(t_tp);
+        if(tr_legs.size() == 0 && trans != "")
+        {
+            delete_ref(t_tp);
+            return false;
+        }
+
         libnav::arinc_leg_seq_t all_legs;
 
         if(tp == PROC_TYPE_SID)
@@ -1766,13 +1775,10 @@ namespace test
                 all_legs.push_back(pr_legs[i]);
             }
         }
-
-        fpl_segment_types seg_tp = get_proc_tp(tp);
-        size_t t_tp = size_t(get_trans_tp(tp));
+        
         if(all_legs.size() == 0)
         {
-            fpl_refs[t_tp].name = "";
-            delete_ref(seg_tp);
+            delete_ref(t_tp);
             return false;
         }
 
@@ -1781,7 +1787,7 @@ namespace test
         if(trans != "")
             seg_name += "." + trans;
         add_fpl_seg(all_legs, seg_tp, proc_name, seg_name);
-        fpl_refs[t_tp].name = trans;
+        fpl_refs[t_idx].name = trans;
 
         return true;
     }
@@ -1812,6 +1818,7 @@ namespace test
         }
         else if (curr_proc == "")
         {
+            fpl_refs[t_idx].name = "";
             delete_ref(t_tp);
 
             return false;
