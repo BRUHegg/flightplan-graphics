@@ -15,9 +15,10 @@
 #pragma once
 
 #include <cstdint>
-#include <stack>
+#include <vector>
 #include <mutex>
 #include <chrono>
+#include <assert.h>
 
 
 namespace struct_util
@@ -57,9 +58,9 @@ namespace struct_util
 
         void insert_before(list_node_t<T> *node, list_node_t<T> *node_insert);
 
-        void pop(list_node_t<T> *node, std::stack<list_node_t<T>*>& release_stack);
+        void pop(list_node_t<T> *node, std::vector<list_node_t<T>*>& release_stack);
 
-        void release_all(std::stack<list_node_t<T>*>& release_stack);
+        void release_all(std::vector<list_node_t<T>*>& release_stack);
 
         void update_id();
     };
@@ -67,16 +68,58 @@ namespace struct_util
     template <class T>
     struct ll_node_stack_t
     {
-        T *nodes;
-        std::stack<T*> ptr_stack;
+        list_node_t<T> *nodes;
+        std::vector<list_node_t<T>*> ptr_stack;
+        std::size_t m_size;
 
 
         ll_node_stack_t(std::size_t sz);
 
-        T* get_new();
+        list_node_t<T>* get_new();
 
         void destroy();
     };
+
+    template <class T>
+    void copy_list(ll_node_stack_t<T>& s_src, ll_node_stack_t<T>& s_dst,
+            linked_list_t<T>& l_src, linked_list_t<T>& l_dst)
+    {
+        assert(s_src.m_size == s_dst.m_size);
+        for(std::size_t i = 0; i < s_src.m_size; i++)
+        {
+            s_dst.nodes[i] = s_src.nodes[i];
+
+            if(s_dst.nodes[i].prev == &l_src.head)
+            {
+                s_dst.nodes[i].prev = &l_dst.head;
+                l_dst.head.next = &s_dst.nodes[i];
+            }
+            else
+            {
+                s_dst.nodes[i].prev = s_dst.nodes[i].prev - s_src.nodes + s_dst.nodes;
+            }
+
+            if(s_dst.nodes[i].next == &l_src.tail)
+            {
+                s_dst.nodes[i].next = &l_dst.tail;
+                l_dst.tail.prev = &s_dst.nodes[i];
+            }
+            else
+            {
+                s_dst.nodes[i].next = s_dst.nodes[i].next - s_src.nodes + s_dst.nodes;
+            }
+        }
+
+        while (!s_dst.ptr_stack.empty())
+        {
+            s_dst.ptr_stack.pop_back();
+        }
+        
+        for(std::size_t i = 0; i < s_src.ptr_stack.size(); i++)
+        {
+            s_dst.ptr_stack.push_back(s_src.ptr_stack[i] - s_src.nodes + s_dst.nodes);
+        }
+    }
 
 
     // linked_list_t definitions:
@@ -131,13 +174,13 @@ namespace struct_util
 
     template <class T>
     void linked_list_t<T>::pop(list_node_t<T> *node, 
-        std::stack<list_node_t<T>*>& release_stack)
+        std::vector<list_node_t<T>*>& release_stack)
     {
         if(node->prev != nullptr && node->next != nullptr)
         {
             node->prev->next = node->next;
             node->next->prev = node->prev;
-            release_stack.push(node);
+            release_stack.push_back(node);
             size--;
         }
 
@@ -145,13 +188,13 @@ namespace struct_util
     }
 
     template <class T>
-    void linked_list_t<T>::release_all(std::stack<list_node_t<T>*>& release_stack)
+    void linked_list_t<T>::release_all(std::vector<list_node_t<T>*>& release_stack)
     {
         list_node_t<T>* curr = head.next;
 
         while(curr != &tail)
         {
-            release_stack.push(curr);
+            release_stack.push_back(curr);
             curr = curr->next;
         }
 
@@ -173,20 +216,22 @@ namespace struct_util
     template <class T>
     ll_node_stack_t<T>::ll_node_stack_t(std::size_t sz)
     {
-        nodes = new T[sz];
+        m_size = sz;
+        nodes = new list_node_t<T>[sz];
+        ptr_stack.reserve(sz);
         for(std::size_t i = 0; i < sz; i++)
         {
-            ptr_stack.push(nodes + i);
+            ptr_stack.push_back(nodes + i);
         }
-    };
+    }
 
     template <class T>
-    T* ll_node_stack_t<T>::get_new()
+    list_node_t<T>* ll_node_stack_t<T>::get_new()
     {
         if(ptr_stack.size())
         {   
-            T* out = ptr_stack.top();
-            ptr_stack.pop();
+            list_node_t<T>* out = ptr_stack.back();
+            ptr_stack.pop_back();
             return out;
         }
         return nullptr;
@@ -195,7 +240,8 @@ namespace struct_util
     template <class T>
     void ll_node_stack_t<T>::destroy()
     {
-        ptr_stack.empty();
+        while(!ptr_stack.empty())
+            ptr_stack.pop_back();
         delete[] nodes;
-    };
+    }
 } // namespace struct_util

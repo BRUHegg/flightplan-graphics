@@ -215,8 +215,8 @@ namespace test
         struct_util::linked_list_t<leg_list_data_t> leg_list;
         struct_util::linked_list_t<fpl_seg_t> seg_list;
 
-        struct_util::ll_node_stack_t<leg_list_node_t> leg_data_stack;
-        struct_util::ll_node_stack_t<seg_list_node_t> seg_stack;
+        struct_util::ll_node_stack_t<leg_list_data_t> leg_data_stack;
+        struct_util::ll_node_stack_t<fpl_seg_t> seg_stack;
 
         leg_list_node_t *act_leg;
 
