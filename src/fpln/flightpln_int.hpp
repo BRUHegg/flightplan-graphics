@@ -296,6 +296,19 @@ namespace test
 
         // Other auxiliury functions:
 
+        /*
+            Function: adjust_list_pointers
+            Description:
+            Adjusts pointers inside leg_data_list and seg_list after copying from another
+            flightplan.
+
+            @param other: reference to other flight plan object
+        */
+
+        void adjust_list_pointers(FplnInt& other);
+
+        void copy_act_leg(FplnInt& other);
+
         void update_apt_dbs(bool arr=false);
 
         libnav::arinc_rwy_data_t get_rwy_data(std::string nm, bool is_arr=false);

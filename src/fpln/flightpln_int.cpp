@@ -285,8 +285,10 @@ namespace test
         struct_util::copy_list(other.seg_stack, seg_stack, other.seg_list, seg_list);
         struct_util::copy_list(other.leg_data_stack, leg_data_stack,
             other.leg_list, leg_list);
+
+        adjust_list_pointers(other);
         
-        act_leg = other.act_leg - other.leg_data_stack.nodes + leg_data_stack.nodes;
+        copy_act_leg(other);
 
         arr_rwy = other.arr_rwy;
         appr_is_rwy = other.appr_is_rwy;
@@ -1511,6 +1513,45 @@ namespace test
     }
 
     // Other auxiliury functions:
+
+    void FplnInt::adjust_list_pointers(FplnInt& other)
+    {
+        leg_list_node_t *curr_leg = leg_list.head.next;
+
+        while (curr_leg != &leg_list.tail)
+        {
+            if(curr_leg->data.seg != nullptr)
+            {
+                curr_leg->data.seg = curr_leg->data.seg - other.seg_stack.nodes
+                     + seg_stack.nodes;
+            }
+            curr_leg = curr_leg->next;
+        }
+        
+        seg_list_node_t *curr_seg = seg_list.head.next;;
+
+        while (curr_seg != &seg_list.tail)
+        {
+            if(curr_seg->data.end != nullptr)
+            {
+                curr_seg->data.end = curr_seg->data.end - other.leg_data_stack.nodes
+                     + leg_data_stack.nodes;
+            }
+            curr_seg = curr_seg->next;
+        }
+    }
+
+    void FplnInt::copy_act_leg(FplnInt& other)
+    {
+        if(other.act_leg == nullptr)
+        {
+            act_leg = nullptr;
+        }
+        else
+        {
+            act_leg = other.act_leg - other.leg_data_stack.nodes + leg_data_stack.nodes;
+        }
+    }
 
     void FplnInt::update_apt_dbs(bool arr)
     {
