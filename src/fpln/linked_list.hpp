@@ -85,6 +85,23 @@ namespace struct_util
             linked_list_t<T>& l_src, linked_list_t<T>& l_dst)
     {
         assert(s_src.m_size == s_dst.m_size);
+        while (!s_dst.ptr_stack.empty())
+        {
+            s_dst.ptr_stack.pop_back();
+        }
+        
+        for(std::size_t i = 0; i < s_src.ptr_stack.size(); i++)
+        {
+            s_dst.ptr_stack.push_back(s_src.ptr_stack[i] - s_src.nodes + s_dst.nodes);
+        }
+
+        if(l_src.head.next == &l_src.tail)
+        {
+            l_dst.head.next = &l_dst.tail;
+            l_dst.tail.prev = &l_dst.head;
+            return;
+        }
+
         for(std::size_t i = 0; i < s_src.m_size; i++)
         {
             s_dst.nodes[i] = s_src.nodes[i];
@@ -108,16 +125,6 @@ namespace struct_util
             {
                 s_dst.nodes[i].next = s_dst.nodes[i].next - s_src.nodes + s_dst.nodes;
             }
-        }
-
-        while (!s_dst.ptr_stack.empty())
-        {
-            s_dst.ptr_stack.pop_back();
-        }
-        
-        for(std::size_t i = 0; i < s_src.ptr_stack.size(); i++)
-        {
-            s_dst.ptr_stack.push_back(s_src.ptr_stack[i] - s_src.nodes + s_dst.nodes);
         }
     }
 

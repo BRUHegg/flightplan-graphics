@@ -303,7 +303,6 @@ namespace test
 
     libnav::DbErr FplnInt::load_from_fms(std::string &file_nm, bool set_arpts)
     {
-        std::lock_guard<std::mutex> lock(fpl_mtx);
         if (libnav::does_file_exist(file_nm + DFMS_FILE_POSTFIX))
         {
             std::ifstream file(file_nm + DFMS_FILE_POSTFIX);
