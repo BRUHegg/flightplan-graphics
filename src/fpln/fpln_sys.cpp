@@ -49,6 +49,8 @@ namespace test
 
         fpl = std::make_shared<FplnInt>(arpt_db_ptr, navaid_db_ptr, awy_db_ptr,
                                         cifp_dir_path);
+        fpl_tmp = std::make_shared<FplnInt>(arpt_db_ptr, navaid_db_ptr, awy_db_ptr,
+                                        cifp_dir_path);
 
         leg_sel_cdu_l = {0, 0};
         leg_sel_cdu_r = {0, 0};
@@ -243,6 +245,9 @@ namespace test
     {
         update_pos();
         fpl->update(0);
+
+        fpl_tmp->copy_from_other(*fpl);
+        fpl_tmp->update(0);
 
         update_lists();
     }

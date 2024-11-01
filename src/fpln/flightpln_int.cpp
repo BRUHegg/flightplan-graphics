@@ -253,20 +253,52 @@ namespace test
     void FplnInt::copy_from_other(FplnInt& other)
     {
         std::lock_guard<std::mutex> lock(fpl_mtx);
-        if(departure == nullptr || departure->icao_code != other.departure->icao_code)
+        if(other.departure != nullptr)
         {
-            delete departure;
-            departure = new libnav::Airport(*other.departure);
-            update_apt_dbs();
+            if(departure == nullptr || departure->icao_code != other.departure->icao_code)
+            {
+                delete departure;
+                departure = new libnav::Airport(*other.departure);
+                update_apt_dbs();
+            }
         }
-        if(arrival == nullptr || arrival->icao_code != other.arrival->icao_code)
+        
+        if(other.arrival != nullptr)
         {
-            delete arrival;
-            arrival = new libnav::Airport(*other.arrival);
-            update_apt_dbs(true);
+            if(arrival == nullptr || arrival->icao_code != other.arrival->icao_code)
+            {
+                delete arrival;
+                arrival = new libnav::Airport(*other.arrival);
+                update_apt_dbs(true);
+            }
         }
 
+        for(std::size_t i = 0; i < other.fpl_refs.size(); i++)
+        {
+            fpl_refs[i] = other.fpl_refs[i];
+            if(fpl_refs[i].ptr != nullptr)
+            {
+                fpl_refs[i].ptr = fpl_refs[i].ptr - other.seg_stack.nodes + seg_stack.nodes;
+            }
+        }
+
+        struct_util::copy_list(other.seg_stack, seg_stack, other.seg_list, seg_list);
+        struct_util::copy_list(other.leg_data_stack, leg_data_stack,
+            other.leg_list, leg_list);
+        
+        act_leg = other.act_leg - other.leg_data_stack.nodes + leg_data_stack.nodes;
+
         arr_rwy = other.arr_rwy;
+        appr_is_rwy = other.appr_is_rwy;
+
+
+        has_dep_rnw_data = other.has_dep_rnw_data; 
+        has_arr_rnw_data = other.has_arr_rnw_data;
+
+        dep_rnw_data = other.dep_rnw_data;
+        arr_rnw_data = other.arr_rnw_data;
+
+        update_id();
     }
 
     libnav::DbErr FplnInt::load_from_fms(std::string &file_nm, bool set_arpts)

@@ -89,7 +89,7 @@ namespace struct_util
         {
             s_dst.nodes[i] = s_src.nodes[i];
 
-            if(s_dst.nodes[i].prev == &l_src.head)
+            if(s_dst.nodes[i].prev == &l_src.head && l_src.head.next == &s_src.nodes[i])
             {
                 s_dst.nodes[i].prev = &l_dst.head;
                 l_dst.head.next = &s_dst.nodes[i];
@@ -99,7 +99,7 @@ namespace struct_util
                 s_dst.nodes[i].prev = s_dst.nodes[i].prev - s_src.nodes + s_dst.nodes;
             }
 
-            if(s_dst.nodes[i].next == &l_src.tail)
+            if(s_dst.nodes[i].next == &l_src.tail && l_src.tail.prev == &s_src.nodes[i])
             {
                 s_dst.nodes[i].next = &l_dst.tail;
                 l_dst.tail.prev = &s_dst.nodes[i];

@@ -87,6 +87,7 @@ namespace test
         std::shared_ptr<libnav::AwyDB> awy_db_ptr;
 
         std::shared_ptr<FplnInt> fpl;
+        std::shared_ptr<FplnInt> fpl_tmp;
 
         std::pair<size_t, double> leg_sel_cdu_l;
         std::pair<size_t, double> leg_sel_cdu_r;
