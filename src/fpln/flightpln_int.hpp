@@ -92,6 +92,27 @@ namespace test
         std::string star, star_trans, arr_rwy, arr_icao;
     };
 
+    struct fpln_identity_t
+    {
+        // FlightPlan
+        libnav::Airport *departure, *arrival;
+
+        std::vector<fpl_ref_t> fpl_refs;
+
+        struct_util::linked_list_t<leg_list_data_t> leg_list;
+        struct_util::linked_list_t<fpl_seg_t> seg_list;
+
+        struct_util::ll_node_stack_t<leg_list_data_t> *leg_data_stack;
+        struct_util::ll_node_stack_t<fpl_seg_t> *seg_stack;
+
+        // FplnInt
+        std::string arr_rwy;
+        bool appr_is_rwy;
+
+        libnav::arinc_rwy_db_t dep_rnw, arr_rnw;
+        bool has_dep_rnw_data, has_arr_rnw_data;
+    };
+
 
     /*
         General info:
@@ -131,6 +152,10 @@ namespace test
         FplnInt(std::shared_ptr<libnav::ArptDB> apt_db, 
             std::shared_ptr<libnav::NavaidDB> nav_db, std::shared_ptr<libnav::AwyDB> aw_db, 
             std::string cifp_path);
+
+        // Functions for copying data from 1 flightplan to another:
+
+        void copy_from_other(FplnInt& other);
 
         // Import from .fms file:
 
@@ -270,6 +295,8 @@ namespace test
         size_t get_dfms_enrt_legs(std::vector<std::string>* out);
 
         // Other auxiliury functions:
+
+        void update_apt_dbs(bool arr=false);
 
         libnav::arinc_rwy_data_t get_rwy_data(std::string nm, bool is_arr=false);
 

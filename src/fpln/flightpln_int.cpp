@@ -250,8 +250,28 @@ namespace test
         appr_is_rwy = false;
     }
 
+    void FplnInt::copy_from_other(FplnInt& other)
+    {
+        std::lock_guard<std::mutex> lock(fpl_mtx);
+        if(departure == nullptr || departure->icao_code != other.departure->icao_code)
+        {
+            delete departure;
+            departure = new libnav::Airport(*other.departure);
+            update_apt_dbs();
+        }
+        if(arrival == nullptr || arrival->icao_code != other.arrival->icao_code)
+        {
+            delete arrival;
+            arrival = new libnav::Airport(*other.arrival);
+            update_apt_dbs(true);
+        }
+
+        arr_rwy = other.arr_rwy;
+    }
+
     libnav::DbErr FplnInt::load_from_fms(std::string &file_nm, bool set_arpts)
     {
+        std::lock_guard<std::mutex> lock(fpl_mtx);
         if (libnav::does_file_exist(file_nm + DFMS_FILE_POSTFIX))
         {
             std::ifstream file(file_nm + DFMS_FILE_POSTFIX);
@@ -424,10 +444,7 @@ namespace test
         libnav::DbErr out = set_arpt(icao, &departure);
         if (departure != nullptr && departure->icao_code == icao && out != libnav::DbErr::ERR_NONE)
         {
-            dep_rnw = departure->get_rwy_db();
-            proc_db[PROC_TYPE_SID] = departure->get_all_sids();
-            proc_db[PROC_TYPE_STAR] = departure->get_all_stars();
-            proc_db[PROC_TYPE_APPCH] = departure->get_all_appch();
+            update_apt_dbs();
 
             // If there is an arrival and departure was changed, clear arrival data
             if (arrival != nullptr)
@@ -469,9 +486,7 @@ namespace test
 
             if (arrival != nullptr)
             {
-                arr_rnw = arrival->get_rwy_db();
-                proc_db[N_ARR_DB_OFFSET + PROC_TYPE_STAR] = arrival->get_all_stars();
-                proc_db[N_ARR_DB_OFFSET + PROC_TYPE_APPCH] = arrival->get_all_appch();
+                update_apt_dbs(true);
             }
         }
         return err;
@@ -1462,6 +1477,25 @@ namespace test
         out->push_back(get_dfms_arpt_leg(true));
 
         return out->size();
+    }
+
+    // Other auxiliury functions:
+
+    void FplnInt::update_apt_dbs(bool arr)
+    {
+        if(arr)
+        {
+            arr_rnw = arrival->get_rwy_db();
+            proc_db[N_ARR_DB_OFFSET + PROC_TYPE_STAR] = arrival->get_all_stars();
+            proc_db[N_ARR_DB_OFFSET + PROC_TYPE_APPCH] = arrival->get_all_appch();
+        }
+        else
+        {
+            dep_rnw = departure->get_rwy_db();
+            proc_db[PROC_TYPE_SID] = departure->get_all_sids();
+            proc_db[PROC_TYPE_STAR] = departure->get_all_stars();
+            proc_db[PROC_TYPE_APPCH] = departure->get_all_appch();
+        }
     }
 
     libnav::arinc_rwy_data_t FplnInt::get_rwy_data(std::string nm, bool is_arr)
