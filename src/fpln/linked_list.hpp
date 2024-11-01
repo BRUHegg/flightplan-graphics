@@ -85,6 +85,8 @@ namespace struct_util
             linked_list_t<T>& l_src, linked_list_t<T>& l_dst)
     {
         assert(s_src.m_size == s_dst.m_size);
+        l_dst.size = l_src.size;
+
         while (!s_dst.ptr_stack.empty())
         {
             s_dst.ptr_stack.pop_back();
