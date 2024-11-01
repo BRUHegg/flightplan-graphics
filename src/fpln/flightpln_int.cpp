@@ -1059,13 +1059,13 @@ namespace test
         std::lock_guard<std::mutex> lock(fpl_mtx);
 
         if (curr.id == seg_list.id && curr.ptr != &(seg_list.head) && curr.ptr != nullptr &&
-            !curr.ptr->data.is_discon)
+            !curr.ptr->data.is_discon && curr.ptr != &(seg_list.tail))
         {
             if (curr.ptr == act_leg->data.seg)
                 return false;
 
             seg_list_node_t *next = curr.ptr->next;
-            if (curr.ptr != &(seg_list.tail) && !next->data.is_direct &&
+            if (next != &(seg_list.tail) && !next->data.is_direct &&
                 !next->data.is_discon && curr.ptr->data.end != nullptr)
             {
                 delete_segment(curr.ptr->next, true, false, true);
