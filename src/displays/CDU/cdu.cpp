@@ -694,7 +694,7 @@ namespace StratosphereAvionics
             size_t i_start = 1 + N_CDU_LEG_PP * size_t(curr_subpg - 2);
             size_t i_end = std::min(n_seg_list_sz - 1, i_start + N_CDU_LEG_PP);
             size_t i_event = i_start + size_t(event_key - 1) % 6;
-            if (i_event >= i_end)
+            if (i_event > i_end || (i_event == i_end && i_event < n_seg_list_sz - 1))
             {
                 return INVALID_ENTRY_MSG;
             }
