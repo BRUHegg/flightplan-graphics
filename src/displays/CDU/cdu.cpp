@@ -348,8 +348,8 @@ namespace StratosphereAvionics
         std::string via_to = " VIA" + std::string(N_CDU_DATA_COLS - 6, ' ') + "TO";
         in->data_lines.push_back(via_to);
 
-        size_t i_start = 1 + 6 * size_t(curr_subpg - 2);
-        size_t i_end = std::min(seg_list.size() - 1, i_start + 6);
+        size_t i_start = 1 + N_CDU_LEG_PP * size_t(curr_subpg - 2);
+        size_t i_end = std::min(seg_list.size() - 1, i_start + N_CDU_LEG_PP);
 
         for (size_t i = i_start; i < i_end; i++)
         {
@@ -382,7 +382,8 @@ namespace StratosphereAvionics
                 in->data_lines.push_back("");
             }
         }
-        in->data_lines.push_back(SEG_LAST);
+        if(i_end-i_start < N_CDU_LEG_PP)
+            in->data_lines.push_back(SEG_LAST);
     }
 
     void CDU::get_procs(cdu_scr_data_t *in, std::string curr_proc, std::string curr_trans)
@@ -614,7 +615,7 @@ namespace StratosphereAvionics
         if (dep_rwy != "")
         {
             size_t n_seg_act = n_seg_list_sz - 1;
-            return 1 + (n_seg_act / 6) + bool(n_seg_act % 6);
+            return 1 + (n_seg_act / N_CDU_LEG_PP) + bool(n_seg_act % N_CDU_LEG_PP);
         }
         return 1;
     }
@@ -690,10 +691,10 @@ namespace StratosphereAvionics
         }
         else
         {
-            size_t i_start = 1 + 6 * size_t(curr_subpg - 2);
-            size_t i_end = std::min(n_seg_list_sz - 1, i_start + 6);
+            size_t i_start = 1 + N_CDU_LEG_PP * size_t(curr_subpg - 2);
+            size_t i_end = std::min(n_seg_list_sz - 1, i_start + N_CDU_LEG_PP);
             size_t i_event = i_start + size_t(event_key - 1) % 6;
-            if (i_event > i_end)
+            if (i_event >= i_end)
             {
                 return INVALID_ENTRY_MSG;
             }

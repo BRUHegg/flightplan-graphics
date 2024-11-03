@@ -60,6 +60,8 @@ namespace StratosphereAvionics
 
     constexpr char DELETE_SYMBOL = 'd';
 
+    constexpr size_t N_CDU_LEG_PP = 5; // How many legs can be drawn on 1 page
+
     constexpr double CDU_RES_COEFF = 1.0 / 900.0;
     constexpr double CDU_V_OFFS_FIRST = 0.095;
     constexpr double CDU_V_OFFS_SMALL_FIRST = 0.027;

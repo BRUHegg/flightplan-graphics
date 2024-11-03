@@ -99,6 +99,12 @@ namespace test
         {
             return -1;
         }
+
+        while (out->size())
+        {
+            out->pop_back();
+        }
+
         size_t i = 0;
         leg_list_node_t* curr = &(leg_list.head);
         while(i != start)
@@ -117,10 +123,7 @@ namespace test
             else
                 a_i++;
 
-            if(cnt >= out->size())
-                out->push_back({curr, curr->data});
-            else
-                out->at(cnt) = {curr, curr->data};
+            out->push_back({curr, curr->data});
             l--;
             curr = curr->next;
             cnt++;
@@ -137,6 +140,12 @@ namespace test
         {
             return -1;
         }
+
+        while (out->size())
+        {
+            out->pop_back();
+        }
+
         size_t i = 0;
         seg_list_node_t* curr = &(seg_list.head);
         while(i != start)
@@ -149,10 +158,7 @@ namespace test
 
         while(l && i < seg_list.size)
         {
-            if(cnt >= out->size())
-                out->push_back({curr, curr->data});
-            else
-                out->at(cnt) = {curr, curr->data};
+            out->push_back({curr, curr->data});
             l--;
             curr = curr->next;
             cnt++;
