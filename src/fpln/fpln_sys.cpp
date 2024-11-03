@@ -47,57 +47,69 @@ namespace test
         navaid_db_ptr = navaid_db;
         awy_db_ptr = awy_db;
 
-        fpl = std::make_shared<FplnInt>(arpt_db_ptr, navaid_db_ptr, awy_db_ptr,
-                                        cifp_dir_path);
-        fpl_tmp = std::make_shared<FplnInt>(arpt_db_ptr, navaid_db_ptr, awy_db_ptr,
-                                        cifp_dir_path);
+        for(size_t i = 0; i < N_FPL_SYS_RTES; i++)
+        {
+            std::shared_ptr<FplnInt> tmp = std::make_shared<FplnInt>(arpt_db_ptr, 
+                navaid_db_ptr, awy_db_ptr, cifp_dir_path);
+            fpl_vec.push_back(tmp);
+        }
 
         leg_sel_cdu_l = {0, 0};
         leg_sel_cdu_r = {0, 0};
 
-        n_act_seg_list_sz = 0;
-        n_act_leg_list_sz = 0;
+        fpl_infos = std::vector<fpln_info_t>(N_FPL_SYS_RTES);
 
-        cap_ctr_idx = 1;
-        fo_ctr_idx = 1;
+        for(size_t i = 0; i < N_FPL_SYS_RTES; i++)
+        {
+            fpl_infos[i].cap_ctr_idx = 1;
+            fpl_infos[i].fo_ctr_idx = 1;
 
-        fpl_id_last = 0;
-        act_leg_idx = -1;
+            fpl_infos[i].fpl_id_last = 0;
+            fpl_infos[i].act_leg_idx = -1;
+        }
+
+        cdu_rte_idx = std::vector<size_t>(2);
     }
 
-    std::vector<list_node_ref_t<fpl_seg_t>> FPLSys::get_seg_list(size_t *sz)
+    std::vector<list_node_ref_t<fpl_seg_t>> FPLSys::get_seg_list(size_t *sz, size_t idx)
     {
-        *sz = seg_list.size();
-        return seg_list;
+        assert(idx < fpl_infos.size());
+
+        *sz = fpl_infos[idx].seg_list.size();
+        return fpl_infos[idx].seg_list;
     }
 
-    std::vector<list_node_ref_t<leg_list_data_t>> FPLSys::get_leg_list(size_t *sz)
+    std::vector<list_node_ref_t<leg_list_data_t>> FPLSys::get_leg_list(size_t *sz, size_t idx)
     {
-        *sz = leg_list.size();
-        return leg_list;
+        assert(idx < N_FPL_SYS_RTES);
+
+        *sz = fpl_infos[idx].leg_list.size();
+        return fpl_infos[idx].leg_list;
     }
 
-    size_t FPLSys::get_nd_seg(nd_leg_data_t *out, size_t n_max)
+    size_t FPLSys::get_nd_seg(nd_leg_data_t *out, size_t n_max, size_t idx)
     {
-        if(n_act_leg_list_sz == 0)
+        assert(idx < N_FPL_SYS_RTES);
+
+        if(fpl_infos[idx].leg_list.size() == 0)
             return 0;
         size_t n_written = 0;
         size_t i_start = 1;
 
-        if(act_leg_idx != -1 && act_leg_idx)
-            i_start = size_t(act_leg_idx) - 1;
+        if(fpl_infos[idx].act_leg_idx != -1 && fpl_infos[idx].act_leg_idx)
+            i_start = size_t(fpl_infos[idx].act_leg_idx) - 1;
 
-        for (size_t i = i_start; i < n_act_leg_list_sz-1; i++)
+        for (size_t i = i_start; i < fpl_infos[idx].leg_list.size()-1; i++)
         {
             if (!n_max)
                 return n_written;
 
-            if(leg_list[i].data.is_discon)
+            if(fpl_infos[idx].leg_list[i].data.is_discon)
                 continue;
 
             nd_leg_data_t tmp;
-            tmp.leg_data = leg_list[i].data.misc_data;
-            tmp.arc_ctr = leg_list[i].data.leg.center_fix.data.pos;
+            tmp.leg_data = fpl_infos[idx].leg_list[i].data.misc_data;
+            tmp.arc_ctr = fpl_infos[idx].leg_list[i].data.leg.center_fix.data.pos;
             out[n_written] = tmp;
 
             n_max--;
@@ -107,26 +119,30 @@ namespace test
         return n_written;
     }
 
-    int FPLSys::get_act_leg_idx()
+    int FPLSys::get_act_leg_idx(size_t idx)
     {
-        if(act_leg_idx == -1)
+        assert(idx < N_FPL_SYS_RTES);
+
+        if(fpl_infos[idx].act_leg_idx == -1)
             return -1;
         return 1;
     }
 
-    bool FPLSys::get_ctr(geo::point *out, bool fo_side)
+    bool FPLSys::get_ctr(geo::point *out, bool fo_side, size_t idx)
     {
-        size_t curr_idx = cap_ctr_idx;
+        assert(idx < N_FPL_SYS_RTES);
+
+        size_t curr_idx = fpl_infos[idx].cap_ctr_idx;
 
         if (fo_side)
-            curr_idx = fo_ctr_idx;
+            curr_idx = fpl_infos[idx].fo_ctr_idx;
 
-        if (curr_idx+1 < n_act_leg_list_sz)
+        if (curr_idx+1 < fpl_infos[idx].leg_list.size())
         {
-            bool has_pos = leg_list[curr_idx].data.misc_data.has_calc_wpt;
+            bool has_pos = fpl_infos[idx].leg_list[curr_idx].data.misc_data.has_calc_wpt;
             if (has_pos)
             {
-                *out = leg_list[curr_idx].data.misc_data.calc_wpt.data.pos;
+                *out = fpl_infos[idx].leg_list[curr_idx].data.misc_data.calc_wpt.data.pos;
                 return true;
             }
         }
@@ -157,15 +173,17 @@ namespace test
         return out;
     }
 
-    act_leg_info_t FPLSys::get_act_leg_info()
+    act_leg_info_t FPLSys::get_act_leg_info(size_t idx)
     {
+        assert(idx < N_FPL_SYS_RTES);
+
         act_leg_info_t out = {};
         out.dist_nm = "----";
         out.dist_sz = DIST_FONT_SZ_DD;
 
-        if(act_leg_idx != -1)
+        if(fpl_infos[idx].act_leg_idx != -1)
         {
-            leg_seg_t act_seg = leg_list[act_leg_idx].data.misc_data;
+            leg_seg_t act_seg = fpl_infos[idx].leg_list[fpl_infos[idx].act_leg_idx].data.misc_data;
             geo::point curr_pos = {ac_lat_deg * geo::DEG_TO_RAD, 
                 ac_lon_deg * geo::DEG_TO_RAD};
             
@@ -191,47 +209,49 @@ namespace test
         return out;
     }
 
-    void FPLSys::step_ctr(bool bwd, bool fo_side)
+    void FPLSys::step_ctr(bool bwd, bool fo_side, size_t idx)
     {
-        if (!n_act_leg_list_sz)
+        assert(idx < N_FPL_SYS_RTES);
+
+        if (!fpl_infos[idx].leg_list.size())
             return;
 
-        size_t *curr_idx = &cap_ctr_idx;
+        size_t *curr_idx = &fpl_infos[idx].cap_ctr_idx;
 
         if (fo_side)
-            curr_idx = &fo_ctr_idx;
+            curr_idx = &fpl_infos[idx].fo_ctr_idx;
 
         if (bwd)
         {
             if ((*curr_idx)-1)
                 *curr_idx = *curr_idx - 1;
             else
-                *curr_idx = n_act_leg_list_sz-1;
+                *curr_idx = fpl_infos[idx].leg_list.size()-1;
             size_t curr_v = *curr_idx;
 
-            while(leg_list[*curr_idx].data.is_discon || 
-                !leg_list[*curr_idx].data.misc_data.has_calc_wpt)
+            while(fpl_infos[idx].leg_list[*curr_idx].data.is_discon || 
+                !fpl_infos[idx].leg_list[*curr_idx].data.misc_data.has_calc_wpt)
             {
                 if(*curr_idx)
                     *curr_idx = *curr_idx - 1;
                 else
-                    *curr_idx = n_act_leg_list_sz-1;
+                    *curr_idx = fpl_infos[idx].leg_list.size()-1;
                 if(*curr_idx == curr_v)
                     break;
             }
         }
         else
         {
-            if (*curr_idx < n_act_leg_list_sz-1)
+            if (*curr_idx < fpl_infos[idx].leg_list.size()-1)
                 *curr_idx = *curr_idx + 1;
             else
                 *curr_idx = 1;
             size_t curr_v = *curr_idx;
 
-            while(leg_list[*curr_idx].data.is_discon || 
-                !leg_list[*curr_idx].data.misc_data.has_calc_wpt)
+            while(fpl_infos[idx].leg_list[*curr_idx].data.is_discon || 
+                !fpl_infos[idx].leg_list[*curr_idx].data.misc_data.has_calc_wpt)
             {
-                if (*curr_idx < n_act_leg_list_sz-1)
+                if (*curr_idx < fpl_infos[idx].leg_list.size()-1)
                     *curr_idx = *curr_idx + 1;
                 else
                     *curr_idx = 1;
@@ -244,48 +264,57 @@ namespace test
     void FPLSys::update()
     {
         update_pos();
-        fpl->update(0);
 
-        fpl_tmp->copy_from_other(*fpl);
-        fpl_tmp->update(0);
-
-        update_lists();
+        for(size_t i = 0; i < N_FPL_SYS_RTES; i++)
+        {
+            fpl_vec[i]->update(0);
+            update_lists(i);
+        }
     }
 
     // Private member functions:
 
-    void FPLSys::update_seg_list()
+    void FPLSys::update_seg_list(size_t idx)
     {
-        n_act_seg_list_sz = fpl->get_seg_list_sz();
-        seg_list_id = fpl->get_sl_seg(0, n_act_seg_list_sz, &seg_list);
+        assert(idx < N_FPL_SYS_RTES);
+
+        size_t sz = fpl_vec[idx]->get_seg_list_sz();
+        seg_list_id = fpl_vec[idx]->get_sl_seg(0, sz, &fpl_infos[idx].seg_list);
     }
 
-    void FPLSys::update_leg_list()
+    void FPLSys::update_leg_list(size_t idx)
     {
-        n_act_leg_list_sz = fpl->get_leg_list_sz();
-        leg_list_id = fpl->get_ll_seg(0, n_act_leg_list_sz, &leg_list, &act_leg_idx);
+        assert(idx < N_FPL_SYS_RTES);
 
-        if (cap_ctr_idx >= n_act_leg_list_sz && n_act_leg_list_sz != 0)
+        size_t sz = fpl_vec[idx]->get_leg_list_sz();
+        leg_list_id = fpl_vec[idx]->get_ll_seg(0, sz, &fpl_infos[idx].leg_list, 
+            &fpl_infos[idx].act_leg_idx);
+
+        if (fpl_infos[idx].cap_ctr_idx >= fpl_infos[idx].leg_list.size() && 
+            fpl_infos[idx].leg_list.size() != 0)
         {
-            cap_ctr_idx = n_act_leg_list_sz - 1;
+            fpl_infos[idx].cap_ctr_idx = fpl_infos[idx].leg_list.size() - 1;
         }
 
-        if (fo_ctr_idx >= n_act_leg_list_sz && n_act_leg_list_sz != 0)
+        if (fpl_infos[idx].fo_ctr_idx >= fpl_infos[idx].leg_list.size() && 
+            fpl_infos[idx].leg_list.size() != 0)
         {
-            fo_ctr_idx = n_act_leg_list_sz - 1;
+            fpl_infos[idx].fo_ctr_idx = fpl_infos[idx].leg_list.size() - 1;
         }
     }
 
-    void FPLSys::update_lists()
+    void FPLSys::update_lists(size_t idx)
     {
-        double fpl_id_curr = fpl->get_id();
-        if (fpl_id_curr != fpl_id_last)
+        assert(idx < N_FPL_SYS_RTES);
+
+        double fpl_id_curr = fpl_vec[idx]->get_id();
+        if (fpl_id_curr != fpl_infos[idx].fpl_id_last)
         {
-            update_seg_list();
-            update_leg_list();
+            update_seg_list(idx);
+            update_leg_list(idx);
         }
 
-        fpl_id_last = fpl_id_curr;
+        fpl_infos[idx].fpl_id_last = fpl_id_curr;
     }
 
     void FPLSys::update_pos()

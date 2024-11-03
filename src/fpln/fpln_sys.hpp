@@ -28,6 +28,14 @@ namespace test
     const std::string AC_GS_KTS_VAR = "ac_gs_kts";
     const std::string AC_TAS_KTS_VAR = "ac_tas_kts";
 
+    
+    // FplSys stores 3 routes in fpl_vec
+    // Index 0 is for active route, 1 for RTE1 and 2 for RTE2
+    constexpr size_t N_FPL_SYS_RTES = 3;
+    constexpr size_t ACT_RTE_IDX = 0;
+    constexpr size_t RTE1_IDX = 1;
+    constexpr size_t RTE2_IDX = 2;
+
     constexpr double AC_LAT_DEF = 45.588670483;
     constexpr double AC_LON_DEF = -122.598150383;
     constexpr double AC_BRNG_TRU_DEF = 175;
@@ -62,6 +70,16 @@ namespace test
         double dist_sz;
     };
 
+    struct fpln_info_t
+    {
+        std::vector<list_node_ref_t<fpl_seg_t>> seg_list;
+        std::vector<list_node_ref_t<leg_list_data_t>> leg_list;
+
+        size_t cap_ctr_idx, fo_ctr_idx;
+        double fpl_id_last;
+        int act_leg_idx;
+    };
+
     class FPLSys
     {
     public:
@@ -86,8 +104,7 @@ namespace test
 
         std::shared_ptr<libnav::AwyDB> awy_db_ptr;
 
-        std::shared_ptr<FplnInt> fpl;
-        std::shared_ptr<FplnInt> fpl_tmp;
+        std::vector<std::shared_ptr<FplnInt>> fpl_vec;
 
         std::pair<size_t, double> leg_sel_cdu_l;
         std::pair<size_t, double> leg_sel_cdu_r;
@@ -103,15 +120,15 @@ namespace test
             std::shared_ptr<libnav::AwyDB> awy_db, std::string cifp_path, 
             std::string fpl_path);
 
-        std::vector<list_node_ref_t<fpl_seg_t>> get_seg_list(size_t *sz);
+        std::vector<list_node_ref_t<fpl_seg_t>> get_seg_list(size_t *sz, size_t idx=0);
 
-        std::vector<list_node_ref_t<leg_list_data_t>> get_leg_list(size_t *sz);
+        std::vector<list_node_ref_t<leg_list_data_t>> get_leg_list(size_t *sz, size_t idx=0);
 
-        size_t get_nd_seg(nd_leg_data_t *out, size_t n_max);
+        size_t get_nd_seg(nd_leg_data_t *out, size_t n_max, size_t idx=0);
 
-        int get_act_leg_idx();
+        int get_act_leg_idx(size_t idx=0);
 
-        bool get_ctr(geo::point *out, bool fo_side);
+        bool get_ctr(geo::point *out, bool fo_side, size_t idx=0);
 
         geo::point get_ac_pos();
 
@@ -119,28 +136,24 @@ namespace test
 
         spd_info_t get_spd_info();
 
-        act_leg_info_t get_act_leg_info();
+        act_leg_info_t get_act_leg_info(size_t idx=0);
 
-        void step_ctr(bool bwd, bool fo_side);
+        void step_ctr(bool bwd, bool fo_side, size_t idx=0);
 
         void update();
 
     private:
-        std::vector<list_node_ref_t<fpl_seg_t>> seg_list;
-        size_t n_act_seg_list_sz;
-        std::vector<list_node_ref_t<leg_list_data_t>> leg_list;
-        size_t n_act_leg_list_sz;
+        std::vector<fpln_info_t> fpl_infos;
 
-        size_t cap_ctr_idx, fo_ctr_idx;
-        double fpl_id_last;
-        int act_leg_idx;
+        size_t act_rte_idx;
+        std::vector<size_t> cdu_rte_idx;
 
 
-        void update_seg_list();
+        void update_seg_list(size_t idx=0);
 
-        void update_leg_list();
+        void update_leg_list(size_t idx=0);
 
-        void update_lists();
+        void update_lists(size_t idx=0);
 
         void update_pos();
     };

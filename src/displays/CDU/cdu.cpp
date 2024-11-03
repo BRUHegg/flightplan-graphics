@@ -8,7 +8,7 @@ namespace StratosphereAvionics
     CDU::CDU(std::shared_ptr<test::FPLSys> fs)
     {
         fpl_sys = fs;
-        fpln = fs->fpl;
+        fpln = fs->fpl_vec[test::ACT_RTE_IDX];
         curr_page = CDUPage::RTE;
         curr_subpg = 1;
         n_subpg = 1;
@@ -258,7 +258,7 @@ namespace StratosphereAvionics
             s_ptr = seg_list[next_idx].ptr;
         }
 
-        bool retval = fpl_sys->fpl->add_enrt_seg({s_ptr, id}, name);
+        bool retval = fpln->add_enrt_seg({s_ptr, id}, name);
 
         if (!retval)
             return NOT_IN_DB_MSG;
@@ -320,7 +320,7 @@ namespace StratosphereAvionics
         }
         libnav::waypoint_t tgt_wpt = {wpt_nm, tgt};
 
-        bool retval = fpl_sys->fpl->awy_insert({s_ptr, id}, tgt_wpt);
+        bool retval = fpln->awy_insert({s_ptr, id}, tgt_wpt);
 
         if (!retval)
             return NOT_IN_DB_MSG;

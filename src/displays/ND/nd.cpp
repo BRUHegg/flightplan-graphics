@@ -36,7 +36,7 @@ namespace StratosphereAvionics
     NDData::NDData(std::shared_ptr<test::FPLSys> fpl_sys)
     {
         m_fpl_sys_ptr = fpl_sys;
-        m_fpl_ptr = fpl_sys->fpl;
+        m_fpl_ptr = fpl_sys->fpl_vec[test::ACT_RTE_IDX];
 
         m_leg_data = new test::nd_leg_data_t[N_LEG_PROJ_CACHE_SZ];
 
