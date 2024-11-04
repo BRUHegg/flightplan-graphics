@@ -9,6 +9,8 @@ namespace StratosphereAvionics
     {
         fpl_sys = fs;
         fpln = fs->fpl_vec[test::ACT_RTE_IDX];
+        sel_fpl_idx = test::ACT_RTE_IDX;
+
         curr_page = CDUPage::RTE;
         curr_subpg = 1;
         n_subpg = 1;
@@ -249,7 +251,8 @@ namespace StratosphereAvionics
 
     std::string CDU::add_via(size_t next_idx, std::string name)
     {
-        double id = fpl_sys->seg_list_id;
+        test::fpln_info_t f_inf = fpl_sys->get_fpl_info(sel_fpl_idx);
+        double id = f_inf.seg_list_id;
         if (name.size() > 7)
             return INVALID_ENTRY_MSG;
         test::seg_list_node_t *s_ptr = nullptr;
@@ -267,7 +270,8 @@ namespace StratosphereAvionics
 
     std::string CDU::delete_via(size_t next_idx)
     {
-        double id = fpl_sys->seg_list_id;
+        test::fpln_info_t f_inf = fpl_sys->get_fpl_info(sel_fpl_idx);
+        double id = f_inf.seg_list_id;
         test::seg_list_node_t *s_ptr = nullptr;
         if (next_idx < n_seg_list_sz)
         {
@@ -282,7 +286,8 @@ namespace StratosphereAvionics
 
     std::string CDU::add_to(size_t next_idx, std::string name)
     {
-        double id = fpl_sys->seg_list_id;
+        test::fpln_info_t f_inf = fpl_sys->get_fpl_info(sel_fpl_idx);
+        double id = f_inf.seg_list_id;
         libnav::waypoint_entry_t tgt;
         std::string wpt_nm;
 
@@ -329,7 +334,8 @@ namespace StratosphereAvionics
 
     std::string CDU::delete_to(size_t next_idx)
     {
-        double id = fpl_sys->seg_list_id;
+        test::fpln_info_t f_inf = fpl_sys->get_fpl_info(sel_fpl_idx);
+        double id = f_inf.seg_list_id;
         test::seg_list_node_t *s_ptr = nullptr;
         if (next_idx < n_seg_list_sz)
         {

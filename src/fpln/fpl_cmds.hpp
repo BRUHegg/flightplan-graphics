@@ -103,13 +103,15 @@ namespace test
             return;
         }
 
-        std::string dep_nm = fpl_sys->fpl->get_dep_icao();
-        std::string arr_nm = fpl_sys->fpl->get_arr_icao();
+        size_t c_idx = fpl_sys->cmd_fpl_idx;
+
+        std::string dep_nm = fpl_sys->fpl_vec[c_idx]->get_dep_icao();
+        std::string arr_nm = fpl_sys->fpl_vec[c_idx]->get_arr_icao();
 
         if(dep_nm != "" && arr_nm != "")
         {
             std::string file_nm = fpl_sys->fpl_dir+dep_nm+arr_nm;
-            libnav::DbErr err = fpl_sys->fpl->load_from_fms(file_nm, false);
+            libnav::DbErr err = fpl_sys->fpl_vec[c_idx]->load_from_fms(file_nm, false);
 
             if(err != libnav::DbErr::SUCCESS && err != libnav::DbErr::PARTIAL_LOAD)
             {
@@ -126,13 +128,15 @@ namespace test
             return;
         }
 
-        std::string dep_nm = fpl_sys->fpl->get_dep_icao();
-        std::string arr_nm = fpl_sys->fpl->get_arr_icao();
+        size_t c_idx = fpl_sys->cmd_fpl_idx;
+
+        std::string dep_nm = fpl_sys->fpl_vec[c_idx]->get_dep_icao();
+        std::string arr_nm = fpl_sys->fpl_vec[c_idx]->get_arr_icao();
 
         if(dep_nm != "" && arr_nm != "")
         {
             std::string out_nm = fpl_sys->fpl_dir+dep_nm+arr_nm;
-            fpl_sys->fpl->save_to_fms(out_nm);
+            fpl_sys->fpl_vec[c_idx]->save_to_fms(out_nm);
         }
     }
 
@@ -170,10 +174,13 @@ namespace test
             std::cout << "Too many arguments provided\n";
             return;
         }
-        std::cout << "Departure: " << fpl_sys->fpl->get_dep_icao() << "\n";
-        std::cout << "Arrival: " << fpl_sys->fpl->get_arr_icao() << "\n";
-        std::cout << "Departure runway: " << fpl_sys->fpl->get_dep_rwy() << "\n";
-        std::cout << "Arrival runway: " << fpl_sys->fpl->get_arr_rwy() << "\n";
+
+        size_t c_idx = fpl_sys->cmd_fpl_idx;
+
+        std::cout << "Departure: " << fpl_sys->fpl_vec[c_idx]->get_dep_icao() << "\n";
+        std::cout << "Arrival: " << fpl_sys->fpl_vec[c_idx]->get_arr_icao() << "\n";
+        std::cout << "Departure runway: " << fpl_sys->fpl_vec[c_idx]->get_dep_rwy() << "\n";
+        std::cout << "Arrival runway: " << fpl_sys->fpl_vec[c_idx]->get_arr_rwy() << "\n";
     }
 
     inline void set_fpl_dep(FPLSys* fpl_sys, std::vector<std::string>& in)
@@ -184,7 +191,9 @@ namespace test
             return;
         }
 
-        libnav::DbErr err = fpl_sys->fpl->set_dep(in[0]);
+        size_t c_idx = fpl_sys->cmd_fpl_idx;
+
+        libnav::DbErr err = fpl_sys->fpl_vec[c_idx]->set_dep(in[0]);
         if(err != libnav::DbErr::SUCCESS && err != libnav::DbErr::PARTIAL_LOAD)
         {
             std::cout << "Invalid entry\n";
@@ -203,7 +212,10 @@ namespace test
             return;
         }
 
-        libnav::DbErr err = fpl_sys->fpl->set_arr(in[0]);
+        size_t c_idx = fpl_sys->cmd_fpl_idx;
+        std::shared_ptr<FplnInt> curr_fpl = fpl_sys->fpl_vec[c_idx];
+
+        libnav::DbErr err = curr_fpl->set_arr(in[0]);
         if(err != libnav::DbErr::SUCCESS && err != libnav::DbErr::PARTIAL_LOAD)
         {
             std::cout << "Invalid entry\n";
@@ -222,7 +234,10 @@ namespace test
             return;
         }
 
-        bool rwy_set = fpl_sys->fpl->set_dep_rwy(in[0]);
+        size_t c_idx = fpl_sys->cmd_fpl_idx;
+        std::shared_ptr<FplnInt> curr_fpl = fpl_sys->fpl_vec[c_idx];
+
+        bool rwy_set = curr_fpl->set_dep_rwy(in[0]);
 
         if(!rwy_set)
         {
@@ -238,7 +253,10 @@ namespace test
             return;
         }
 
-        bool rwy_set = fpl_sys->fpl->set_arr_rwy(in[0]);
+        size_t c_idx = fpl_sys->cmd_fpl_idx;
+        std::shared_ptr<FplnInt> curr_fpl = fpl_sys->fpl_vec[c_idx];
+
+        bool rwy_set = curr_fpl->set_arr_rwy(in[0]);
 
         if(!rwy_set)
         {
@@ -254,7 +272,10 @@ namespace test
             return;
         }
 
-        std::vector<std::string> rwys = fpl_sys->fpl->get_dep_rwys(fpl_sys->flt_rwy, fpl_sys->flt_proc);
+        size_t c_idx = fpl_sys->cmd_fpl_idx;
+        std::shared_ptr<FplnInt> curr_fpl = fpl_sys->fpl_vec[c_idx];
+
+        std::vector<std::string> rwys = curr_fpl->get_dep_rwys(fpl_sys->flt_rwy, fpl_sys->flt_proc);
         for(auto i: rwys)
         {
             std::cout << i << "\n";
@@ -269,7 +290,10 @@ namespace test
             return;
         }
 
-        std::vector<std::string> rwys = fpl_sys->fpl->get_arr_rwys();
+        size_t c_idx = fpl_sys->cmd_fpl_idx;
+        std::shared_ptr<FplnInt> curr_fpl = fpl_sys->fpl_vec[c_idx];
+
+        std::vector<std::string> rwys = curr_fpl->get_arr_rwys();
         for(auto i: rwys)
         {
             std::cout << i << "\n";
@@ -293,6 +317,9 @@ namespace test
             return;
         }
 
+        size_t c_idx = fpl_sys->cmd_fpl_idx;
+        std::shared_ptr<FplnInt> curr_fpl = fpl_sys->fpl_vec[c_idx];
+
         bool is_arr = in[1] != "DEP";
         bool is_trans = in[2] == "TRANS";
 
@@ -301,12 +328,12 @@ namespace test
             std::vector<std::string> procs;
             if(!is_trans)
             {
-                procs = fpl_sys->fpl->get_arpt_proc(ProcType(tmp), is_arr, 
+                procs = curr_fpl->get_arpt_proc(ProcType(tmp), is_arr, 
                     fpl_sys->flt_rwy, fpl_sys->flt_proc);
             }
             else
             {
-                procs = fpl_sys->fpl->get_arpt_proc_trans(ProcType(tmp), false, is_arr);
+                procs = curr_fpl->get_arpt_proc_trans(ProcType(tmp), false, is_arr);
             }
             
             for(auto i: procs)
@@ -325,6 +352,9 @@ namespace test
             return;
         }
 
+        size_t c_idx = fpl_sys->cmd_fpl_idx;
+        std::shared_ptr<FplnInt> curr_fpl = fpl_sys->fpl_vec[c_idx];
+
         int tmp = strutils::stoi_with_strip(in[0]);
 
         if(tmp < 0 || tmp > 2)
@@ -338,11 +368,11 @@ namespace test
         bool ret = false;
         if(is_trans)
         {
-            ret = fpl_sys->fpl->set_arpt_proc_trans(ProcType(tmp), in[1], is_arr);
+            ret = curr_fpl->set_arpt_proc_trans(ProcType(tmp), in[1], is_arr);
         }
         else
         {
-            ret = fpl_sys->fpl->set_arpt_proc(ProcType(tmp), in[1], is_arr);
+            ret = curr_fpl->set_arpt_proc(ProcType(tmp), in[1], is_arr);
         }
 
         if(!ret)
@@ -359,13 +389,15 @@ namespace test
             return;
         }
 
+        size_t c_idx = fpl_sys->cmd_fpl_idx;
+
         bool show_dist_trk = in[0] == "2";
 
         if(in[0] != "1" && in[0] != "2")
             return;
 
         size_t n_legs;
-        auto legs = fpl_sys->get_leg_list(&n_legs);
+        auto legs = fpl_sys->get_leg_list(&n_legs, c_idx);
 
         size_t cnt = 0;
         for(auto i: legs)
@@ -415,17 +447,21 @@ namespace test
             return;
         }
 
+        size_t c_idx = fpl_sys->cmd_fpl_idx;
+        fpln_info_t f_inf = fpl_sys->get_fpl_info(c_idx);
+        std::shared_ptr<FplnInt> curr_fpl = fpl_sys->fpl_vec[c_idx];
+
         size_t idx = size_t(strutils::stoi_with_strip(in[0]));
         size_t n_segs;
-        auto segs = fpl_sys->get_seg_list(&n_segs);
+        auto segs = fpl_sys->get_seg_list(&n_segs, c_idx);
 
         seg_list_node_t *s_ptr = nullptr;
         if(idx < n_segs)
         {
             s_ptr = segs[idx].ptr;
         }
-        double id = fpl_sys->seg_list_id;
-        bool retval = fpl_sys->fpl->add_enrt_seg({s_ptr, id}, in[1]);
+        double id = f_inf.seg_list_id;
+        bool retval = curr_fpl->add_enrt_seg({s_ptr, id}, in[1]);
 
         if(!retval)
         {
@@ -441,17 +477,21 @@ namespace test
             return;
         }
 
+        size_t c_idx = fpl_sys->cmd_fpl_idx;
+        fpln_info_t f_inf = fpl_sys->get_fpl_info(c_idx);
+        std::shared_ptr<FplnInt> curr_fpl = fpl_sys->fpl_vec[c_idx];
+
         size_t idx = size_t(strutils::stoi_with_strip(in[0]));
         size_t n_segs;
-        auto segs = fpl_sys->get_seg_list(&n_segs);
+        auto segs = fpl_sys->get_seg_list(&n_segs, c_idx);
 
         seg_list_node_t *s_ptr = nullptr;
         if(idx < n_segs)
         {
             s_ptr = segs[idx].ptr;
         }
-        double id = fpl_sys->seg_list_id;
-        bool retval = fpl_sys->fpl->delete_via({s_ptr, id});
+        double id = f_inf.seg_list_id;
+        bool retval = curr_fpl->delete_via({s_ptr, id});
 
         if(!retval)
         {
@@ -466,6 +506,10 @@ namespace test
             std::cout << "Command expects 2 arguments: {Next segment index}, {End waypoint name}\n";
             return;
         }
+
+        size_t c_idx = fpl_sys->cmd_fpl_idx;
+        fpln_info_t f_inf = fpl_sys->get_fpl_info(c_idx);
+        std::shared_ptr<FplnInt> curr_fpl = fpl_sys->fpl_vec[c_idx];
 
         std::vector<libnav::waypoint_entry_t> wpt_entr;
         size_t n_found = fpl_sys->navaid_db_ptr->get_wpt_data(in[1], &wpt_entr);
@@ -483,7 +527,7 @@ namespace test
 
         size_t idx = size_t(strutils::stoi_with_strip(in[0]));
         size_t n_segs;
-        auto segs = fpl_sys->get_seg_list(&n_segs);
+        auto segs = fpl_sys->get_seg_list(&n_segs, c_idx);
 
         seg_list_node_t *s_ptr = nullptr;
         if(idx < n_segs)
@@ -491,8 +535,8 @@ namespace test
             s_ptr = segs[idx].ptr;
         }
         libnav::waypoint_t tgt_wpt = {in[1], tgt};
-        double id = fpl_sys->seg_list_id;
-        bool retval = fpl_sys->fpl->awy_insert_str({s_ptr, id}, tgt_wpt.get_awy_id());
+        double id = f_inf.seg_list_id;
+        bool retval = curr_fpl->awy_insert_str({s_ptr, id}, tgt_wpt.get_awy_id());
 
         if(!retval)
         {
@@ -508,17 +552,21 @@ namespace test
             return;
         }
 
+        size_t c_idx = fpl_sys->cmd_fpl_idx;
+        fpln_info_t f_inf = fpl_sys->get_fpl_info(c_idx);
+        std::shared_ptr<FplnInt> curr_fpl = fpl_sys->fpl_vec[c_idx];
+
         size_t idx = size_t(strutils::stoi_with_strip(in[0]));
         size_t n_segs;
-        auto segs = fpl_sys->get_seg_list(&n_segs);
+        auto segs = fpl_sys->get_seg_list(&n_segs, c_idx);
 
         seg_list_node_t *s_ptr = nullptr;
         if(idx < segs.size())
         {
             s_ptr = segs[idx].ptr;
         }
-        double id = fpl_sys->seg_list_id;
-        bool retval = fpl_sys->fpl->delete_seg_end({s_ptr, id});
+        double id = f_inf.seg_list_id;
+        bool retval = curr_fpl->delete_seg_end({s_ptr, id});
 
         if(!retval)
         {
@@ -533,13 +581,16 @@ namespace test
             std::cout << "Command expects 3 arguments: {index}, {L/R CDU}, {L/R Field}, (optional){Scratch pad content. If not empty}\n";
             return;
         }
+
+        size_t c_idx = fpl_sys->cmd_fpl_idx;
+        fpln_info_t f_inf = fpl_sys->get_fpl_info(c_idx);
         
         if(in[2] == "R")
             return;
 
         size_t idx = size_t(strutils::stoi_with_strip(in[0]))+1;
         size_t n_legs;
-        auto legs = fpl_sys->get_leg_list(&n_legs);
+        auto legs = fpl_sys->get_leg_list(&n_legs, c_idx);
 
         if(idx >= n_legs)
         {
@@ -563,7 +614,7 @@ namespace test
             return;
         }
 
-        if(fpl_sys->leg_list_id != ptr->second)
+        if(f_inf.leg_list_id != ptr->second)
         {
             if(in.size() == 4)
             {
@@ -581,7 +632,8 @@ namespace test
                     tgt = select_desired(in[3], wpt_entr);
                 }
 
-                fpl_sys->fpl->add_direct({in[3], tgt}, {legs[idx].ptr, fpl_sys->leg_list_id});
+                fpl_sys->fpl_vec[c_idx]->add_direct({in[3], tgt}, {legs[idx].ptr, 
+                    f_inf.leg_list_id});
             }
             else if(idx < n_legs-1)
             {
@@ -589,7 +641,7 @@ namespace test
                 if(!leg_ptr->data.is_discon)
                 {
                     ptr->first = idx;
-                    ptr->second = fpl_sys->leg_list_id;
+                    ptr->second = f_inf.leg_list_id;
                 }
             }
         }
@@ -610,7 +662,7 @@ namespace test
                     from--;
                 }
 
-                fpl_sys->fpl->dir_from_to({legs[from].ptr, ptr->second}, 
+                fpl_sys->fpl_vec[c_idx]->dir_from_to({legs[from].ptr, ptr->second}, 
                     {legs[to].ptr, ptr->second});
                 ptr->second = -1;
             }
@@ -625,9 +677,12 @@ namespace test
             return;
         }
 
+        size_t c_idx = fpl_sys->cmd_fpl_idx;
+        fpln_info_t f_inf = fpl_sys->get_fpl_info(c_idx);
+
         size_t idx = size_t(strutils::stoi_with_strip(in[0]))+1;
         size_t n_legs;
-        auto legs = fpl_sys->get_leg_list(&n_legs);
+        auto legs = fpl_sys->get_leg_list(&n_legs, c_idx);
 
         if(idx >= n_legs-1)
         {
@@ -635,7 +690,8 @@ namespace test
             return;
         }
 
-        bool ret = fpl_sys->fpl->delete_leg({legs[idx].ptr, fpl_sys->leg_list_id});
+        bool ret = fpl_sys->fpl_vec[c_idx]->delete_leg({legs[idx].ptr, 
+            f_inf.leg_list_id});
 
         if(!ret)
         {
@@ -651,8 +707,10 @@ namespace test
             return;
         }
 
+        size_t c_idx = fpl_sys->cmd_fpl_idx;
+
         size_t n_segs;
-        auto segs = fpl_sys->get_seg_list(&n_segs);
+        auto segs = fpl_sys->get_seg_list(&n_segs, c_idx);
 
         for(size_t i = 0; i < n_segs; i++)
         {
@@ -676,7 +734,9 @@ namespace test
             return;
         }
 
-        fpl_sys->fpl->print_refs();
+        size_t c_idx = fpl_sys->cmd_fpl_idx;
+
+        fpl_sys->fpl_vec[c_idx]->print_refs();
     }
 
     inline void help(FPLSys *fpl_sys, std::vector<std::string>& in);

@@ -27,6 +27,7 @@ namespace test
     const std::string AC_MAGVAR_DEG_VAR = "ac_magvar_deg";
     const std::string AC_GS_KTS_VAR = "ac_gs_kts";
     const std::string AC_TAS_KTS_VAR = "ac_tas_kts";
+    const std::string FPL_SEL = "fpl_sel";
 
     
     // FplSys stores 3 routes in fpl_vec
@@ -43,15 +44,17 @@ namespace test
     constexpr double AC_MAGVAR_DEF = 0;
     constexpr double AC_GS_KTS_DEF = 0;
     constexpr double AC_TAS_KTS_DEF = 0;
+    constexpr double FPL_SEL_DEF = 1;
+
     constexpr double DIST_FONT_SZ_DD = 21; // Double digits;
     constexpr double DIST_FONT_SZ_TD = 19;
 
     const std::vector<std::string> RSV_VARS = {AC_LAT_DEG_VAR, AC_LON_DEG_VAR, 
         AC_BRNG_TRU_DEG_VAR, AC_SLIP_DEG_VAR, AC_MAGVAR_DEG_VAR, AC_GS_KTS_VAR,
-        AC_TAS_KTS_VAR};
+        AC_TAS_KTS_VAR, FPL_SEL};
 
     const std::vector<double> RSV_VAR_VAL = {AC_LAT_DEF, AC_LON_DEF, AC_BRNG_TRU_DEF,
-        AC_SLIP_DEF, AC_MAGVAR_DEF, AC_GS_KTS_DEF, AC_TAS_KTS_DEF};
+        AC_SLIP_DEF, AC_MAGVAR_DEF, AC_GS_KTS_DEF, AC_TAS_KTS_DEF, FPL_SEL_DEF};
 
 
     struct hdg_info_t
@@ -72,12 +75,18 @@ namespace test
 
     struct fpln_info_t
     {
-        std::vector<list_node_ref_t<fpl_seg_t>> seg_list;
-        std::vector<list_node_ref_t<leg_list_data_t>> leg_list;
+        double leg_list_id;
+        double seg_list_id;
 
         size_t cap_ctr_idx, fo_ctr_idx;
         double fpl_id_last;
         int act_leg_idx;
+    };
+
+    struct fpln_data_t: fpln_info_t
+    {
+        std::vector<list_node_ref_t<fpl_seg_t>> seg_list;
+        std::vector<list_node_ref_t<leg_list_data_t>> leg_list;
     };
 
     class FPLSys
@@ -93,9 +102,8 @@ namespace test
         // Speed
         double ac_gs_kts;
         double ac_tas_kts;
-
-        double leg_list_id;
-        double seg_list_id;
+        
+        size_t cmd_fpl_idx;
 
         bool flt_rwy, flt_proc, flt_trans;
 
@@ -136,6 +144,8 @@ namespace test
 
         spd_info_t get_spd_info();
 
+        fpln_info_t get_fpl_info(size_t idx=0);
+
         act_leg_info_t get_act_leg_info(size_t idx=0);
 
         void step_ctr(bool bwd, bool fo_side, size_t idx=0);
@@ -143,7 +153,7 @@ namespace test
         void update();
 
     private:
-        std::vector<fpln_info_t> fpl_infos;
+        std::vector<fpln_data_t> fpl_datas;
 
         size_t act_rte_idx;
         std::vector<size_t> cdu_rte_idx;

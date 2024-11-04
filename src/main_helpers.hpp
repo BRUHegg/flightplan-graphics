@@ -13,7 +13,7 @@
 
 
 #include "fpln/fpln_sys.hpp"
-//#include "fpln/fpl_cmds.hpp"
+#include "fpln/fpl_cmds.hpp"
 #include "displays/ND/nd.hpp"
 #include "displays/CDU/cdu.hpp"
 #include <iostream>
@@ -157,7 +157,7 @@ namespace test
             get_paths_from_user();
             get_pre_exec_cmds();
             create_avionics();
-            //pre_execute_cmds();
+            pre_execute_cmds();
         }
 
         void execute_cmd(std::string in_raw)
@@ -171,15 +171,15 @@ namespace test
                 std::vector<std::string> args = std::vector<std::string>(line_split.begin() + 1, 
                     line_split.end());
 
-                //if(test::cmd_map.find(cmd_name) != test::cmd_map.end())
-                //{
-                //    test::FPLSys *ptr = avncs->fpl_sys.get();
-                //    test::cmd_map[cmd_name](ptr, args);
-                //}
-                //else
-                //{
-                //    std::cout << "Invalid command name\n";
-                //}
+                if(test::cmd_map.find(cmd_name) != test::cmd_map.end())
+                {
+                    test::FPLSys *ptr = avncs->fpl_sys.get();
+                    test::cmd_map[cmd_name](ptr, args);
+                }
+                else
+                {
+                    std::cout << "Invalid command name\n";
+                }
             }
         }
 

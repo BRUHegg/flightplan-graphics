@@ -143,6 +143,8 @@ namespace StratosphereAvionics
     private:
         std::shared_ptr<test::FPLSys> fpl_sys;
         std::shared_ptr<test::FplnInt> fpln;
+        size_t sel_fpl_idx;
+        
         CDUPage curr_page;
         int n_subpg;
         int curr_subpg;
