@@ -314,8 +314,13 @@ namespace test
     {
         if(m_exec_st)
         {
-            fpl_vec[act_rte_idx]->copy_from_other(*fpl_vec[0]);
             m_exec_st = false;
+            if(act_id == -1)
+            {
+                act_rte_idx = N_FPL_SYS_RTES;
+                return;
+            }
+            fpl_vec[act_rte_idx]->copy_from_other(*fpl_vec[0]);
             act_id = fpl_vec[act_rte_idx]->get_id();
         }
     }
