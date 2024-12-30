@@ -403,7 +403,8 @@ namespace StratosphereAvionics
                 std::string seg_nm = curr_sg.data.name;
                 std::string curr_seg = seg_nm + std::string(N_CDU_DATA_COLS - seg_nm.size() - end_nm.size(), ' ') + end_nm;
                 in->data_lines.push_back(curr_seg);
-                in->data_lines.push_back("");
+                if(i < i_start+4)
+                    in->data_lines.push_back("");
             }
         }
         if (i_end - i_start < N_CDU_LEG_PP)
@@ -964,10 +965,13 @@ namespace StratosphereAvionics
             get_seg_page(&out);
         }
 
-        if (curr_subpg != 1)
-            out.data_lines.push_back(ALL_DASH);
-        else
-            out.data_lines.push_back("");
+        if(out.data_lines.size() == 10)
+        {
+            if (curr_subpg != 1)
+                out.data_lines.push_back(ALL_DASH);
+            else
+                out.data_lines.push_back("");
+        }
 
         bool exec_lt = fpl_sys->get_exec();
         size_t c_act = fpl_sys->get_act_idx();
