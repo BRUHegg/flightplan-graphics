@@ -69,8 +69,22 @@ namespace test
         }
 
         cdu_rte_idx = std::vector<size_t>(2);
+        act_rte_idx = N_FPL_SYS_RTES;
+        act_id = -1;
+
+        m_exec_st = false;
 
         update_pos();
+    }
+
+    bool FPLSys::get_exec()
+    {
+        return m_exec_st;
+    }
+
+    size_t FPLSys::get_act_idx()
+    {
+        return act_rte_idx;
     }
 
     std::vector<list_node_ref_t<fpl_seg_t>> FPLSys::get_seg_list(size_t *sz, size_t idx)
@@ -277,6 +291,35 @@ namespace test
         }
     }
 
+    void FPLSys::rte_activate(size_t idx)
+    {
+        assert(idx && idx < N_FPL_SYS_RTES);
+
+        if(fpl_datas[idx].act_leg_idx == -1)
+            return;
+        act_rte_idx = idx;
+    }
+
+    void FPLSys::execute()
+    {
+        if(m_exec_st)
+        {
+            fpl_vec[0]->copy_from_other(*fpl_vec[act_rte_idx]);
+            m_exec_st = false;
+            act_id = fpl_vec[act_rte_idx]->get_id();
+        }
+    }
+
+    void FPLSys::erase()
+    {
+        if(m_exec_st)
+        {
+            fpl_vec[act_rte_idx]->copy_from_other(*fpl_vec[0]);
+            m_exec_st = false;
+            act_id = fpl_vec[act_rte_idx]->get_id();
+        }
+    }
+
     void FPLSys::update()
     {
         update_pos();
@@ -285,6 +328,19 @@ namespace test
         {
             fpl_vec[i]->update(0);
             update_lists(i);
+        }
+
+        if(act_rte_idx < N_FPL_SYS_RTES && 
+            act_id != fpl_vec[act_rte_idx]->get_id())
+        {
+            m_exec_st = true;
+        }
+
+        if(fpl_datas[act_rte_idx].act_leg_idx == -1)
+        {
+            act_rte_idx = N_FPL_SYS_RTES;
+            m_exec_st = false;
+            act_id = -1;
         }
     }
 

@@ -128,6 +128,10 @@ namespace test
             std::shared_ptr<libnav::AwyDB> awy_db, std::string cifp_path, 
             std::string fpl_path);
 
+        bool get_exec();
+
+        size_t get_act_idx();
+
         std::vector<list_node_ref_t<fpl_seg_t>> get_seg_list(size_t *sz, size_t idx=0);
 
         std::vector<list_node_ref_t<leg_list_data_t>> get_leg_list(size_t *sz, size_t idx=0);
@@ -150,13 +154,22 @@ namespace test
 
         void step_ctr(bool bwd, bool fo_side, size_t idx=0);
 
+        void rte_activate(size_t idx);
+
+        void execute();
+
+        void erase();
+
         void update();
 
     private:
         std::vector<fpln_data_t> fpl_datas;
 
         size_t act_rte_idx;
+        double act_id;
         std::vector<size_t> cdu_rte_idx;
+
+        bool m_exec_st;
 
 
         void update_seg_list(size_t idx=0);

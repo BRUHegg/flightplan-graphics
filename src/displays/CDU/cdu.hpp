@@ -103,6 +103,8 @@ namespace StratosphereAvionics
     const std::string DEP_ARR_BOTTOM = "<INDEX            ROUTE>";
     const std::string ARR_RWYS_STARS = " STARS   RTE 1   RUNWAYS";
     const std::string ARR_RWYS = std::string(17, ' ') + "RUNWAYS";
+    const std::string ALL_DASH = std::string(N_CDU_DATA_COLS, '-');
+    const std::string ERASE_NML = "<ERASE";
 
 
     const std::vector<CDUPage> CDU_PAGE_FACES = {

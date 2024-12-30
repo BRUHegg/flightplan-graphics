@@ -8,8 +8,8 @@ namespace StratosphereAvionics
     CDU::CDU(std::shared_ptr<test::FPLSys> fs)
     {
         fpl_sys = fs;
-        fpln = fs->fpl_vec[test::ACT_RTE_IDX];
-        sel_fpl_idx = test::ACT_RTE_IDX;
+        sel_fpl_idx = test::RTE1_IDX;
+        fpln = fs->fpl_vec[sel_fpl_idx];
 
         curr_page = CDUPage::RTE;
         curr_subpg = 1;
@@ -37,8 +37,9 @@ namespace StratosphereAvionics
 
     void CDU::update()
     {
-        seg_list = fpl_sys->get_seg_list(&n_seg_list_sz);
-        leg_list = fpl_sys->get_leg_list(&n_leg_list_sz);
+        seg_list = fpl_sys->get_seg_list(&n_seg_list_sz, sel_fpl_idx);
+        leg_list = fpl_sys->get_leg_list(&n_leg_list_sz, sel_fpl_idx);
+        fpln = fpl_sys->fpl_vec[sel_fpl_idx];
 
         if (sel_des)
         {
@@ -65,6 +66,8 @@ namespace StratosphereAvionics
 
     std::string CDU::on_event(int event_key, std::string scratchpad, std::string *s_out)
     {
+        if(event_key == CDU_KEY_EXEC)
+            fpl_sys->execute();
         if (event_key > CDU_KEY_RSK_TOP + 5 && event_key < CDU_KEY_A)
         {
             CDUPage pg = CDU_PAGE_FACES[event_key - CDU_KEY_RSK_TOP - 6];
@@ -694,6 +697,24 @@ namespace StratosphereAvionics
             {
                 return save_rte();
             }
+            else if(event_key == CDU_KEY_RSK_TOP + 5)
+            {
+                bool exec_lt = fpl_sys->get_exec();
+                if(exec_lt)
+                    return "";
+                size_t act_idx = fpl_sys->get_act_idx();
+                if(sel_fpl_idx != act_idx)
+                {
+                    fpl_sys->rte_activate(sel_fpl_idx);
+                }
+            }
+            else if(event_key == CDU_KEY_LSK_TOP + 5)
+            {
+                if(sel_fpl_idx == test::RTE1_IDX)
+                    sel_fpl_idx = test::RTE2_IDX;
+                else
+                    sel_fpl_idx = test::RTE1_IDX;
+            }
         }
         else
         {
@@ -855,7 +876,14 @@ namespace StratosphereAvionics
         cdu_scr_data_t out = {};
         out.heading_small = get_small_heading();
         std::string rte_offs = std::string(6, ' ');
-        out.heading_big = rte_offs + "RTE1";
+        std::string c_rte_top = "RTE1";
+        std::string c_rte_btm = "<RTE 1";
+        if(sel_fpl_idx == test::RTE2_IDX)
+        {
+            c_rte_top = "RTE2";
+            c_rte_btm = "<RTE 2";
+        }
+        out.heading_big = rte_offs + c_rte_top;
         out.heading_color = CDUColor::CYAN;
 
         if (curr_subpg == 1)
@@ -900,13 +928,26 @@ namespace StratosphereAvionics
             std::string rte_final = " ROUTE ";
             out.data_lines.push_back(rte_final + std::string(size_t(N_CDU_DATA_COLS) - 7, '-'));
             out.data_lines.push_back("<SAVE" + std::string(size_t(N_CDU_DATA_COLS) - 10, ' ') + "ALTN>");
-            out.data_lines.push_back("");
-            out.data_lines.push_back("<RTE 2" + std::string(size_t(N_CDU_DATA_COLS) - 15, ' ') + "ACTIVATE>");
         }
         else
         {
             get_seg_page(&out);
         }
+
+        if(curr_subpg != 1)
+            out.data_lines.push_back(ALL_DASH);
+        else
+            out.data_lines.push_back("");
+
+        bool exec_lt = fpl_sys->get_exec();
+        size_t c_act = fpl_sys->get_act_idx();
+        std::string btm_line_nrm = c_rte_btm;
+        if(c_act != sel_fpl_idx)
+            btm_line_nrm += std::string(size_t(N_CDU_DATA_COLS) - 15, ' ') + "ACTIVATE>";
+        if(!exec_lt)
+            out.data_lines.push_back(btm_line_nrm);
+        else
+            out.data_lines.push_back(ERASE_NML);
 
         return out;
     }
@@ -1044,7 +1085,7 @@ namespace StratosphereAvionics
         {
             int event = int(key_map->get_at(size_t(pos.x), size_t(pos.y)));
 
-            if (event && event < CDU_KEY_A)
+            if (event && (event < CDU_KEY_A || event == CDU_KEY_EXEC))
             {
                 std::string scratch_proc = strutils::strip(scratchpad);
                 std::string scr_out;
