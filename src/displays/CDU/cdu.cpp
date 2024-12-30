@@ -67,7 +67,11 @@ namespace StratosphereAvionics
     std::string CDU::on_event(int event_key, std::string scratchpad, std::string *s_out)
     {
         if (event_key == CDU_KEY_EXEC)
+        {
             fpl_sys->execute();
+            return "";
+        }
+            
         if (event_key > CDU_KEY_RSK_TOP + 5 && event_key < CDU_KEY_A)
         {
             CDUPage pg = CDU_PAGE_FACES[event_key - CDU_KEY_RSK_TOP - 6];
