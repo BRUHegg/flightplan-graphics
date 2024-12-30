@@ -904,18 +904,31 @@ namespace StratosphereAvionics
 
     cdu_scr_data_t CDU::get_rte_page()
     {
+        size_t c_act = fpl_sys->get_act_idx();
+        bool exec_lt = fpl_sys->get_exec();
+
         cdu_scr_data_t out = {};
         out.heading_small = get_small_heading();
-        std::string rte_offs = std::string(6, ' ');
+        std::string rte_offs = std::string(2, ' ');
+        std::string act_sts = std::string(4, ' ');
+        
+        out.heading_color = CDUColor::CYAN;
+        if(sel_fpl_idx == c_act)
+        {
+            if(exec_lt)
+                act_sts = MOD + " ";
+            else
+                act_sts = ACT + " ";
+            out.heading_color = CDUColor::WHITE;
+        }
         std::string c_rte_top = "RTE1";
-        std::string c_rte_btm = "<RTE 1";
+        std::string c_rte_btm = "<RTE 2";
         if (sel_fpl_idx == test::RTE2_IDX)
         {
             c_rte_top = "RTE2";
-            c_rte_btm = "<RTE 2";
+            c_rte_btm = "<RTE 1";
         }
-        out.heading_big = rte_offs + c_rte_top;
-        out.heading_color = CDUColor::CYAN;
+        out.heading_big = rte_offs + act_sts + c_rte_top;
 
         if (curr_subpg == 1)
         {
@@ -972,9 +985,7 @@ namespace StratosphereAvionics
             else
                 out.data_lines.push_back("");
         }
-
-        bool exec_lt = fpl_sys->get_exec();
-        size_t c_act = fpl_sys->get_act_idx();
+        
         std::string btm_line_nrm = c_rte_btm;
         if (c_act != sel_fpl_idx)
             btm_line_nrm += std::string(size_t(N_CDU_DATA_COLS) - 15, ' ') + "ACTIVATE>";
