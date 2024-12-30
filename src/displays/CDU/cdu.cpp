@@ -64,11 +64,22 @@ namespace StratosphereAvionics
         }
     }
 
+    bool CDU::get_exec_lt()
+    {
+        size_t f_act = fpl_sys->get_act_idx();
+        bool e_st = fpl_sys->get_exec();
+        if(f_act == sel_fpl_idx)
+            return e_st;
+        return false;
+    }
+
     std::string CDU::on_event(int event_key, std::string scratchpad, std::string *s_out)
     {
         if (event_key == CDU_KEY_EXEC)
         {
-            fpl_sys->execute();
+            size_t f_act = fpl_sys->get_act_idx();
+            if(f_act == sel_fpl_idx)
+                fpl_sys->execute();
             return "";
         }
             
@@ -1132,6 +1143,10 @@ namespace StratosphereAvionics
         cairo_utils::draw_image(cr, tex_mngr->data[CDU_TEXTURE_NAME], scr_pos,
                                 tex_scale, false);
 
+        bool dr_exc = cdu_ptr->get_exec_lt();
+        if(dr_exc)
+            draw_exec(cr);
+
         draw_screen(cr);
     }
 
@@ -1301,6 +1316,15 @@ namespace StratosphereAvionics
             draw_cdu_letter(cr, s[i], pos, scale, font_sfc);
             pos.x += l_intv_px;
         }
+    }
+
+    void CDUDisplay::draw_exec(cairo_t *cr)
+    {
+        geom::vect2_t lt_pos = {scr_pos.x + size.x * EXEC_LT_POS.x, 
+            scr_pos.y + size.y * EXEC_LT_POS.y};
+        geom::vect2_t lt_sz = {size.x * EXEC_LT_SZ.x, size.y * EXEC_LT_SZ.y};
+
+        cairo_utils::draw_rect(cr, lt_pos, lt_sz, EXEC_LT_CLR);
     }
 
     void CDUDisplay::draw_screen(cairo_t *cr)

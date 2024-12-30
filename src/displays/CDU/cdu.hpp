@@ -79,6 +79,11 @@ namespace StratosphereAvionics
     constexpr geom::vect2_t CDU_SMALL_TEXT_SZ = {0.7, 0.7};
     constexpr geom::vect2_t CDU_BIG_TEXT_SZ = {0.9, 0.96};
 
+    constexpr geom::vect2_t EXEC_LT_POS = {0.793, 0.582 * 0.964};
+    constexpr geom::vect2_t EXEC_LT_SZ = {0.08 * 1.2 * 0.75, 
+        0.7 * 0.08 * 1.08 * 0.37 * 0.5};
+    constexpr geom::vect3_t EXEC_LT_CLR = {0.955, 0.906, 0.269};
+
     const std::string INVALID_ENTRY_MSG = "INVALID ENTRY";
     const std::string NOT_IN_DB_MSG = "NOT IN DATA BASE";
     const std::string INVALID_DELETE_MSG = "INVALID DELETE";
@@ -137,6 +142,8 @@ namespace StratosphereAvionics
         CDU(std::shared_ptr<test::FPLSys> fs);
 
         void update();
+
+        bool get_exec_lt();
 
         std::string on_event(int event_key, std::string scratchpad, std::string *s_out);
 
@@ -283,6 +290,8 @@ namespace StratosphereAvionics
 
         void draw_cdu_line(cairo_t *cr, std::string& s, geom::vect2_t pos, 
             geom::vect2_t scale, double l_intv_px, CDUColor color=CDUColor::WHITE);
+
+        void draw_exec(cairo_t *cr);
         
         void draw_screen(cairo_t *cr);
     };

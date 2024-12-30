@@ -120,6 +120,8 @@ namespace cairo_utils
     {
         if(line_width > 0)
             prepare_cairo_context(cr, color, line_width);
+        else
+            cairo_set_source_rgb(cr, color.x, color.y, color.z);
 
         cairo_rectangle(cr, pos.x, pos.y, sz.x, sz.y);
 
