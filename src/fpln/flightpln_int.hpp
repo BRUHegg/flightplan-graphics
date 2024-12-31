@@ -208,11 +208,17 @@ namespace test
 
         bool delete_leg(timed_ptr_t<leg_list_node_t> next);
 
+        void activate();
+
+        void deactivate();
+
         // Calculation function
 
         void update(double hdg_trk_diff);
 
     private:
+        bool is_act;
+
         std::string arr_rwy;
         bool appr_is_rwy;
 

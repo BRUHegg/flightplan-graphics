@@ -246,6 +246,8 @@ namespace test
         has_dep_rnw_data = false;
         has_arr_rnw_data = false;
 
+        is_act = false;
+
         arr_rwy = "";
         appr_is_rwy = false;
     }
@@ -1327,18 +1329,14 @@ namespace test
     {
         if (act_leg == nullptr)
         {
-            size_t idx = FPL_SEG_SID;
-            seg_list_node_t *seg = fpl_refs[idx].ptr;
-            while (seg == nullptr && idx < FPL_SEG_APPCH)
+            leg_list_node_t *curr = &(leg_list.head);
+            curr = curr->next;
+            if (curr->data.misc_data.is_rwy && curr != &(leg_list.tail))
             {
-                idx++;
-                seg = fpl_refs[idx].ptr;
+                curr = curr->next;
             }
-
-            if(seg != nullptr)
-            {
-                act_leg = seg->prev->data.end->next;
-            }
+            if(curr != &(leg_list.tail))
+                act_leg = curr;
         }
     }
 
@@ -2463,8 +2461,6 @@ namespace test
 
         leg->data.misc_data = {};
         leg->data.misc_data.turn_rad_nm = -1;
-        if (leg->data.leg.main_fix.id == "DF416")
-            assert(!isnanl(leg->data.misc_data.turn_rad_nm));
 
         if (curr_arinc_leg.has_main_fix &&
             curr_arinc_leg.main_fix.data.type == libnav::NavaidType::RWY)
