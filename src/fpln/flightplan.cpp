@@ -44,6 +44,8 @@ namespace test
         arrival = nullptr;
         act_leg = nullptr;
 
+        is_act = false;
+
         arpt_db = apt_db;
         navaid_db = nav_db;
 
@@ -165,6 +167,34 @@ namespace test
         }
 
         return seg_list.id;
+    }
+
+    bool FlightPlan::is_active()
+    {
+        return is_act;
+    }
+
+    bool FlightPlan::can_activate()
+    {
+        leg_list_node_t *curr = &(leg_list.head);
+        curr = curr->next;
+        if(curr->data.misc_data.is_rwy && curr != &(leg_list.tail))
+            curr = curr->next;
+        if(curr != &(leg_list.tail) && !curr->data.misc_data.has_disc)
+            return true;
+        return false;
+    }
+
+    void FlightPlan::activate()
+    {
+        std::lock_guard<std::mutex> lock(fpl_mtx);
+        is_act = true;
+    }
+
+    void FlightPlan::deactivate()
+    {
+        std::lock_guard<std::mutex> lock(fpl_mtx);
+        is_act = false;
     }
 
     void FlightPlan::print_refs()
@@ -514,6 +544,7 @@ namespace test
 
         delete_between(leg_start, leg_end);
 
+        is_act = false;
         act_leg = nullptr;
 
         seg_list_node_t *start = seg_start;

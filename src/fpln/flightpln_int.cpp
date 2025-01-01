@@ -246,8 +246,6 @@ namespace test
         has_dep_rnw_data = false;
         has_arr_rnw_data = false;
 
-        is_act = false;
-
         arr_rwy = "";
         appr_is_rwy = false;
     }
@@ -1044,7 +1042,7 @@ namespace test
         if (curr.id == seg_list.id && curr.ptr != &(seg_list.head) && curr.ptr != nullptr &&
             curr.ptr->prev != &(seg_list.head))
         {
-            if (curr.ptr == act_leg->data.seg)
+            if (act_leg != nullptr && curr.ptr == act_leg->data.seg)
                 return false;
             if (!curr.ptr->data.is_discon && !curr.ptr->data.is_direct)
             {
@@ -1063,7 +1061,7 @@ namespace test
         if (curr.id == seg_list.id && curr.ptr != &(seg_list.head) && curr.ptr != nullptr &&
             !curr.ptr->data.is_discon && curr.ptr != &(seg_list.tail))
         {
-            if (curr.ptr == act_leg->data.seg)
+            if (act_leg != nullptr && curr.ptr == act_leg->data.seg)
                 return false;
 
             seg_list_node_t *next = curr.ptr->next;
@@ -1181,9 +1179,11 @@ namespace test
 
                 leg_curr = next_leg;
             }
-            update_act_leg();
+            
             fpl_id_calc = fpl_id_curr;
         }
+
+        update_act_leg();
     }
 
     // Private functions:
@@ -1327,6 +1327,12 @@ namespace test
 
     void FplnInt::update_act_leg()
     {
+        if(!is_act)
+        {
+            act_leg = nullptr;
+            return;
+        }
+            
         if (act_leg == nullptr)
         {
             leg_list_node_t *curr = &(leg_list.head);

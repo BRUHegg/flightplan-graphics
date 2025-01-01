@@ -200,11 +200,20 @@ namespace test
         double get_sl_seg(size_t start, size_t l, 
             std::vector<list_node_ref_t<fpl_seg_t>> *out);
 
+        bool is_active();
+
+        bool can_activate();
+
+        void activate();
+
+        void deactivate();
+
         ~FlightPlan();
 
         void print_refs();
 
     protected:
+        bool is_act;
         std::shared_ptr<libnav::ArptDB> arpt_db;
         std::shared_ptr<libnav::NavaidDB> navaid_db;
 

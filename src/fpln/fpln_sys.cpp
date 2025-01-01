@@ -295,7 +295,7 @@ namespace test
     {
         assert(idx && idx < N_FPL_SYS_RTES);
 
-        if(fpl_datas[idx].act_leg_idx == -1)
+        if(!fpl_vec[idx]->can_activate())
             return;
         act_rte_idx = idx;
     }
@@ -331,6 +331,14 @@ namespace test
 
         for(size_t i = 0; i < N_FPL_SYS_RTES; i++)
         {
+            bool cr_is_act = fpl_vec[i]->is_active();
+            if(!m_exec_st)
+            {
+                 if((i == act_rte_idx || i == 0) && !cr_is_act)
+                    fpl_vec[i]->activate();
+                else if((i != act_rte_idx && i) && cr_is_act)
+                    fpl_vec[i]->deactivate();
+            }
             fpl_vec[i]->update(0);
             update_lists(i);
         }
@@ -341,7 +349,7 @@ namespace test
             m_exec_st = true;
         }
 
-        if(fpl_datas[act_rte_idx].act_leg_idx == -1)
+        if(act_rte_idx < N_FPL_SYS_RTES && !fpl_vec[act_rte_idx]->can_activate())
         {
             act_rte_idx = N_FPL_SYS_RTES;
             m_exec_st = false;

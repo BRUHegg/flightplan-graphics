@@ -312,7 +312,7 @@ namespace geom
 
         double ang_start_rad = atan2(v_start.y, v_start.x);
         double ang_end_rad = atan2(v_end.y, v_end.x);
-        assert(!isnanl(ang_start_rad) && !isnanl(ang_end_rad));
+        assert(!isnan(ang_start_rad) && !isnan(ang_end_rad));
 
         if(ang_start_rad < 0)
             ang_start_rad += 2 * M_PI;
