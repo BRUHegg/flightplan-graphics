@@ -1121,10 +1121,21 @@ namespace StratosphereAvionics
 
         scratchpad = std::string(size_t(N_CDU_DATA_COLS), ' ');
         scratch_curr = 0;
+
+        last_press_tp = std::chrono::steady_clock::now();
     }
 
     void CDUDisplay::on_click(geom::vect2_t pos)
     {
+        auto curr_tp = std::chrono::steady_clock::now();
+        std::chrono::duration<double> dur = curr_tp - last_press_tp;
+        double dur_cnt = dur.count();
+
+        last_press_tp = curr_tp;
+
+        if(dur_cnt < CDU_PRS_INTV_SEC)
+            return;
+
         pos = (pos - scr_pos) / tex_scale;
         if (pos.x >= 0 && pos.y >= 0 && pos.x < tex_size.x && pos.y < tex_size.y)
         {

@@ -5,7 +5,11 @@
 #include "common/cairo_utils.hpp"
 #include "common/bytemap.hpp"
 #include "fpln/fpln_sys.hpp"
+
+#define FPL_DEBUG
+#ifdef FPL_DEBUG
 #include <iostream>
+#endif
 
 
 namespace StratosphereAvionics
@@ -73,6 +77,9 @@ namespace StratosphereAvionics
     constexpr double CDU_LETTER_HEIGHT = 39;
 
     constexpr double CDU_TEXTURE_ASPECT_RATIO = (488.0/751.0);
+
+    // Time
+    constexpr double CDU_PRS_INTV_SEC = 0.001; // Threshold to skip gtk's double-clicks
 
     constexpr geom::vect2_t DISPLAY_OFFS = {0.14, 0.068};
     constexpr geom::vect2_t DISPLAY_SZ = {0.9, 0.378};
@@ -278,6 +285,8 @@ namespace StratosphereAvionics
         size_t scratch_curr;
 
         std::stack<std::string> msg_stack;
+
+        std::chrono::time_point<std::chrono::steady_clock> last_press_tp;
 
 
         void add_to_scratchpad(char c);
