@@ -228,6 +228,8 @@ namespace StratosphereAvionics
 
         void set_fpl_proc(int event, test::ProcType ptp, bool is_arr);
 
+        void get_rte_dep_arr(cdu_scr_data_t& out, bool rte2=false);
+
 
         int get_n_sel_des_subpg();
 

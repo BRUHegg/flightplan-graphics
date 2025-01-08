@@ -633,6 +633,48 @@ namespace StratosphereAvionics
         }
     }
 
+    void CDU::get_rte_dep_arr(cdu_scr_data_t& out, bool rte2)
+    {
+        size_t v_idx = test::RTE1_IDX;
+        if(rte2)
+            v_idx = test::RTE2_IDX;
+
+        std::shared_ptr<test::FplnInt> cr_fpln = fpl_sys->fpl_vec[v_idx];
+        
+        std::string dep = cr_fpln->get_dep_icao();
+        std::string arr = cr_fpln->get_arr_icao();
+
+        std::string act_sts = " ";
+        size_t act_idx = fpl_sys->get_act_idx();
+        if(act_idx == v_idx)
+            act_sts = "(ACT)";
+        std::string hdg = "RTE 1";
+        if(rte2)
+            hdg = "RTE 2";
+        hdg = hdg + act_sts;
+
+        if (dep != "" || arr != "")
+        {
+            out.data_lines.push_back(std::string(8, ' ') + hdg);
+            if (dep != "")
+                out.data_lines.push_back(DEP_ARR_DEP_OPT + dep + DEP_ARR_ARR_OPT);
+            else
+                out.data_lines.push_back(DEP_ARR_DEP_OPT + "    " + DEP_ARR_ARR_OPT);
+            out.data_lines.push_back("");
+            if (arr != "")
+                out.data_lines.push_back(std::string(DEP_ARR_DEP_OPT.size(), ' ') + arr + DEP_ARR_ARR_OPT);
+            else
+                out.data_lines.push_back(std::string(DEP_ARR_DEP_OPT.size(), ' ') + "    " + DEP_ARR_ARR_OPT);
+        }
+        else
+        {
+            out.data_lines.push_back(DEP_ARR_IDX_DASH_L + hdg + DEP_ARR_IDX_DASH_R);
+            out.data_lines.push_back("");
+            out.data_lines.push_back("");
+            out.data_lines.push_back("");
+        }
+    }
+
     int CDU::get_n_sel_des_subpg()
     {
         return int(sel_des_data.size()) / 6 + bool(int(sel_des_data.size()) % 6);
@@ -1005,34 +1047,9 @@ namespace StratosphereAvionics
         out.heading_big = hdg_offs + DEP_ARR_HDG;
         out.heading_color = CDUColor::WHITE;
 
-        std::string dep = fpln->get_dep_icao();
-        std::string arr = fpln->get_arr_icao();
+        get_rte_dep_arr(out);
+        get_rte_dep_arr(out, true);
 
-        if (dep != "" || arr != "")
-        {
-            out.data_lines.push_back(std::string(8, ' ') + "RTE 1");
-            if (dep != "")
-                out.data_lines.push_back(DEP_ARR_DEP_OPT + dep + DEP_ARR_ARR_OPT);
-            else
-                out.data_lines.push_back(DEP_ARR_DEP_OPT + "    " + DEP_ARR_ARR_OPT);
-            out.data_lines.push_back("");
-            if (arr != "")
-                out.data_lines.push_back(std::string(DEP_ARR_DEP_OPT.size(), ' ') + arr + DEP_ARR_ARR_OPT);
-            else
-                out.data_lines.push_back(std::string(DEP_ARR_DEP_OPT.size(), ' ') + "    " + DEP_ARR_ARR_OPT);
-        }
-        else
-        {
-            out.data_lines.push_back(DEP_ARR_IDX_DASH_L + "RTE 1 " + DEP_ARR_IDX_DASH_R);
-            out.data_lines.push_back("");
-            out.data_lines.push_back("");
-            out.data_lines.push_back("");
-        }
-
-        out.data_lines.push_back(DEP_ARR_IDX_DASH_L + "RTE 2 " + DEP_ARR_IDX_DASH_R);
-        out.data_lines.push_back("");
-        out.data_lines.push_back("");
-        out.data_lines.push_back("");
         out.data_lines.push_back(std::string(N_CDU_DATA_COLS, '-'));
         out.data_lines.push_back("");
         out.data_lines.push_back(DEP_ARR_IDX_OTHER);
