@@ -71,6 +71,8 @@ namespace test
         leg_list.head.data.seg = &seg_list.head;
         leg_list.tail.data.seg = &seg_list.tail;
 
+        dep_legs = new libnav::arinc_leg_t[libnav::N_FLT_LEG_CACHE_SZ];
+        arr_legs = new libnav::arinc_leg_t[libnav::N_FLT_LEG_CACHE_SZ];
 
         start = std::chrono::steady_clock::now();
         fpl_id_curr = 0;
@@ -229,7 +231,8 @@ namespace test
         return leg1.main_fix == leg2.main_fix;
     }
 
-    libnav::DbErr FlightPlan::set_arpt(std::string icao, libnav::Airport **ptr, bool is_arr)
+    libnav::DbErr FlightPlan::set_arpt(std::string icao, libnav::Airport **ptr, 
+        bool is_arr, libnav::arinc_leg_t *buf)
     {
         if(*ptr != nullptr && (*ptr)->icao_code == icao)
         {
@@ -241,7 +244,7 @@ namespace test
             return libnav::DbErr::ERR_NONE;
         }
         libnav::Airport *tmp = new libnav::Airport(icao, arpt_db, 
-            navaid_db, cifp_dir_path, ".dat", true, APPR_PREF_MOD);
+            navaid_db, cifp_dir_path, ".dat", true, APPR_PREF_MOD, buf);
         libnav::DbErr err_cd = tmp->err_code;
         if(err_cd != libnav::DbErr::SUCCESS && err_cd != libnav::DbErr::PARTIAL_LOAD)
         {
@@ -526,6 +529,8 @@ namespace test
         reset_fpln();
         leg_data_stack.destroy();
         seg_stack.destroy();
+        delete[] dep_legs;
+        delete[] arr_legs;
     }
 
     // Private member functions:

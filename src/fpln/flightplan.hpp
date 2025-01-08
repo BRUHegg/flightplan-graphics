@@ -219,6 +219,8 @@ namespace test
 
         libnav::Airport *departure, *arrival;
 
+        libnav::arinc_leg_t *dep_legs, *arr_legs;
+
         std::vector<fpl_ref_t> fpl_refs;
 
         struct_util::linked_list_t<leg_list_data_t> leg_list;
@@ -240,7 +242,8 @@ namespace test
 
         bool legcmp(leg_t& leg1, leg_t& leg2);
 
-        libnav::DbErr set_arpt(std::string icao, libnav::Airport **ptr, bool is_arr=false);
+        libnav::DbErr set_arpt(std::string icao, libnav::Airport **ptr, 
+            bool is_arr=false, libnav::arinc_leg_t *buf=nullptr);
 
         /*
             Function: delete_range

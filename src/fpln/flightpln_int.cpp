@@ -258,7 +258,8 @@ namespace test
             if(departure == nullptr || departure->icao_code != other.departure->icao_code)
             {
                 delete departure;
-                departure = new libnav::Airport(*other.departure);
+                departure = nullptr;
+                departure = new libnav::Airport(*other.departure, dep_legs);
                 update_apt_dbs();
             }
         }
@@ -268,6 +269,7 @@ namespace test
             if(arrival == nullptr || arrival->icao_code != other.arrival->icao_code)
             {
                 delete arrival;
+                arrival = nullptr;
                 arrival = new libnav::Airport(*other.arrival);
                 update_apt_dbs(true);
             }
@@ -474,7 +476,7 @@ namespace test
     libnav::DbErr FplnInt::set_dep(std::string icao)
     {
         std::lock_guard<std::mutex> lock(fpl_mtx);
-        libnav::DbErr out = set_arpt(icao, &departure);
+        libnav::DbErr out = set_arpt(icao, &departure, false, dep_legs);
         if (departure != nullptr && departure->icao_code == icao && out != libnav::DbErr::ERR_NONE)
         {
             update_apt_dbs();
@@ -511,7 +513,7 @@ namespace test
             return libnav::DbErr::ERR_NONE;
         }
 
-        libnav::DbErr err = set_arpt(icao, &arrival, true);
+        libnav::DbErr err = set_arpt(icao, &arrival, true, arr_legs);
         if (err != libnav::DbErr::ERR_NONE)
         {
             arr_rwy = "";
