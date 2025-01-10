@@ -113,10 +113,13 @@ namespace StratosphereAvionics
     const std::string DEP_ARR_ARR_OPT = std::string(6, ' ') + "ARR>";
     const std::string DEP_ARR_IDX_OTHER = " DEP      OTHER      ARR";
     const std::string DEP_ARR_ARROWS = "<----" + std::string(N_CDU_DATA_COLS-10, ' ') + "---->";
-    const std::string DEP_COLS = " SIDS    RTE 1   RUNWAYS";
-    const std::string ARR_COLS = " STARS   RTE 1APPROACHES";
+    const std::string DEP_COLS1 = " SIDS    RTE 1   RUNWAYS";
+    const std::string DEP_COLS2 = " SIDS    RTE 2   RUNWAYS";
+    const std::string ARR_COLS1 = " STARS   RTE 1APPROACHES";
+    const std::string ARR_COLS2 = " STARS   RTE 2APPROACHES";
     const std::string DEP_ARR_BOTTOM = "<INDEX            ROUTE>";
-    const std::string ARR_RWYS_STARS = " STARS   RTE 1   RUNWAYS";
+    const std::string ARR_RWYS_STARS1 = " STARS   RTE 1   RUNWAYS";
+    const std::string ARR_RWYS_STARS2 = " STARS   RTE 2   RUNWAYS";
     const std::string ARR_RWYS = std::string(17, ' ') + "RUNWAYS";
     const std::string ALL_DASH = std::string(N_CDU_DATA_COLS, '-');
     const std::string ERASE_NML = "<ERASE";

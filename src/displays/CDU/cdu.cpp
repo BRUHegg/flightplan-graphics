@@ -544,9 +544,17 @@ namespace StratosphereAvionics
             if (j - 1 < in->data_lines.size() && get_appr)
             {
                 if (j - 1)
+                {
                     in->data_lines[j - 1] = ARR_RWYS;
+                }
                 else
-                    in->data_lines[j - 1] = ARR_RWYS_STARS;
+                {
+                    if(rte2)
+                        in->data_lines[j - 1] = ARR_RWYS_STARS2;
+                    else
+                        in->data_lines[j - 1] = ARR_RWYS_STARS1;
+                }
+                    
             }
 
             for (size_t i = start_idx; i < start_idx + 6 && i < rwys[rte2].size(); i++)
@@ -1154,7 +1162,10 @@ namespace StratosphereAvionics
         {
             out.data_lines.push_back("");
         }
-        out.data_lines[0] = DEP_COLS;
+        if(rte2)
+            out.data_lines[0] = DEP_COLS2;
+        else
+            out.data_lines[0] = DEP_COLS1;
 
         std::string curr_sid = c_fpl->get_curr_proc(test::PROC_TYPE_SID);
         std::string curr_trans = c_fpl->get_curr_proc(test::PROC_TYPE_SID, true);
@@ -1187,7 +1198,10 @@ namespace StratosphereAvionics
         {
             out.data_lines.push_back("");
         }
-        out.data_lines[0] = ARR_COLS;
+        if(rte2)
+            out.data_lines[0] = ARR_COLS2;
+        else
+            out.data_lines[0] = ARR_COLS1;
 
         std::string curr_star = c_fpl->get_curr_proc(test::PROC_TYPE_STAR);
         std::string curr_trans = c_fpl->get_curr_proc(test::PROC_TYPE_STAR, true);
