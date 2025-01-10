@@ -18,8 +18,10 @@ namespace StratosphereAvionics
     {
         RTE,
         DEP_ARR_INTRO,
-        DEP,
-        ARR,
+        DEP1,
+        ARR1,
+        DEP2,
+        ARR2,
         LEGS,
         INIT_REF,
         ALTN,
@@ -65,6 +67,7 @@ namespace StratosphereAvionics
     constexpr char DELETE_SYMBOL = 'd';
 
     constexpr size_t N_CDU_LEG_PP = 5; // How many legs can be drawn on 1 page
+    constexpr size_t N_CDU_RTES = 2;
 
     constexpr double CDU_RES_COEFF = 1.0 / 900.0;
     constexpr double CDU_V_OFFS_FIRST = 0.095;
@@ -162,6 +165,8 @@ namespace StratosphereAvionics
     private:
         std::shared_ptr<test::FPLSys> fpl_sys;
         std::shared_ptr<test::FplnInt> fpln;
+        std::shared_ptr<test::FplnInt> m_rte1_ptr;
+        std::shared_ptr<test::FplnInt> m_rte2_ptr;
         size_t sel_fpl_idx;
         
         CDUPage curr_page;
@@ -176,11 +181,11 @@ namespace StratosphereAvionics
         bool sel_des;
 
         // DEP/ARR data:
-        bool dep_arr_rwy_filter;
-        bool dep_arr_proc_filter;
-        bool dep_arr_trans_filter;
-        bool dep_arr_via_filter;
-        std::vector<std::string> procs, trans, apprs, rwys, vias;
+        std::vector<bool> dep_arr_rwy_filter;
+        std::vector<bool> dep_arr_proc_filter;
+        std::vector<bool> dep_arr_trans_filter;
+        std::vector<bool> dep_arr_via_filter;
+        std::vector<std::vector<std::string>> procs, trans, apprs, rwys, vias;
 
         size_t n_seg_list_sz, n_leg_list_sz;
         std::vector<test::list_node_ref_t<test::fpl_seg_t>> seg_list;
@@ -217,25 +222,26 @@ namespace StratosphereAvionics
 
         void get_seg_page(cdu_scr_data_t *in);
 
-        void get_procs(cdu_scr_data_t *in, std::string curr_proc, std::string curr_trans);
+        void get_procs(cdu_scr_data_t *in, std::string curr_proc, std::string curr_trans,
+            bool rte2);
 
-        void get_rwys(cdu_scr_data_t *in, std::string curr_rwy, 
+        void get_rwys(cdu_scr_data_t *in, std::string curr_rwy, bool rte2,
             std::string curr_appr="", std::string curr_via="", bool get_appr=false);
 
         std::string get_small_heading();
 
-        void set_procs(test::ProcType ptp, bool is_arr);
+        void set_procs(test::ProcType ptp, bool is_arr, bool rte2);
 
-        void set_fpl_proc(int event, test::ProcType ptp, bool is_arr);
+        void set_fpl_proc(int event, test::ProcType ptp, bool is_arr, bool rte2);
 
-        void get_rte_dep_arr(cdu_scr_data_t& out, bool rte2=false);
+        void get_rte_dep_arr(cdu_scr_data_t& out, bool rte2);
 
 
         int get_n_sel_des_subpg();
 
         int get_n_rte_subpg();
 
-        int get_n_dep_arr_subpg();
+        int get_n_dep_arr_subpg(bool rte2);
 
         std::string handle_sel_des(int event_key);
 
@@ -243,9 +249,9 @@ namespace StratosphereAvionics
 
         std::string handle_dep_arr(int event_key);
 
-        std::string handle_dep(int event_key);
+        std::string handle_dep(int event_key, bool rte2);
 
-        std::string handle_arr(int event_key);
+        std::string handle_arr(int event_key, bool rte2);
 
         cdu_scr_data_t get_sel_des_page();
 
@@ -253,9 +259,9 @@ namespace StratosphereAvionics
 
         cdu_scr_data_t get_dep_arr_page();
 
-        cdu_scr_data_t get_dep_page();
+        cdu_scr_data_t get_dep_page(bool rte2);
 
-        cdu_scr_data_t get_arr_page();
+        cdu_scr_data_t get_arr_page(bool rte2);
     };
 
     class CDUDisplay
