@@ -74,6 +74,9 @@ namespace test
 
         m_exec_st = false;
 
+        flt_nbr = "";
+        fnb_dep_icao = {"", ""};
+
         update_pos();
     }
 
@@ -300,6 +303,16 @@ namespace test
         act_rte_idx = idx;
     }
 
+    void FPLSys::set_flt_nbr(std::string str)
+    {
+        flt_nbr = str;
+    }
+
+    std::string FPLSys::get_flt_nbr()
+    {
+        return flt_nbr;
+    }
+
     void FPLSys::execute()
     {
         if(m_exec_st)
@@ -341,6 +354,8 @@ namespace test
             }
             fpl_vec[i]->update(0);
             update_lists(i);
+
+            update_flt_nbr(i);
         }
 
         if(act_rte_idx < N_FPL_SYS_RTES && 
@@ -401,6 +416,20 @@ namespace test
         }
 
         fpl_datas[idx].fpl_id_last = fpl_id_curr;
+    }
+
+    void FPLSys::update_flt_nbr(size_t idx)
+    {
+        if(idx == RTE1_IDX || idx == RTE2_IDX)
+        {
+            size_t fnb_idx = idx == RTE2_IDX;
+            std::string c_icao = fpl_vec[idx]->get_dep_icao();
+            if(c_icao != fnb_dep_icao[fnb_idx])
+            {
+                fnb_dep_icao[fnb_idx] = c_icao;
+                flt_nbr = "";
+            }
+        }
     }
 
     void FPLSys::update_pos()

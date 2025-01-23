@@ -245,6 +245,19 @@ namespace StratosphereAvionics
         return "";
     }
 
+    std::string CDU::set_flt_nbr(std::string nbr)
+    {
+        if(nbr.size() > N_FLT_NBR_CHR_MAX)
+            return INVALID_ENTRY_MSG;
+
+        if(nbr != "" && nbr[0] != DELETE_SYMBOL)
+            fpl_sys->set_flt_nbr(nbr);
+        else if(nbr[0] == DELETE_SYMBOL)
+            fpl_sys->set_flt_nbr("");
+
+        return "";
+    }
+
     std::string CDU::set_dep_rwy(std::string id)
     {
         std::string dep_icao = fpln->get_dep_icao();
@@ -834,6 +847,10 @@ namespace StratosphereAvionics
             {
                 return set_arrival(scratchpad, s_out);
             }
+            else if(event_key == CDU_KEY_RSK_TOP + 1)
+            {
+                return set_flt_nbr(scratchpad);
+            }
             else if (event_key == CDU_KEY_LSK_TOP + 1)
             {
                 return set_dep_rwy(scratchpad);
@@ -1067,6 +1084,12 @@ namespace StratosphereAvionics
             std::string dest = fpln->get_arr_icao();
             bool incomplete = false;
 
+            std::string flt_nbr = fpl_sys->get_flt_nbr();
+            if(flt_nbr == "")
+                flt_nbr = std::string(10, '-');
+            else
+                flt_nbr = std::string(N_FLT_NBR_CHR_MAX-flt_nbr.size(), ' ') + flt_nbr;
+
             if (origin == "")
             {
                 origin = std::string(4, '@');
@@ -1091,10 +1114,13 @@ namespace StratosphereAvionics
                 else
                     dep_rwy = "RW" + dep_rwy;
             }
-            std::string rf_data = dep_rwy + std::string(size_t(N_CDU_DATA_COLS) - dep_rwy.size() - 10, ' ') + std::string(10, '-');
+            std::string rf_data = dep_rwy + std::string(size_t(N_CDU_DATA_COLS) - dep_rwy.size() - 10, ' ') 
+                + flt_nbr;
             out.data_lines.push_back(rf_data);
-            out.data_lines.push_back(" ROUTE" + std::string(N_CDU_DATA_COLS - 6 - 8, ' ') + "CO ROUTE");
-            out.data_lines.push_back("<LOAD" + std::string(size_t(N_CDU_DATA_COLS) - 5 - 10, ' ') + std::string(10, '-'));
+            out.data_lines.push_back(" ROUTE" + std::string(N_CDU_DATA_COLS - 6 - 8, ' ') 
+                + "CO ROUTE");
+            out.data_lines.push_back("<LOAD" + std::string(size_t(N_CDU_DATA_COLS) - 5 - 10, ' ') 
+                + std::string(10, '-'));
             out.data_lines.push_back("");
             out.data_lines.push_back("");
             std::string rte_final = " ROUTE ";

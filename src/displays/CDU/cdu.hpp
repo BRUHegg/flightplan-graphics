@@ -69,6 +69,8 @@ namespace StratosphereAvionics
     constexpr size_t N_CDU_LEG_PP = 5; // How many legs can be drawn on 1 page
     constexpr size_t N_CDU_RTES = 2;
 
+    constexpr size_t N_FLT_NBR_CHR_MAX = 10; // Maximum number of characters for flight number
+
     constexpr double CDU_RES_COEFF = 1.0 / 900.0;
     constexpr double CDU_V_OFFS_FIRST = 0.095;
     constexpr double CDU_V_OFFS_SMALL_FIRST = 0.027;
@@ -208,6 +210,8 @@ namespace StratosphereAvionics
         std::string set_departure(std::string icao, std::string *s_out);
 
         std::string set_arrival(std::string icao, std::string *s_out);
+
+        std::string set_flt_nbr(std::string nbr);
 
         std::string set_dep_rwy(std::string id);
 

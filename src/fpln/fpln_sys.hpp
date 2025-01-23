@@ -156,6 +156,10 @@ namespace test
 
         void rte_activate(size_t idx);
 
+        void set_flt_nbr(std::string str);
+
+        std::string get_flt_nbr();
+
         void execute();
 
         void erase();
@@ -168,6 +172,8 @@ namespace test
         size_t act_rte_idx;
         double act_id;
         std::vector<size_t> cdu_rte_idx;
+        std::string flt_nbr;
+        std::vector<std::string> fnb_dep_icao;  // Departure icaos used to reset flight number
 
         bool m_exec_st;
 
@@ -177,6 +183,8 @@ namespace test
         void update_leg_list(size_t idx=0);
 
         void update_lists(size_t idx=0);
+
+        void update_flt_nbr(size_t idx=0);
 
         void update_pos();
     };
