@@ -116,6 +116,8 @@ namespace StratosphereAvionics
                 curr_subpg = n_subpg;
             }
 
+            *s_out = scratchpad;
+
             return "";
         }
         if (sel_des)
@@ -1319,7 +1321,7 @@ namespace StratosphereAvionics
 
                 if (scr_out != "")
                 {
-                    scratch_curr = scr_out.size() + 1;
+                    scratch_curr = scr_out.size();
                     scratchpad = scr_out + std::string(N_CDU_DATA_COLS - scr_out.size(), ' ');
                 }
                 else
