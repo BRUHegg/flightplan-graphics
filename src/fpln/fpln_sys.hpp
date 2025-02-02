@@ -20,6 +20,13 @@
 
 namespace test
 {
+    enum class RTECopySts
+    {
+        READY,
+        COMPLETE,
+        UNAVAIL
+    };
+
     const std::string AC_LAT_DEG_VAR = "ac_lat_deg";
     const std::string AC_LON_DEG_VAR = "ac_lon_deg";
     const std::string AC_BRNG_TRU_DEG_VAR = "ac_brng_tru_deg";
@@ -160,6 +167,10 @@ namespace test
 
         std::string get_flt_nbr();
 
+        RTECopySts act_can_copy();
+
+        void copy_act();
+
         void execute();
 
         void erase();
@@ -171,6 +182,7 @@ namespace test
 
         size_t act_rte_idx;
         double act_id;
+        std::vector<double> copy_ids;
         std::vector<size_t> cdu_rte_idx;
         std::string flt_nbr;
         std::vector<std::string> fnb_dep_icao;  // Departure icaos used to reset flight number

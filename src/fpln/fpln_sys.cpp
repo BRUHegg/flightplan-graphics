@@ -71,6 +71,7 @@ namespace test
         cdu_rte_idx = std::vector<size_t>(2);
         act_rte_idx = N_FPL_SYS_RTES;
         act_id = -1;
+        copy_ids = {-1, -1};
 
         m_exec_st = false;
 
@@ -311,6 +312,35 @@ namespace test
     std::string FPLSys::get_flt_nbr()
     {
         return flt_nbr;
+    }
+
+    RTECopySts FPLSys::act_can_copy()
+    {
+        if(act_rte_idx != N_FPL_SYS_RTES && !m_exec_st)
+        {
+            double id1 = fpl_vec[RTE1_IDX]->get_id();
+            double id2 = fpl_vec[RTE2_IDX]->get_id();
+            if(id1 != copy_ids[0] || id2 != copy_ids[1])
+                return RTECopySts::READY;
+            return RTECopySts::COMPLETE;
+        }
+        return RTECopySts::UNAVAIL;
+    }
+
+    void FPLSys::copy_act()
+    {
+        if(act_rte_idx != N_FPL_SYS_RTES && !m_exec_st)
+        {
+            size_t tgt_idx = RTE2_IDX;
+            if(act_rte_idx == RTE2_IDX)
+                tgt_idx = RTE1_IDX;
+            fpl_vec[tgt_idx]->copy_from_other(*fpl_vec[act_rte_idx]);
+
+            double id1 = fpl_vec[RTE1_IDX]->get_id();
+            double id2 = fpl_vec[RTE2_IDX]->get_id();
+            copy_ids[0] = id1;
+            copy_ids[1] = id2;
+        }
     }
 
     void FPLSys::execute()

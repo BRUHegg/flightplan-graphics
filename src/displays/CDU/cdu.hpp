@@ -128,6 +128,8 @@ namespace StratosphereAvionics
     const std::string ACT = "ACT";
     const std::string SEL = "SEL";
     const std::string MOD = "MOD";
+    const std::string RTE_COPY = "RTE COPY";
+    const std::string COMPLETE = "COMPLETE";
 
 
     const std::vector<CDUPage> CDU_PAGE_FACES = {
@@ -173,10 +175,14 @@ namespace StratosphereAvionics
         std::shared_ptr<test::FplnInt> m_rte1_ptr;
         std::shared_ptr<test::FplnInt> m_rte2_ptr;
         size_t sel_fpl_idx;
+        size_t act_fpl_idx;
         
         CDUPage curr_page;
         int n_subpg;
         int curr_subpg;
+
+        // RTE data
+        test::RTECopySts rte_copy;
 
         // sel des data
         int sel_des_idx;
