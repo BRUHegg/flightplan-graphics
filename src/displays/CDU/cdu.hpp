@@ -175,6 +175,7 @@ namespace StratosphereAvionics
         std::shared_ptr<test::FplnInt> fpln;
         std::shared_ptr<test::FplnInt> m_rte1_ptr;
         std::shared_ptr<test::FplnInt> m_rte2_ptr;
+        std::shared_ptr<test::FplnInt> m_act_ptr;
         size_t sel_fpl_idx;
         size_t act_fpl_idx;
         
@@ -236,11 +237,15 @@ namespace StratosphereAvionics
 
         void get_seg_page(cdu_scr_data_t *in);
 
+        std::string get_sts(std::string& cr, std::string& act);
+
         void get_procs(cdu_scr_data_t *in, std::string curr_proc, std::string curr_trans,
+            std::string act_proc, std::string act_trans,
             bool rte2);
 
-        void get_rwys(cdu_scr_data_t *in, std::string curr_rwy, bool rte2,
-            std::string curr_appr="", std::string curr_via="", bool get_appr=false);
+        void get_rwys(cdu_scr_data_t *in, std::string curr_rwy, std::string act_rwy, 
+            bool rte2, std::string curr_appr="", std::string curr_via="", 
+            std::string act_appr="", std::string act_via="", bool get_appr=false);
 
         std::string get_small_heading();
 
