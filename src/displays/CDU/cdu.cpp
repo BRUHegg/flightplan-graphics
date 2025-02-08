@@ -13,6 +13,7 @@ namespace StratosphereAvionics
         fpln = fs->fpl_vec[sel_fpl_idx];
         m_rte1_ptr = fs->fpl_vec[test::RTE1_IDX];
         m_rte2_ptr = fs->fpl_vec[test::RTE2_IDX];
+        m_act_ptr = fs->fpl_vec[test::ACT_RTE_IDX];
 
         curr_page = CDUPage::RTE;
         curr_subpg = 1;
@@ -455,7 +456,16 @@ namespace StratosphereAvionics
         }
     }
 
+    std::string CDU::get_sts(std::string& cr, std::string& act)
+    {
+        std::string sts = "<"+SEL+">";
+        if(cr == act)
+            sts = "<"+ACT+">";
+        return sts;
+    }
+
     void CDU::get_procs(cdu_scr_data_t *in, std::string curr_proc, std::string curr_trans, 
+        std::string act_proc, std::string act_trans,
         bool rte2)
     {
         size_t start_idx = size_t((curr_subpg - 1) * 5);
@@ -469,8 +479,8 @@ namespace StratosphereAvionics
             std::string curr = procs[rte2][i];
             if (curr == curr_proc)
             {
-                curr = curr + std::string(6 - curr.size(), ' ');
-                curr = curr + "<SEL>";
+                curr = curr + std::string(6 - curr.size(), ' ')
+                + get_sts(curr_proc, act_proc);
             }
 
             in->data_lines[j] = curr;
@@ -487,8 +497,8 @@ namespace StratosphereAvionics
                 std::string curr = trans[rte2][i];
                 if (curr == curr_trans)
                 {
-                    curr = curr + std::string(6 - curr.size(), ' ');
-                    curr = curr + "<SEL>";
+                    curr = curr + std::string(6 - curr.size(), ' ')
+                    + get_sts(curr_trans, act_trans);
                 }
                 in->data_lines[j] = curr;
                 j += 2;
@@ -496,8 +506,9 @@ namespace StratosphereAvionics
         }
     }
 
-    void CDU::get_rwys(cdu_scr_data_t *in, std::string curr_rwy, bool rte2,
-                       std::string curr_appr, std::string curr_via, bool get_appr)
+    void CDU::get_rwys(cdu_scr_data_t *in, std::string curr_rwy, std::string act_rwy, 
+            bool rte2, std::string curr_appr, std::string curr_via, 
+            std::string act_appr, std::string act_via, bool get_appr)
     {
         size_t start_idx = size_t((curr_subpg - 1) * 5);
         size_t j = 1;
@@ -522,8 +533,8 @@ namespace StratosphereAvionics
                 std::string curr = apprs[rte2][i];
                 if (curr == curr_appr)
                 {
-                    curr = std::string(7 - curr.size(), ' ') + curr;
-                    curr = "<SEL>" + curr;
+                    curr = get_sts(curr_appr, act_appr) +
+                     std::string(7 - curr.size(), ' ') + curr;
                 }
                 in->data_lines[j] = get_cdu_line(curr, in->data_lines[j], true);
                 j += 2;
@@ -539,8 +550,8 @@ namespace StratosphereAvionics
                     std::string curr = vias[rte2][i];
                     if (curr == curr_via)
                     {
-                        curr = std::string(7 - curr.size(), ' ') + curr;
-                        curr = "<SEL>" + curr;
+                        curr = get_sts(curr_via, act_via) + 
+                        std::string(7 - curr.size(), ' ') + curr;
                     }
                     in->data_lines[j] = get_cdu_line(curr, in->data_lines[j], true);
                     j += 2;
@@ -581,8 +592,8 @@ namespace StratosphereAvionics
                 std::string curr = rwys[rte2][i];
                 if (curr == curr_rwy)
                 {
-                    curr = std::string(7 - curr.size(), ' ') + curr;
-                    curr = "<SEL>" + curr;
+                    curr = get_sts(curr_rwy, act_rwy) +
+                     std::string(7 - curr.size(), ' ') + curr;
                 }
                 in->data_lines[j] = get_cdu_line(curr, in->data_lines[j], true);
                 j += 2;
@@ -1251,10 +1262,13 @@ namespace StratosphereAvionics
 
         std::string curr_sid = c_fpl->get_curr_proc(test::PROC_TYPE_SID);
         std::string curr_trans = c_fpl->get_curr_proc(test::PROC_TYPE_SID, true);
-        get_procs(&out, curr_sid, curr_trans, rte2);
+        std::string act_sid = m_act_ptr->get_curr_proc(test::PROC_TYPE_SID);
+        std::string act_trans = m_act_ptr->get_curr_proc(test::PROC_TYPE_SID, true);
+        get_procs(&out, curr_sid, curr_trans, act_sid, act_trans, rte2);
 
         std::string dep_rwy = c_fpl->get_dep_rwy();
-        get_rwys(&out, dep_rwy, rte2);
+        std::string act_rwy = m_act_ptr->get_dep_rwy();
+        get_rwys(&out, dep_rwy, act_rwy, rte2);
 
         dep_arr_set_bottom(out);
 
@@ -1286,12 +1300,19 @@ namespace StratosphereAvionics
 
         std::string curr_star = c_fpl->get_curr_proc(test::PROC_TYPE_STAR);
         std::string curr_trans = c_fpl->get_curr_proc(test::PROC_TYPE_STAR, true);
-        get_procs(&out, curr_star, curr_trans, rte2);
+        std::string act_star = m_act_ptr->get_curr_proc(test::PROC_TYPE_STAR);
+        std::string act_trans = m_act_ptr->get_curr_proc(test::PROC_TYPE_STAR, true);
+        get_procs(&out, curr_star, curr_trans, act_star, act_trans, rte2);
 
         std::string arr_rwy = c_fpl->get_arr_rwy();
         std::string arr_appr = c_fpl->get_curr_proc(test::PROC_TYPE_APPCH);
         std::string arr_via = c_fpl->get_curr_proc(test::PROC_TYPE_APPCH, true);
-        get_rwys(&out, arr_rwy, rte2, arr_appr, arr_via, true);
+
+        std::string act_rwy = m_act_ptr->get_arr_rwy();
+        std::string act_appr = m_act_ptr->get_curr_proc(test::PROC_TYPE_APPCH);
+        std::string act_via = m_act_ptr->get_curr_proc(test::PROC_TYPE_APPCH, true);
+        
+        get_rwys(&out, arr_rwy, act_rwy, rte2, arr_appr, arr_via, act_appr, act_via, true);
 
         dep_arr_set_bottom(out);
 
