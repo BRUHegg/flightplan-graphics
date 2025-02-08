@@ -5,7 +5,7 @@ Benchmark scripts can be found inside the benchmarks directory. To use simply re
 
 ## Getting started
 
-This plugin uses [libnav](https://github.com/BRUHegg/libnav), cairo, gtk and freetype libraries. Make sure you have these installed before you proceed any further.
+This app uses [libnav](https://github.com/BRUHegg/libnav), cairo, gtk and freetype libraries. Make sure you have these installed before you proceed any further.
 
 ### Compiling on linux/mac:
 
