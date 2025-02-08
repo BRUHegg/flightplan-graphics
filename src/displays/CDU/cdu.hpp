@@ -119,7 +119,8 @@ namespace StratosphereAvionics
     const std::string DEP_COLS2 = " SIDS    RTE 2   RUNWAYS";
     const std::string ARR_COLS1 = " STARS   RTE 1APPROACHES";
     const std::string ARR_COLS2 = " STARS   RTE 2APPROACHES";
-    const std::string DEP_ARR_BOTTOM = "<INDEX            ROUTE>";
+    const std::string DEP_ARR_BOTTOM_INACT = "<INDEX            ROUTE>";
+    const std::string DEP_ARR_BOTTOM_ACT = "<ERASE            ROUTE>";
     const std::string ARR_RWYS_STARS1 = " STARS   RTE 1   RUNWAYS";
     const std::string ARR_RWYS_STARS2 = " STARS   RTE 2   RUNWAYS";
     const std::string ARR_RWYS = std::string(17, ' ') + "RUNWAYS";
@@ -271,6 +272,8 @@ namespace StratosphereAvionics
         cdu_scr_data_t get_rte_page();
 
         cdu_scr_data_t get_dep_arr_page();
+
+        void dep_arr_set_bottom(cdu_scr_data_t& out);
 
         cdu_scr_data_t get_dep_page(bool rte2);
 

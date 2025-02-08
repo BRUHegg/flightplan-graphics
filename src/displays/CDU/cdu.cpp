@@ -949,7 +949,15 @@ namespace StratosphereAvionics
     {
         if (event_key == CDU_KEY_LSK_TOP + 5)
         {
-            set_page(CDUPage::INIT_REF);
+            bool exec_lt = fpl_sys->get_exec();
+            if(exec_lt)
+            {
+                fpl_sys->erase();
+            }
+            else
+            {
+                set_page(CDUPage::INIT_REF);
+            }
         }
         else if (event_key == CDU_KEY_RSK_TOP + 5)
         {
@@ -983,7 +991,15 @@ namespace StratosphereAvionics
     {
         if (event_key == CDU_KEY_LSK_TOP + 5)
         {
-            set_page(CDUPage::INIT_REF);
+            bool exec_lt = fpl_sys->get_exec();
+            if(exec_lt)
+            {
+                fpl_sys->erase();
+            }
+            else
+            {
+                set_page(CDUPage::INIT_REF);
+            }
         }
         else if (event_key == CDU_KEY_RSK_TOP + 5)
         {
@@ -1195,6 +1211,21 @@ namespace StratosphereAvionics
         return out;
     }
 
+    void CDU::dep_arr_set_bottom(cdu_scr_data_t& out)
+    {
+        out.data_lines[10] = std::string(N_CDU_DATA_COLS, '-');
+
+        bool exec_lt = fpl_sys->get_exec();
+        if(exec_lt)
+        {
+            out.data_lines[11] = DEP_ARR_BOTTOM_ACT;
+        }
+        else
+        {
+            out.data_lines[11] = DEP_ARR_BOTTOM_INACT;
+        }
+    }
+
     cdu_scr_data_t CDU::get_dep_page(bool rte2)
     {
         std::shared_ptr<test::FplnInt> c_fpl = m_rte1_ptr;
@@ -1225,8 +1256,7 @@ namespace StratosphereAvionics
         std::string dep_rwy = c_fpl->get_dep_rwy();
         get_rwys(&out, dep_rwy, rte2);
 
-        out.data_lines[10] = std::string(N_CDU_DATA_COLS, '-');
-        out.data_lines[11] = DEP_ARR_BOTTOM;
+        dep_arr_set_bottom(out);
 
         return out;
     }
@@ -1263,8 +1293,7 @@ namespace StratosphereAvionics
         std::string arr_via = c_fpl->get_curr_proc(test::PROC_TYPE_APPCH, true);
         get_rwys(&out, arr_rwy, rte2, arr_appr, arr_via, true);
 
-        out.data_lines[10] = std::string(N_CDU_DATA_COLS, '-');
-        out.data_lines[11] = DEP_ARR_BOTTOM;
+        dep_arr_set_bottom(out);
 
         return out;
     }
