@@ -81,6 +81,19 @@ namespace StratosphereAvionics
     constexpr double CDU_LETTER_WIDTH = 21;
     constexpr double CDU_LETTER_HEIGHT = 39;
 
+    // CDU char states:
+    constexpr char CDU_S_WHITE = 'w';
+    constexpr char CDU_B_WHITE = 'W';
+    constexpr char CDU_S_CYAN = 'c';
+    constexpr char CDU_B_CYAN = 'C';
+    constexpr char CDU_S_GREEN = 'g';
+    constexpr char CDU_B_GREEN = 'G';
+    constexpr char CDU_S_MAGENTA = 'm';
+    constexpr char CDU_B_MAGENTA = 'M';
+    
+    const std::string CDU_ALL_S_WHITE = std::string(N_CDU_DATA_COLS, CDU_S_WHITE);
+    const std::string CDU_ALL_B_WHITE = std::string(N_CDU_DATA_COLS, CDU_B_WHITE);
+
     constexpr double CDU_TEXTURE_ASPECT_RATIO = (488.0/751.0);
 
     // Time
@@ -155,6 +168,9 @@ namespace StratosphereAvionics
         std::string heading_big, heading_small;
         CDUColor heading_color;
         std::vector<std::string> data_lines;
+        std::vector<std::string> chr_sts;
+
+        cdu_scr_data_t();
     };
 
     class CDU
@@ -209,6 +225,8 @@ namespace StratosphereAvionics
 
         static std::string get_cdu_line(std::string in, std::string line, 
             bool align_right=false);
+
+        static void fill_char_state_buf(cdu_scr_data_t& src);
 
         void set_page(CDUPage pg);
 
@@ -326,11 +344,18 @@ namespace StratosphereAvionics
 
         static int get_cdu_letter_idx(char c);
 
+        static CDUColor get_cdu_color(char c);
+
+        static bool chr_is_big(char c);
+
+        cairo_surface_t *get_font_sfc(CDUColor cl);
+
         void draw_cdu_letter(cairo_t *cr, char c, geom::vect2_t pos, geom::vect2_t scale,
             cairo_surface_t *font_sfc);
 
         void draw_cdu_line(cairo_t *cr, std::string& s, geom::vect2_t pos, 
-            geom::vect2_t scale, double l_intv_px, CDUColor color=CDUColor::WHITE);
+             double l_intv_px, std::string sts="", geom::vect2_t scale={}, 
+             CDUColor clr=CDUColor::WHITE);
 
         void draw_exec(cairo_t *cr);
         
