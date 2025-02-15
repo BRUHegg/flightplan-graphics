@@ -1412,6 +1412,10 @@ namespace StratosphereAvionics
         size_t i_start = 2 + N_CDU_LEG_PP * size_t(curr_subpg - 1);
         size_t i_end = std::min(leg_list.size() - 1, i_start + N_CDU_LEG_PP);
         bool disc_pr = false;
+        size_t sts_idx = 1;
+
+        test::act_leg_info_t act_info = fpl_sys->get_act_leg_info();
+
         for(size_t i = i_start; i < i_end; i++)
         {
             if(!disc_pr)
@@ -1426,8 +1430,14 @@ namespace StratosphereAvionics
             else
             {
                 std::string cr_name = get_cdu_leg_nm(leg_list[i]);
+                if(cr_name == act_info.name)
+                {
+                    for(size_t j = 0; j < 5; j++)
+                        out.chr_sts[sts_idx][j] = CDU_B_MAGENTA;
+                }
                 out.data_lines.push_back(cr_name);
             }
+            sts_idx += 2;
         }
 
         if (i_end - i_start < N_CDU_LEG_PP)
