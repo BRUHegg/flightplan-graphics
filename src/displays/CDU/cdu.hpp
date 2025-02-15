@@ -236,6 +236,8 @@ namespace StratosphereAvionics
 
         static void fill_char_state_buf(cdu_scr_data_t& src);
 
+        static std::string get_cdu_leg_prop(test::list_node_ref_t<test::leg_list_data_t>& src);
+
         static std::string get_cdu_leg_nm(test::list_node_ref_t<test::leg_list_data_t>& src);
 
         void set_page(CDUPage pg);
