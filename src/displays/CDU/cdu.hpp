@@ -144,6 +144,14 @@ namespace StratosphereAvionics
     const std::string MOD = "MOD";
     const std::string RTE_COPY = "RTE COPY";
     const std::string COMPLETE = "COMPLETE";
+    const std::string LEGS_BTM = " LEGS    RTE DATA>";
+    const std::string LEG_LAST = std::string(5, '-');
+    const std::string LEG_NO_SPD = std::string(4, '-');
+    const std::string LEG_NO_ALT = std::string(6, '-');
+    const std::string LEG_BIG_SPACING = std::string(8, ' ');
+    const std::string DISCO_LEG_NM = std::string(5, '@');
+    const std::string LEG_VECTORS = "VECTORS";
+    const std::string LEG_HOLD = "HOLD";
 
 
     const std::vector<CDUPage> CDU_PAGE_FACES = {
@@ -228,6 +236,8 @@ namespace StratosphereAvionics
 
         static void fill_char_state_buf(cdu_scr_data_t& src);
 
+        static std::string get_cdu_leg_nm(test::list_node_ref_t<test::leg_list_data_t>& src);
+
         void set_page(CDUPage pg);
 
         void set_sel_des_state(double id, std::string& name, 
@@ -280,6 +290,8 @@ namespace StratosphereAvionics
 
         int get_n_dep_arr_subpg(bool rte2);
 
+        int get_n_legs_subpg();
+
         std::string handle_sel_des(int event_key);
 
         std::string handle_rte(int event_key, std::string scratchpad, std::string *s_out);
@@ -301,6 +313,8 @@ namespace StratosphereAvionics
         cdu_scr_data_t get_dep_page(bool rte2);
 
         cdu_scr_data_t get_arr_page(bool rte2);
+
+        cdu_scr_data_t get_legs_page();
     };
 
     class CDUDisplay

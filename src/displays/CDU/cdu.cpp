@@ -74,6 +74,10 @@ namespace StratosphereAvionics
                 bool is_rte2 = curr_page == CDUPage::DEP2 || curr_page == CDUPage::ARR2;
                 n_subpg = get_n_dep_arr_subpg(is_rte2);
             }
+            else if(curr_page == CDUPage::LEGS)
+            {
+                n_subpg = get_n_legs_subpg();
+            }
         }
 
         if (curr_subpg > n_subpg)
@@ -182,6 +186,9 @@ namespace StratosphereAvionics
         if (curr_page == CDUPage::ARR2)
             return get_arr_page(true);
 
+        if(curr_page == CDUPage::LEGS)
+            return get_legs_page();
+
         return {};
     }
 
@@ -209,6 +216,28 @@ namespace StratosphereAvionics
             src.chr_sts.push_back(CDU_ALL_S_WHITE);
             src.chr_sts.push_back(CDU_ALL_B_WHITE);
         }
+    }
+
+    std::string CDU::get_cdu_leg_nm(test::list_node_ref_t<test::leg_list_data_t>& src)
+    {
+        if(src.data.is_discon)
+        {
+            return DISCO_LEG_NM;
+        }
+
+        if(src.data.leg.leg_type == "FM" || src.data.leg.leg_type == "VM")
+        {
+            return LEG_VECTORS;
+        }
+        if(src.data.leg.leg_type[0] == 'H')
+        {
+            return LEG_HOLD;
+        }
+        if(src.data.misc_data.has_calc_wpt)
+        {
+            return src.data.misc_data.calc_wpt.id;
+        }
+        return "";
     }
 
     void CDU::set_page(CDUPage pg)
@@ -822,6 +851,12 @@ namespace StratosphereAvionics
         return 1;
     }
 
+    int CDU::get_n_legs_subpg()
+    {
+        size_t n_leg_act = n_leg_list_sz - 2;
+        return (n_leg_act / N_CDU_LEG_PP) + bool(n_leg_act % N_CDU_LEG_PP);
+    }
+
     std::string CDU::handle_sel_des(int event_key)
     {
         int i_start = (curr_subpg - 1) * 6;
@@ -1342,6 +1377,72 @@ namespace StratosphereAvionics
         get_rwys(&out, arr_rwy, act_rwy, rte2, arr_appr, arr_via, act_appr, act_via, true);
 
         dep_arr_set_bottom(out);
+
+        return out;
+    }
+
+    cdu_scr_data_t CDU::get_legs_page()
+    {
+        cdu_scr_data_t out = {};
+        fill_char_state_buf(out);
+
+        out.heading_small = get_small_heading();
+        out.heading_color = CDUColor::WHITE;
+
+        out.heading_color = CDUColor::CYAN;
+        bool exec_lt = fpl_sys->get_exec();
+        std::string act_sts = std::string(4, ' ');
+        if(sel_fpl_idx == act_fpl_idx)
+        {
+            if(exec_lt)
+                act_sts = MOD + " ";
+            else
+                act_sts = ACT + " ";
+            out.heading_color = CDUColor::WHITE;
+        }
+        std::string c_legs_top = "RTE 1 LEGS";
+        std::string c_legs_btm = "<RTE 2";
+        if (sel_fpl_idx == test::RTE2_IDX)
+        {
+            c_legs_top = "RTE 2 LEGS";
+            c_legs_btm = "<RTE 1";
+        }
+        out.heading_big = "  " + act_sts + c_legs_top;
+
+        size_t i_start = 2 + N_CDU_LEG_PP * size_t(curr_subpg - 1);
+        size_t i_end = std::min(leg_list.size() - 1, i_start + N_CDU_LEG_PP);
+        bool disc_pr = false;
+        for(size_t i = i_start; i < i_end; i++)
+        {
+            if(!disc_pr)
+                out.data_lines.push_back("");
+            if(leg_list[i].data.is_discon)
+            {
+                disc_pr = true;
+                out.data_lines.push_back(" THEN");
+                out.data_lines.push_back("@@@@@");
+                out.data_lines.push_back(DISCO_AFTER_SEG);
+            }
+            else
+            {
+                std::string cr_name = get_cdu_leg_nm(leg_list[i]);
+                out.data_lines.push_back(cr_name);
+            }
+        }
+
+        if (i_end - i_start < N_CDU_LEG_PP)
+        {
+            out.data_lines.push_back("");
+            out.data_lines.push_back(LEG_LAST);
+        }
+        
+        while (out.data_lines.size() < 10)
+        {
+            out.data_lines.push_back("");
+        }
+
+        out.data_lines.push_back(std::string(N_CDU_DATA_COLS, '-'));
+        out.data_lines.push_back(c_legs_btm + LEGS_BTM);
 
         return out;
     }
