@@ -71,6 +71,9 @@ namespace StratosphereAvionics
 
     constexpr size_t N_FLT_NBR_CHR_MAX = 10; // Maximum number of characters for flight number
 
+    constexpr size_t N_LEG_PROP_ROWS = 14;
+    constexpr size_t N_LEG_CRS_ROWS = 5;
+
     constexpr double CDU_RES_COEFF = 1.0 / 900.0;
     constexpr double CDU_V_OFFS_FIRST = 0.095;
     constexpr double CDU_V_OFFS_SMALL_FIRST = 0.027;
@@ -152,6 +155,9 @@ namespace StratosphereAvionics
     const std::string DISCO_LEG_NM = std::string(5, '@');
     const std::string LEG_VECTORS = "VECTORS";
     const std::string LEG_HOLD = "HOLD";
+    const std::string DISCO_THEN = " THEN";
+    const std::string HOLD_DESC = " HOLD AT";
+    const std::string NAUT_MILES = "NM";
 
 
     const std::vector<CDUPage> CDU_PAGE_FACES = {

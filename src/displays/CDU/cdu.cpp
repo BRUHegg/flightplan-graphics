@@ -218,6 +218,31 @@ namespace StratosphereAvionics
         }
     }
 
+    std::string CDU::get_cdu_leg_prop(test::list_node_ref_t<test::leg_list_data_t>& src)
+    {
+        if(src.data.is_discon)
+        {
+            return DISCO_THEN;
+        }
+        if(src.data.leg.leg_type[0] == 'H')
+        {
+            return HOLD_DESC;
+        }
+        double crs_deg = src.data.misc_data.true_trk_deg;
+        double dist_nm = src.data.leg.outbd_dist_time;
+        std::string deg_str = std::string(1, strutils::DEGREE_SYMBOL);
+        std::string crs_st = strutils::double_to_str(crs_deg, 0) + deg_str;
+        std::string dist_st = strutils::double_to_str(dist_nm, 0)+NAUT_MILES;
+        assert(crs_st.size() <= N_LEG_CRS_ROWS);
+        size_t crs_offs = N_LEG_CRS_ROWS-crs_st.size();
+        crs_st = std::string(crs_offs, ' ') + crs_st;
+        assert(dist_st.size()+crs_st.size() <= N_LEG_PROP_ROWS);
+        size_t offs = N_LEG_PROP_ROWS-dist_st.size()-crs_st.size();
+        std::string out = crs_st + std::string(offs, ' ') + 
+            dist_st;
+        return out;
+    }
+
     std::string CDU::get_cdu_leg_nm(test::list_node_ref_t<test::leg_list_data_t>& src)
     {
         if(src.data.is_discon)
@@ -228,10 +253,6 @@ namespace StratosphereAvionics
         if(src.data.leg.leg_type == "FM" || src.data.leg.leg_type == "VM")
         {
             return LEG_VECTORS;
-        }
-        if(src.data.leg.leg_type[0] == 'H')
-        {
-            return LEG_HOLD;
         }
         if(src.data.misc_data.has_calc_wpt)
         {
@@ -1419,11 +1440,10 @@ namespace StratosphereAvionics
         for(size_t i = i_start; i < i_end; i++)
         {
             if(!disc_pr)
-                out.data_lines.push_back("");
+                out.data_lines.push_back(get_cdu_leg_prop(leg_list[i]));
             if(leg_list[i].data.is_discon)
             {
                 disc_pr = true;
-                out.data_lines.push_back(" THEN");
                 out.data_lines.push_back("@@@@@");
                 out.data_lines.push_back(DISCO_AFTER_SEG);
             }
