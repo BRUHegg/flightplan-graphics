@@ -242,7 +242,40 @@ namespace StratosphereAvionics
 
         static void fill_char_state_buf(cdu_scr_data_t& src);
 
+        /*
+            Function: get_cdu_leg_prop
+            @desc:
+            Returns heading and distance data for a leg entry
+            @param src: reference to leg in question
+            @return string for CDU to display.
+        */
+
         static std::string get_cdu_leg_prop(test::list_node_ref_t<test::leg_list_data_t>& src);
+
+        /*
+            Function: get_leg_alt
+            @desc:
+            Returns value in alt1 or alt2 of a leg. Altitudes greater than transition
+            altitude are returned as FLXXX.
+            @param src: reference to leg in question
+            @param alt2: set to true to return alt2
+            @param fl: true if the altitude needs to be shortened for a altitude within
+            constraint
+            @return string for CDU to display.
+        */
+        
+        static std::string get_leg_alt(test::list_node_ref_t<test::leg_list_data_t>& src,
+            bool alt2=false, bool fl=false);
+        
+        /*
+            Function: get_cdu_leg_vcstr
+            @desc:
+            Returns vertical constraint for a leg entry
+            @param src: reference to leg in question
+            @return string for CDU to display.
+        */
+        
+        static std::string get_cdu_leg_vcstr(test::list_node_ref_t<test::leg_list_data_t>& src);
 
         static std::string get_cdu_leg_nm(test::list_node_ref_t<test::leg_list_data_t>& src);
 
