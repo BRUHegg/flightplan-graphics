@@ -243,6 +243,63 @@ namespace StratosphereAvionics
         return out;
     }
 
+    std::string CDU::get_leg_alt(test::list_node_ref_t<test::leg_list_data_t>& src,
+        bool alt2, bool fl)
+    {
+        int tgt_alt = src.data.leg.alt1_ft;
+        if(alt2)
+            tgt_alt = src.data.leg.alt2_ft;
+        int tr_alt = src.data.leg.trans_alt;
+        if(tgt_alt > tr_alt || fl)
+            tgt_alt /= 100;
+        std::string alt_str = strutils::double_to_str(double(tgt_alt), 0);
+        if((tgt_alt > tr_alt || fl) && alt_str.size() < 3)
+            alt_str = std::string(3-alt_str.size(),'0')+alt_str;
+        if(tgt_alt > tr_alt && !fl)
+            alt_str = "FL" + alt_str;
+        return alt_str;
+    }
+
+    std::string CDU::get_cdu_leg_vcstr(test::list_node_ref_t<test::leg_list_data_t>& src)
+    {
+        if(src.data.leg.alt1_ft == 0 && src.data.leg.alt2_ft == 0)
+        {
+            return LEG_NO_ALT;
+        }
+
+        if(src.data.leg.alt_desc == libnav::AltMode::AT_OR_ABOVE ||
+            src.data.leg.alt_desc == libnav::AltMode::GS_AT_OR_ABOVE)
+        {
+            return get_leg_alt(src) + "A";
+        }
+        if(src.data.leg.alt_desc == libnav::AltMode::SID_AT_OR_ABOVE ||
+            src.data.leg.alt_desc == libnav::AltMode::ALT_STEPDOWN_AT_AT_OR_ABOVE)
+        {
+            return get_leg_alt(src, true) + "A";
+        }
+
+        if(src.data.leg.alt_desc == libnav::AltMode::AT || 
+            src.data.leg.alt_desc == libnav::AltMode::GS_AT)
+        {
+            return get_leg_alt(src);
+        }
+        if(src.data.leg.alt_desc == libnav::AltMode::GS_INTC_AT || 
+            src.data.leg.alt_desc == libnav::AltMode::ALT_STEPDOWN_AT_AT)
+        {
+            return get_leg_alt(src, true);
+        }
+
+        if(src.data.leg.alt_desc == libnav::AltMode::AT_OR_BELOW)
+        {
+            return get_leg_alt(src) + "B";
+        }
+        if(src.data.leg.alt_desc == libnav::AltMode::ALT_STEPDOWN_AT_AT_OR_BELOW)
+        {
+            return get_leg_alt(src, true) + "B";
+        }
+        return get_leg_alt(src, false, true) + "A" + get_leg_alt(src, true, true) + "B";
+    }
+
     std::string CDU::get_cdu_leg_nm(test::list_node_ref_t<test::leg_list_data_t>& src)
     {
         if(src.data.is_discon)
@@ -1455,6 +1512,9 @@ namespace StratosphereAvionics
                     for(size_t j = 0; j < 5; j++)
                         out.chr_sts[sts_idx][j] = CDU_B_MAGENTA;
                 }
+                std::string vcstr = get_cdu_leg_vcstr(leg_list[i]);
+                vcstr = "---/" + vcstr;
+                cr_name = cr_name + std::string(N_CDU_DATA_COLS-cr_name.size()-vcstr.size(), ' ') + vcstr;
                 out.data_lines.push_back(cr_name);
             }
             sts_idx += 2;
