@@ -73,6 +73,8 @@ namespace StratosphereAvionics
 
     constexpr size_t N_LEG_PROP_ROWS = 14;
     constexpr size_t N_LEG_CRS_ROWS = 5;
+    constexpr size_t N_LEG_CSTR_ROWS = 11;
+    constexpr size_t N_LEG_VCSTR_ROWS = 6;
 
     constexpr double CDU_RES_COEFF = 1.0 / 900.0;
     constexpr double CDU_V_OFFS_FIRST = 0.095;

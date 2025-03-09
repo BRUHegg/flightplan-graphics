@@ -250,12 +250,13 @@ namespace StratosphereAvionics
         if(alt2)
             tgt_alt = src.data.leg.alt2_ft;
         int tr_alt = src.data.leg.trans_alt;
-        if(tgt_alt > tr_alt || fl)
+        bool fl_act = tgt_alt > tr_alt;
+        if(fl_act || fl)
             tgt_alt /= 100;
         std::string alt_str = strutils::double_to_str(double(tgt_alt), 0);
-        if((tgt_alt > tr_alt || fl) && alt_str.size() < 3)
+        if((fl_act || fl) && alt_str.size() < 3)
             alt_str = std::string(3-alt_str.size(),'0')+alt_str;
-        if(tgt_alt > tr_alt && !fl)
+        if(fl_act && !fl)
             alt_str = "FL" + alt_str;
         return alt_str;
     }
@@ -1513,8 +1514,11 @@ namespace StratosphereAvionics
                         out.chr_sts[sts_idx][j] = CDU_B_MAGENTA;
                 }
                 std::string vcstr = get_cdu_leg_vcstr(leg_list[i]);
-                vcstr = "---/" + vcstr;
-                cr_name = cr_name + std::string(N_CDU_DATA_COLS-cr_name.size()-vcstr.size(), ' ') + vcstr;
+                if(vcstr.size() < N_LEG_VCSTR_ROWS)
+                    vcstr = std::string(N_LEG_VCSTR_ROWS-vcstr.size(), ' ') + vcstr;
+                std:: string cstr = "---/" + vcstr;
+                
+                cr_name = cr_name + std::string(N_CDU_DATA_COLS-cr_name.size()-cstr.size(), ' ') + cstr;
                 out.data_lines.push_back(cr_name);
             }
             sts_idx += 2;
