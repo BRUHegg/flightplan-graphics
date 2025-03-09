@@ -214,6 +214,8 @@ namespace test
 
     protected:
         bool is_act;
+        int fix_airac_ver;
+
         std::shared_ptr<libnav::ArptDB> arpt_db;
         std::shared_ptr<libnav::NavaidDB> navaid_db;
 

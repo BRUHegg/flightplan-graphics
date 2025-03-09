@@ -50,6 +50,7 @@ namespace test
         navaid_db = nav_db;
 
         cifp_dir_path = cifp_path;
+        fix_airac_ver = navaid_db->get_navaid_cycle();
 
         fpl_refs = std::vector<fpl_ref_t>(N_FPL_REF_SZ, EmptyRef);
         fpl_refs[0].ptr = &seg_list.head;

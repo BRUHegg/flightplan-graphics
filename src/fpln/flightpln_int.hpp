@@ -226,6 +226,8 @@ namespace test
 
         double fpl_id_calc;
 
+        bool airac_mismatch;
+
 
         // Static member functions:
 
