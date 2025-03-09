@@ -1507,6 +1507,8 @@ namespace StratosphereAvionics
             }
             else
             {
+                disc_pr = false;
+                
                 std::string cr_name = get_cdu_leg_nm(leg_list[i]);
                 if(cr_name == act_info.name)
                 {

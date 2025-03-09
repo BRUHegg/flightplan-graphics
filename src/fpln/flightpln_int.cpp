@@ -248,6 +248,10 @@ namespace test
 
         arr_rwy = "";
         appr_is_rwy = false;
+
+        airac_mismatch = false;
+        if(aw_db->get_airac() != fix_airac_ver)
+            airac_mismatch = true;
     }
 
     void FplnInt::copy_from_other(FplnInt& other)
@@ -326,6 +330,12 @@ namespace test
                         if (ln_split[0] == DFMS_N_ENRT_NM)
                         {
                             read_enrt = true;
+                        }
+                        else if(ln_split[0] == DFMS_AIRAC_CYCLE_NM)
+                        {
+                            int fpl_cycle = strutils::stoi_with_strip(ln_split[1]);
+                            if(airac_mismatch || fix_airac_ver != fpl_cycle)
+                                return libnav::DbErr::DATA_BASE_ERROR;
                         }
                         else
                         {
