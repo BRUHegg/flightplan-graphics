@@ -301,6 +301,21 @@ namespace StratosphereAvionics
         return get_leg_alt(src, false, true) + "A" + get_leg_alt(src, true, true) + "B";
     }
 
+    std::string CDU::get_cdu_leg_spdcstr(test::list_node_ref_t<test::leg_list_data_t>& src)
+    {
+        if(src.data.leg.spd_lim_kias == 0)
+            return LEG_NO_SPD;
+            
+        std::string spd = strutils::double_to_str(double(src.data.leg.spd_lim_kias), 0);
+
+        if(src.data.leg.speed_desc == libnav::SpeedMode::AT_OR_ABOVE)
+            return spd+"A";
+        if(src.data.leg.speed_desc == libnav::SpeedMode::AT_OR_BELOW)
+            return spd+"B";
+
+        return spd;
+    }
+
     std::string CDU::get_cdu_leg_nm(test::list_node_ref_t<test::leg_list_data_t>& src)
     {
         if(src.data.is_discon)
@@ -1508,17 +1523,19 @@ namespace StratosphereAvionics
             else
             {
                 disc_pr = false;
-                
+
                 std::string cr_name = get_cdu_leg_nm(leg_list[i]);
                 if(cr_name == act_info.name)
                 {
                     for(size_t j = 0; j < 5; j++)
                         out.chr_sts[sts_idx][j] = CDU_B_MAGENTA;
                 }
+                // get leg constraints
+                std::string spdcstr = get_cdu_leg_spdcstr(leg_list[i]);
                 std::string vcstr = get_cdu_leg_vcstr(leg_list[i]);
                 if(vcstr.size() < N_LEG_VCSTR_ROWS)
                     vcstr = std::string(N_LEG_VCSTR_ROWS-vcstr.size(), ' ') + vcstr;
-                std:: string cstr = "---/" + vcstr;
+                std:: string cstr = spdcstr + "/" + vcstr;
                 
                 cr_name = cr_name + std::string(N_CDU_DATA_COLS-cr_name.size()-cstr.size(), ' ') + cstr;
                 out.data_lines.push_back(cr_name);
@@ -1536,6 +1553,12 @@ namespace StratosphereAvionics
         {
             out.data_lines.push_back("");
         }
+
+        while (out.data_lines.size() > 10)
+        {
+            out.data_lines.pop_back();
+        }
+        
 
         out.data_lines.push_back(std::string(N_CDU_DATA_COLS, '-'));
         out.data_lines.push_back(c_legs_btm + LEGS_BTM);
