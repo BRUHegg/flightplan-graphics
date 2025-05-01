@@ -82,7 +82,7 @@ namespace StratosphereAvionics
 
         if (curr_subpg > n_subpg)
         {
-            curr_subpg = n_subpg;
+            curr_subpg = 1;
         }
     }
 
