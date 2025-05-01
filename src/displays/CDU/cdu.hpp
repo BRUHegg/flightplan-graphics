@@ -180,7 +180,7 @@ namespace StratosphereAvionics
         CDUPage::PREV_PAGE,
         CDUPage::NEXT_PAGE};
 
-    
+
     struct cdu_scr_data_t
     {
         std::string heading_big, heading_small;
@@ -234,12 +234,17 @@ namespace StratosphereAvionics
         std::vector<bool> dep_arr_via_filter;
         std::vector<std::vector<std::string>> procs, trans, apprs, rwys, vias;
 
+        // LEGS data:
         size_t n_seg_list_sz, n_leg_list_sz;
         std::vector<test::list_node_ref_t<test::fpl_seg_t>> seg_list;
         std::vector<test::list_node_ref_t<test::leg_list_data_t>> leg_list;
+        std::vector<test::fpln_info_t> fpl_infos;
+        std::vector<std::pair<size_t, double>> leg_sel;
+
+        // Select desired data:
         std::vector<libnav::waypoint_entry_t> sel_des_data;
         std::string sel_des_nm;
-
+        
 
         static std::string get_cdu_line(std::string in, std::string line, 
             bool align_right=false);
@@ -285,6 +290,8 @@ namespace StratosphereAvionics
 
         static std::string get_cdu_leg_nm(test::list_node_ref_t<test::leg_list_data_t>& src);
 
+        void update_fpl_infos();
+        
         void set_page(CDUPage pg);
 
         void set_sel_des_state(double id, std::string& name, 
