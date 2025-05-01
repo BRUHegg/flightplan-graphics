@@ -201,7 +201,7 @@ namespace test
 
         // Leg list interface functions:
 
-        void dir_from_to(timed_ptr_t<leg_list_node_t> from, 
+        bool dir_from_to(timed_ptr_t<leg_list_node_t> from, 
             timed_ptr_t<leg_list_node_t> to);
 
         void add_direct(libnav::waypoint_t wpt, timed_ptr_t<leg_list_node_t> next);
