@@ -1090,7 +1090,7 @@ namespace test
         return false;
     }
 
-    void FplnInt::dir_from_to(timed_ptr_t<leg_list_node_t> from,
+    bool FplnInt::dir_from_to(timed_ptr_t<leg_list_node_t> from,
                               timed_ptr_t<leg_list_node_t> to)
     {
         std::lock_guard<std::mutex> lock(fpl_mtx);
@@ -1100,7 +1100,9 @@ namespace test
             if (to.ptr->prev == act_leg)
                 act_leg = from.ptr;
             delete_range(from.ptr, to.ptr);
+            return true;
         }
+        return false;
     }
 
     void FplnInt::add_direct(libnav::waypoint_t wpt, timed_ptr_t<leg_list_node_t> next)

@@ -356,6 +356,10 @@ namespace StratosphereAvionics
 
         std::string handle_arr(int event_key, bool rte2);
 
+        size_t get_leg_stt_idx();
+
+        size_t get_leg_end_idx();
+
         std::string handle_legs(int event_key, std::string scratchpad, std::string *s_out);
 
         cdu_scr_data_t get_sel_des_page();

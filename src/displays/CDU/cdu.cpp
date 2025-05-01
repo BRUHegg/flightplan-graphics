@@ -47,7 +47,7 @@ namespace StratosphereAvionics
         rwys = std::vector<std::vector<std::string>>(N_CDU_RTES);
         vias = std::vector<std::vector<std::string>>(N_CDU_RTES);
         fpl_infos = std::vector<test::fpln_info_t>(test::N_FPL_SYS_RTES);
-        leg_sel = std::vector<std::pair<size_t, double>>(N_CDU_RTES);
+        leg_sel = std::vector<std::pair<size_t, double>>(N_CDU_RTES, {0LL, -1.0});
 
         sel_des_nm = "";
     }
@@ -1218,6 +1218,17 @@ namespace StratosphereAvionics
         return "";
     }
 
+    size_t CDU::get_leg_stt_idx()
+    {
+        return 2 + N_CDU_LEG_PP * size_t(curr_subpg - 1);
+    }
+
+    size_t CDU::get_leg_end_idx()
+    {
+        size_t stt_idx = get_leg_stt_idx();
+        return std::min(leg_list.size() - 1, stt_idx + N_CDU_LEG_PP);
+    }
+
     std::string CDU::handle_legs(int event_key, std::string scratchpad, std::string *s_out)
     {
         UNUSED(scratchpad);
@@ -1247,6 +1258,45 @@ namespace StratosphereAvionics
                 fpl_sys->rte_activate(sel_fpl_idx);
             }
             return "";
+        }
+        else if(event_key >= CDU_KEY_LSK_TOP && event_key <= CDU_KEY_LSK_TOP + 5)
+        {
+            size_t i_start = get_leg_stt_idx();
+            size_t i_end = get_leg_end_idx();
+            size_t usr_idx = i_start + size_t(event_key-CDU_KEY_LSK_TOP);
+            if(usr_idx <= i_end)
+            {
+                size_t sd_idx = sel_fpl_idx-1;
+                if(leg_sel[sd_idx].second == -1)
+                {
+                    leg_sel[sd_idx].first = usr_idx;
+                    leg_sel[sd_idx].second = fpl_infos[sel_fpl_idx].leg_list_id;
+                }
+                else
+                {
+                    size_t i_fr = usr_idx;
+                    size_t i_to = leg_sel[sd_idx].first;
+                    if(i_fr != i_to)
+                    {
+                        if(i_fr > i_to)
+                        {
+                            if(i_fr+1 < leg_list.size())
+                                i_fr++;
+                            std::swap(i_fr, i_to);
+                        }
+                        else if(i_fr)
+                        {
+                            i_fr--;
+                        }
+
+                        double cr_lg_id = leg_sel[sd_idx].second;
+                        bool rv = fpln->dir_from_to({leg_list[i_fr].ptr, cr_lg_id}, 
+                            {leg_list[i_to].ptr, cr_lg_id});
+                        leg_sel[sd_idx].second = -1;
+                        UNUSED(rv);
+                    }
+                }
+            }
         }
         return "";
     }
@@ -1573,8 +1623,8 @@ namespace StratosphereAvionics
         out.heading_big = "  " + act_sts + c_legs_top;
 
         assert(leg_list.size());
-        size_t i_start = 2 + N_CDU_LEG_PP * size_t(curr_subpg - 1);
-        size_t i_end = std::min(leg_list.size() - 1, i_start + N_CDU_LEG_PP);
+        size_t i_start = get_leg_stt_idx();
+        size_t i_end = get_leg_end_idx();
         bool disc_pr = false;
         size_t sts_idx = 1;
 
