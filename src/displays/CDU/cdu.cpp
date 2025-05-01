@@ -159,6 +159,10 @@ namespace StratosphereAvionics
         {
             return handle_arr(event_key, true);
         }
+        else if(curr_page == CDUPage::LEGS)
+        {
+            return handle_legs(event_key, scratchpad, s_out);
+        }
 
         return "";
     }
@@ -1202,6 +1206,39 @@ namespace StratosphereAvionics
         return "";
     }
 
+    std::string CDU::handle_legs(int event_key, std::string scratchpad, std::string *s_out)
+    {
+        UNUSED(scratchpad);
+        UNUSED(s_out);
+        if(event_key == CDU_KEY_LSK_TOP+5)
+        {
+            bool exec_lt = fpl_sys->get_exec();
+            if(exec_lt)
+            {
+                fpl_sys->erase();
+            }
+            else
+            {
+                if (sel_fpl_idx == test::RTE1_IDX)
+                    sel_fpl_idx = test::RTE2_IDX;
+                else
+                    sel_fpl_idx = test::RTE1_IDX;
+            }
+        }
+        else if(event_key == CDU_KEY_RSK_TOP + 5)
+        {
+            bool exec_lt = fpl_sys->get_exec();
+            if (exec_lt)
+                return "";
+            if (sel_fpl_idx != act_fpl_idx)
+            {
+                fpl_sys->rte_activate(sel_fpl_idx);
+            }
+            return "";
+        }
+        return "";
+    }
+
     cdu_scr_data_t CDU::get_sel_des_page()
     {
         cdu_scr_data_t out = {};
@@ -1475,6 +1512,28 @@ namespace StratosphereAvionics
         return out;
     }
 
+    std::string CDU::get_legs_btm()
+    {
+        bool is_act = sel_fpl_idx == act_fpl_idx;
+        bool exec_lt = fpl_sys->get_exec();
+
+        std::string c_legs_btm = "<RTE 2";
+        if (sel_fpl_idx == test::RTE2_IDX)
+        {
+            c_legs_btm = "<RTE 1";
+        }
+
+        if(!is_act && !exec_lt)
+        {
+            return c_legs_btm + LEGS_BTM_INACT;
+        }
+        else if(is_act && exec_lt)
+        {
+            return LEGS_BTM_MOD;
+        }
+        return c_legs_btm + LEGS_BTM_ACT;
+    }
+
     cdu_scr_data_t CDU::get_legs_page()
     {
         cdu_scr_data_t out = {};
@@ -1495,14 +1554,13 @@ namespace StratosphereAvionics
             out.heading_color = CDUColor::WHITE;
         }
         std::string c_legs_top = "RTE 1 LEGS";
-        std::string c_legs_btm = "<RTE 2";
         if (sel_fpl_idx == test::RTE2_IDX)
         {
             c_legs_top = "RTE 2 LEGS";
-            c_legs_btm = "<RTE 1";
         }
         out.heading_big = "  " + act_sts + c_legs_top;
 
+        assert(leg_list.size());
         size_t i_start = 2 + N_CDU_LEG_PP * size_t(curr_subpg - 1);
         size_t i_end = std::min(leg_list.size() - 1, i_start + N_CDU_LEG_PP);
         bool disc_pr = false;
@@ -1561,7 +1619,7 @@ namespace StratosphereAvionics
         
 
         out.data_lines.push_back(std::string(N_CDU_DATA_COLS, '-'));
-        out.data_lines.push_back(c_legs_btm + LEGS_BTM);
+        out.data_lines.push_back(get_legs_btm());
 
         return out;
     }

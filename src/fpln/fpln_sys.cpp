@@ -64,7 +64,7 @@ namespace test
             fpl_datas[i].cap_ctr_idx = 1;
             fpl_datas[i].fo_ctr_idx = 1;
 
-            fpl_datas[i].fpl_id_last = 0;
+            fpl_datas[i].fpl_id_last = -1;
             fpl_datas[i].act_leg_idx = -1;
         }
 

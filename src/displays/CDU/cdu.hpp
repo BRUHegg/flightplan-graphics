@@ -149,7 +149,9 @@ namespace StratosphereAvionics
     const std::string MOD = "MOD";
     const std::string RTE_COPY = "RTE COPY";
     const std::string COMPLETE = "COMPLETE";
-    const std::string LEGS_BTM = " LEGS    RTE DATA>";
+    const std::string LEGS_BTM_ACT = " LEGS    RTE DATA>";
+    const std::string LEGS_BTM_MOD = "<ERASE         RTE DATA>";
+    const std::string LEGS_BTM_INACT = " LEGS    ACTIVATE>";
     const std::string LEG_LAST = std::string(5, '-');
     const std::string LEG_NO_SPD = std::string(4, '-');
     const std::string LEG_NO_ALT = std::string(6, '-');
@@ -347,6 +349,8 @@ namespace StratosphereAvionics
 
         std::string handle_arr(int event_key, bool rte2);
 
+        std::string handle_legs(int event_key, std::string scratchpad, std::string *s_out);
+
         cdu_scr_data_t get_sel_des_page();
 
         cdu_scr_data_t get_rte_page();
@@ -358,6 +362,8 @@ namespace StratosphereAvionics
         cdu_scr_data_t get_dep_page(bool rte2);
 
         cdu_scr_data_t get_arr_page(bool rte2);
+
+        std::string get_legs_btm();
 
         cdu_scr_data_t get_legs_page();
     };
