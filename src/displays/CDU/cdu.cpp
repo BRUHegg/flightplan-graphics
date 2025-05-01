@@ -46,6 +46,8 @@ namespace StratosphereAvionics
         apprs = std::vector<std::vector<std::string>>(N_CDU_RTES);
         rwys = std::vector<std::vector<std::string>>(N_CDU_RTES);
         vias = std::vector<std::vector<std::string>>(N_CDU_RTES);
+        fpl_infos = std::vector<test::fpln_info_t>(test::N_FPL_SYS_RTES);
+        leg_sel = std::vector<std::pair<size_t, double>>(N_CDU_RTES);
 
         sel_des_nm = "";
     }
@@ -84,6 +86,8 @@ namespace StratosphereAvionics
         {
             curr_subpg = 1;
         }
+
+        update_fpl_infos();
     }
 
     bool CDU::get_exec_lt()
@@ -338,6 +342,14 @@ namespace StratosphereAvionics
         return "";
     }
 
+    void CDU::update_fpl_infos()
+    {
+        for(size_t i = 0; i < fpl_infos.size(); i++)
+        {
+            fpl_infos[i] = fpl_sys->get_fpl_info(i);
+        }
+    }
+
     void CDU::set_page(CDUPage pg)
     {
         curr_subpg = 1;
@@ -472,7 +484,7 @@ namespace StratosphereAvionics
 
     std::string CDU::delete_via(size_t next_idx)
     {
-        test::fpln_info_t f_inf = fpl_sys->get_fpl_info(sel_fpl_idx);
+        test::fpln_info_t f_inf = fpl_infos[sel_fpl_idx];
         double id = f_inf.seg_list_id;
         test::seg_list_node_t *s_ptr = nullptr;
         if (next_idx < n_seg_list_sz)
@@ -488,7 +500,7 @@ namespace StratosphereAvionics
 
     std::string CDU::add_to(size_t next_idx, std::string name)
     {
-        test::fpln_info_t f_inf = fpl_sys->get_fpl_info(sel_fpl_idx);
+        test::fpln_info_t f_inf = fpl_infos[sel_fpl_idx];
         double id = f_inf.seg_list_id;
         libnav::waypoint_entry_t tgt;
         std::string wpt_nm;
@@ -536,7 +548,7 @@ namespace StratosphereAvionics
 
     std::string CDU::delete_to(size_t next_idx)
     {
-        test::fpln_info_t f_inf = fpl_sys->get_fpl_info(sel_fpl_idx);
+        test::fpln_info_t f_inf = fpl_infos[sel_fpl_idx];
         double id = f_inf.seg_list_id;
         test::seg_list_node_t *s_ptr = nullptr;
         if (next_idx < n_seg_list_sz)
