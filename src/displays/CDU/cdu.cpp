@@ -1295,784 +1295,783 @@ namespace StratosphereAvionics
         }
     }
 
-        std::string CDU::handle_legs(int event_key, std::string scratchpad, std::string *s_out)
+    std::string CDU::handle_legs(int event_key, std::string scratchpad, std::string *s_out)
+    {
+        if (event_key == CDU_KEY_LSK_TOP + 5)
         {
-            if (event_key == CDU_KEY_LSK_TOP + 5)
-            {
-                bool exec_lt = fpl_sys->get_exec();
-                if (exec_lt)
-                {
-                    fpl_sys->erase();
-                }
-                else
-                {
-                    if (sel_fpl_idx == test::RTE1_IDX)
-                        sel_fpl_idx = test::RTE2_IDX;
-                    else
-                        sel_fpl_idx = test::RTE1_IDX;
-                }
-            }
-            else if (event_key == CDU_KEY_RSK_TOP + 5)
-            {
-                bool exec_lt = fpl_sys->get_exec();
-                if (exec_lt)
-                    return "";
-                if (sel_fpl_idx != act_fpl_idx)
-                {
-                    fpl_sys->rte_activate(sel_fpl_idx);
-                }
-                return "";
-            }
-            else if (event_key >= CDU_KEY_LSK_TOP && event_key <= CDU_KEY_LSK_TOP + 5)
-            {
-                size_t i_start = get_leg_stt_idx();
-                size_t i_end = get_leg_end_idx();
-                size_t usr_idx = i_start + size_t(event_key - CDU_KEY_LSK_TOP);
-                bool scr_is_del = scratchpad_has_delete(scratchpad);
-                if (usr_idx < i_end && !scr_is_del)
-                {
-                    handle_legs_dto(usr_idx, scratchpad, s_out);
-                }
-                else if(scr_is_del && usr_idx == i_end)
-                {
-                    return INVALID_DELETE_MSG;
-                }
-            }
-            return "";
-        }
-
-        cdu_scr_data_t CDU::get_sel_des_page()
-        {
-            cdu_scr_data_t out = {};
-            fill_char_state_buf(out);
-
-            out.heading_small = get_small_heading();
-            out.heading_big = SEL_DES_WPT_HDG;
-            out.heading_color = CDUColor::WHITE;
-
-            size_t start_idx = size_t((curr_subpg - 1) * 6);
-            size_t end_idx = std::min(sel_des_data.size(), start_idx + 6);
-
-            for (size_t i = start_idx; i < end_idx; i++)
-            {
-                std::string wpt_tp = sel_des_nm + " " + libnav::navaid_to_str(sel_des_data[i].type);
-                std::string lat_str = strutils::lat_to_str(sel_des_data[i].pos.lat_rad * geo::RAD_TO_DEG);
-                std::string lon_str = strutils::lon_to_str(sel_des_data[i].pos.lon_rad * geo::RAD_TO_DEG);
-                std::string main_str = lat_str + lon_str;
-                if (sel_des_data[i].navaid)
-                {
-                    main_str = strutils::freq_to_str(sel_des_data[i].navaid->freq) + " " + main_str;
-                }
-                out.data_lines.push_back(wpt_tp);
-                out.data_lines.push_back(main_str);
-            }
-
-            return out;
-        }
-
-        cdu_scr_data_t CDU::get_rte_page()
-        {
-            bool exec_lt = fpl_sys->get_exec();
-
-            cdu_scr_data_t out = {};
-            fill_char_state_buf(out);
-
-            out.heading_small = get_small_heading();
-            std::string rte_offs = std::string(2, ' ');
-            std::string act_sts = std::string(4, ' ');
-
-            out.heading_color = CDUColor::CYAN;
-            if (sel_fpl_idx == act_fpl_idx)
-            {
-                if (exec_lt)
-                    act_sts = MOD + " ";
-                else
-                    act_sts = ACT + " ";
-                out.heading_color = CDUColor::WHITE;
-            }
-            std::string c_rte_top = "RTE 1";
-            std::string c_rte_btm = "<RTE 2";
-            if (sel_fpl_idx == test::RTE2_IDX)
-            {
-                c_rte_top = "RTE 2";
-                c_rte_btm = "<RTE 1";
-            }
-            out.heading_big = rte_offs + act_sts + c_rte_top;
-
-            if (curr_subpg == 1)
-            {
-                std::string dest_offs = std::string(N_CDU_DATA_COLS - 7 - 4, ' ');
-                std::string origin_dest = " ORIGIN" + dest_offs + "DEST";
-                out.data_lines.push_back(origin_dest);
-                std::string origin = fpln->get_dep_icao();
-                std::string dest = fpln->get_arr_icao();
-                bool incomplete = false;
-
-                std::string flt_nbr = fpl_sys->get_flt_nbr();
-                if (flt_nbr == "")
-                    flt_nbr = std::string(10, '-');
-                else
-                    flt_nbr = std::string(N_FLT_NBR_CHR_MAX - flt_nbr.size(), ' ') + flt_nbr;
-
-                if (origin == "")
-                {
-                    origin = std::string(4, '@');
-                    incomplete = true;
-                }
-                if (dest == "")
-                {
-                    dest = std::string(4, '@');
-                    incomplete = true;
-                }
-
-                std::string od_data = origin + std::string(N_CDU_DATA_COLS - 4 - 4, ' ') + dest;
-                out.data_lines.push_back(od_data);
-                std::string rwy_flt_no = " RUNWAY" + std::string(N_CDU_DATA_COLS - 7 - 6, ' ') + "FLT NO";
-                out.data_lines.push_back(rwy_flt_no);
-                std::string dep_rwy = "";
-                if (!incomplete)
-                {
-                    dep_rwy = fpln->get_dep_rwy();
-                    if (dep_rwy == "")
-                        dep_rwy = std::string(5, '-');
-                    else
-                        dep_rwy = "RW" + dep_rwy;
-                }
-                std::string rf_data = dep_rwy + std::string(size_t(N_CDU_DATA_COLS) - dep_rwy.size() - 10, ' ') + flt_nbr;
-                out.data_lines.push_back(rf_data);
-                out.data_lines.push_back(" ROUTE" + std::string(N_CDU_DATA_COLS - 6 - 8, ' ') + "CO ROUTE");
-                out.data_lines.push_back("<REQUEST" + std::string(size_t(N_CDU_DATA_COLS) - 8 - 10, ' ') + std::string(10, '-'));
-                if (rte_copy == test::RTECopySts::READY && sel_fpl_idx == act_fpl_idx)
-                {
-                    out.data_lines.push_back("");
-                    size_t cp_pad = size_t(N_CDU_DATA_COLS) - RTE_COPY.size() - 1;
-                    out.data_lines.push_back(std::string(cp_pad, ' ') + RTE_COPY + ">");
-                }
-                else if (rte_copy == test::RTECopySts::COMPLETE && sel_fpl_idx == act_fpl_idx)
-                {
-                    size_t cp_pad1 = size_t(N_CDU_DATA_COLS) - RTE_COPY.size();
-                    size_t cp_pad2 = size_t(N_CDU_DATA_COLS) - COMPLETE.size();
-                    out.data_lines.push_back(std::string(cp_pad1, ' ') + RTE_COPY);
-                    out.data_lines.push_back(std::string(cp_pad2, ' ') + COMPLETE);
-                }
-                else
-                {
-                    out.data_lines.push_back("");
-                    out.data_lines.push_back("");
-                }
-
-                std::string rte_final = " ROUTE ";
-                out.data_lines.push_back(rte_final + std::string(size_t(N_CDU_DATA_COLS) - 7, '-'));
-                out.data_lines.push_back("<SAVE" + std::string(size_t(N_CDU_DATA_COLS) - 10, ' ') + "ALTN>");
-            }
-            else
-            {
-                get_seg_page(&out);
-            }
-
-            if (out.data_lines.size() == 10)
-            {
-                if (curr_subpg != 1)
-                    out.data_lines.push_back(ALL_DASH);
-                else
-                    out.data_lines.push_back("");
-            }
-
-            std::string btm_line_nrm = c_rte_btm;
-            if (act_fpl_idx != sel_fpl_idx)
-                btm_line_nrm += std::string(size_t(N_CDU_DATA_COLS) - 15, ' ') + "ACTIVATE>";
-            if (!exec_lt)
-                out.data_lines.push_back(btm_line_nrm);
-            else
-                out.data_lines.push_back(ERASE_NML);
-
-            return out;
-        }
-
-        cdu_scr_data_t CDU::get_dep_arr_page()
-        {
-            cdu_scr_data_t out = {};
-            fill_char_state_buf(out);
-
-            out.heading_small = get_small_heading();
-            std::string hdg_offs = std::string((N_CDU_DATA_COLS - DEP_ARR_HDG.size()) / 2, ' ');
-            out.heading_big = hdg_offs + DEP_ARR_HDG;
-            out.heading_color = CDUColor::WHITE;
-
-            get_rte_dep_arr(out, false);
-            get_rte_dep_arr(out, true);
-
-            out.data_lines.push_back(std::string(N_CDU_DATA_COLS, '-'));
-            out.data_lines.push_back("");
-            out.data_lines.push_back(DEP_ARR_IDX_OTHER);
-            out.data_lines.push_back(DEP_ARR_ARROWS);
-
-            return out;
-        }
-
-        void CDU::dep_arr_set_bottom(cdu_scr_data_t & out)
-        {
-            out.data_lines[10] = std::string(N_CDU_DATA_COLS, '-');
-
             bool exec_lt = fpl_sys->get_exec();
             if (exec_lt)
             {
-                out.data_lines[11] = DEP_ARR_BOTTOM_ACT;
+                fpl_sys->erase();
             }
             else
             {
-                out.data_lines[11] = DEP_ARR_BOTTOM_INACT;
-            }
-        }
-
-        cdu_scr_data_t CDU::get_dep_page(bool rte2)
-        {
-            std::shared_ptr<test::FplnInt> c_fpl = m_rte1_ptr;
-            if (rte2)
-            {
-                c_fpl = m_rte2_ptr;
-            }
-
-            std::string dep = c_fpl->get_dep_icao();
-            cdu_scr_data_t out = {};
-            fill_char_state_buf(out);
-
-            out.heading_small = get_small_heading();
-            out.heading_big = "   " + dep + " DEPARTURES";
-            out.heading_color = CDUColor::WHITE;
-
-            for (int i = 0; i < 12; i++)
-            {
-                out.data_lines.push_back("");
-            }
-            if (rte2)
-                out.data_lines[0] = DEP_COLS2;
-            else
-                out.data_lines[0] = DEP_COLS1;
-
-            std::string curr_sid = c_fpl->get_curr_proc(test::PROC_TYPE_SID);
-            std::string curr_trans = c_fpl->get_curr_proc(test::PROC_TYPE_SID, true);
-            std::string act_sid = m_act_ptr->get_curr_proc(test::PROC_TYPE_SID);
-            std::string act_trans = m_act_ptr->get_curr_proc(test::PROC_TYPE_SID, true);
-            get_procs(&out, curr_sid, curr_trans, act_sid, act_trans, rte2);
-
-            std::string dep_rwy = c_fpl->get_dep_rwy();
-            std::string act_rwy = m_act_ptr->get_dep_rwy();
-            get_rwys(&out, dep_rwy, act_rwy, rte2);
-
-            dep_arr_set_bottom(out);
-
-            return out;
-        }
-
-        cdu_scr_data_t CDU::get_arr_page(bool rte2)
-        {
-            std::shared_ptr<test::FplnInt> c_fpl = m_rte1_ptr;
-            if (rte2)
-            {
-                c_fpl = m_rte2_ptr;
-            }
-
-            std::string arr = c_fpl->get_arr_icao();
-            cdu_scr_data_t out = {};
-            fill_char_state_buf(out);
-
-            out.heading_small = get_small_heading();
-            out.heading_big = "   " + arr + " ARRIVALS";
-            out.heading_color = CDUColor::WHITE;
-
-            for (int i = 0; i < 12; i++)
-            {
-                out.data_lines.push_back("");
-            }
-            if (rte2)
-                out.data_lines[0] = ARR_COLS2;
-            else
-                out.data_lines[0] = ARR_COLS1;
-
-            std::string curr_star = c_fpl->get_curr_proc(test::PROC_TYPE_STAR);
-            std::string curr_trans = c_fpl->get_curr_proc(test::PROC_TYPE_STAR, true);
-            std::string act_star = m_act_ptr->get_curr_proc(test::PROC_TYPE_STAR);
-            std::string act_trans = m_act_ptr->get_curr_proc(test::PROC_TYPE_STAR, true);
-            get_procs(&out, curr_star, curr_trans, act_star, act_trans, rte2);
-
-            std::string arr_rwy = c_fpl->get_arr_rwy();
-            std::string arr_appr = c_fpl->get_curr_proc(test::PROC_TYPE_APPCH);
-            std::string arr_via = c_fpl->get_curr_proc(test::PROC_TYPE_APPCH, true);
-
-            std::string act_rwy = m_act_ptr->get_arr_rwy();
-            std::string act_appr = m_act_ptr->get_curr_proc(test::PROC_TYPE_APPCH);
-            std::string act_via = m_act_ptr->get_curr_proc(test::PROC_TYPE_APPCH, true);
-
-            get_rwys(&out, arr_rwy, act_rwy, rte2, arr_appr, arr_via, act_appr, act_via, true);
-
-            dep_arr_set_bottom(out);
-
-            return out;
-        }
-
-        std::string CDU::get_legs_btm()
-        {
-            bool is_act = sel_fpl_idx == act_fpl_idx;
-            bool exec_lt = fpl_sys->get_exec();
-
-            std::string c_legs_btm = "<RTE 2";
-            if (sel_fpl_idx == test::RTE2_IDX)
-            {
-                c_legs_btm = "<RTE 1";
-            }
-
-            if (!is_act && !exec_lt)
-            {
-                return c_legs_btm + LEGS_BTM_INACT;
-            }
-            else if (is_act && exec_lt)
-            {
-                return LEGS_BTM_MOD;
-            }
-            return c_legs_btm + LEGS_BTM_ACT;
-        }
-
-        cdu_scr_data_t CDU::get_legs_page()
-        {
-            cdu_scr_data_t out = {};
-            fill_char_state_buf(out);
-
-            out.heading_small = get_small_heading();
-            out.heading_color = CDUColor::WHITE;
-
-            out.heading_color = CDUColor::CYAN;
-            bool exec_lt = fpl_sys->get_exec();
-            std::string act_sts = std::string(4, ' ');
-            if (sel_fpl_idx == act_fpl_idx)
-            {
-                if (exec_lt)
-                    act_sts = MOD + " ";
+                if (sel_fpl_idx == test::RTE1_IDX)
+                    sel_fpl_idx = test::RTE2_IDX;
                 else
-                    act_sts = ACT + " ";
-                out.heading_color = CDUColor::WHITE;
+                    sel_fpl_idx = test::RTE1_IDX;
             }
-            std::string c_legs_top = "RTE 1 LEGS";
-            if (sel_fpl_idx == test::RTE2_IDX)
+        }
+        else if (event_key == CDU_KEY_RSK_TOP + 5)
+        {
+            bool exec_lt = fpl_sys->get_exec();
+            if (exec_lt)
+                return "";
+            if (sel_fpl_idx != act_fpl_idx)
             {
-                c_legs_top = "RTE 2 LEGS";
+                fpl_sys->rte_activate(sel_fpl_idx);
             }
-            out.heading_big = "  " + act_sts + c_legs_top;
-
-            assert(leg_list.size());
+            return "";
+        }
+        else if (event_key >= CDU_KEY_LSK_TOP && event_key <= CDU_KEY_LSK_TOP + 5)
+        {
             size_t i_start = get_leg_stt_idx();
             size_t i_end = get_leg_end_idx();
-            bool disc_pr = false;
-            size_t sts_idx = 1;
-
-            test::act_leg_info_t act_info = fpl_sys->get_act_leg_info();
-
-            for (size_t i = i_start; i < i_end; i++)
+            size_t usr_idx = i_start + size_t(event_key - CDU_KEY_LSK_TOP);
+            bool scr_is_del = scratchpad_has_delete(scratchpad);
+            if (usr_idx < i_end && !scr_is_del)
             {
-                if (!disc_pr)
-                    out.data_lines.push_back(get_cdu_leg_prop(leg_list[i]));
-                if (leg_list[i].data.is_discon)
-                {
-                    disc_pr = true;
-                    out.data_lines.push_back("@@@@@");
-                    out.data_lines.push_back(DISCO_AFTER_SEG);
-                }
-                else
-                {
-                    disc_pr = false;
-
-                    std::string cr_name = get_cdu_leg_nm(leg_list[i]);
-                    if (cr_name == act_info.name)
-                    {
-                        for (size_t j = 0; j < 5; j++)
-                            out.chr_sts[sts_idx][j] = CDU_B_MAGENTA;
-                    }
-                    // get leg constraints
-                    std::string spdcstr = get_cdu_leg_spdcstr(leg_list[i]);
-                    std::string vcstr = get_cdu_leg_vcstr(leg_list[i]);
-                    if (vcstr.size() < N_LEG_VCSTR_ROWS)
-                        vcstr = std::string(N_LEG_VCSTR_ROWS - vcstr.size(), ' ') + vcstr;
-                    std::string cstr = spdcstr + "/" + vcstr;
-
-                    cr_name = cr_name + std::string(N_CDU_DATA_COLS - cr_name.size() - cstr.size(), ' ') + cstr;
-                    out.data_lines.push_back(cr_name);
-                }
-                sts_idx += 2;
+                handle_legs_dto(usr_idx, scratchpad, s_out);
             }
-
-            if (i_end - i_start < N_CDU_LEG_PP)
+            else if (scr_is_del && usr_idx == i_end)
             {
-                out.data_lines.push_back("");
-                out.data_lines.push_back(LEG_LAST);
-            }
-
-            while (out.data_lines.size() < 10)
-            {
-                out.data_lines.push_back("");
-            }
-
-            while (out.data_lines.size() > 10)
-            {
-                out.data_lines.pop_back();
-            }
-
-            out.data_lines.push_back(std::string(N_CDU_DATA_COLS, '-'));
-            out.data_lines.push_back(get_legs_btm());
-
-            return out;
-        }
-
-        // CDUDisplay definitions:
-        // Public member functions:
-
-        CDUDisplay::CDUDisplay(geom::vect2_t pos, geom::vect2_t sz, cairo_font_face_t * ff,
-                               std::shared_ptr<cairo_utils::texture_manager_t> tm,
-                               std::shared_ptr<CDU> cdu, byteutils::Bytemap * bm)
-        {
-            scr_pos = pos;
-            size = sz;
-            disp_pos = scr_pos + size * DISPLAY_OFFS;
-            disp_size = size * DISPLAY_SZ;
-
-            font_face = ff;
-
-            tex_mngr = tm;
-            cdu_ptr = cdu;
-
-            key_map = bm;
-
-            tex_size = cairo_utils::get_surf_sz(tex_mngr->data[CDU_TEXTURE_NAME]);
-            tex_scale = size / tex_size;
-
-            scratchpad = std::string(size_t(N_CDU_DATA_COLS), ' ');
-            scratch_curr = 0;
-
-            last_press_tp = std::chrono::steady_clock::now();
-        }
-
-        void CDUDisplay::on_click(geom::vect2_t pos)
-        {
-            auto curr_tp = std::chrono::steady_clock::now();
-            std::chrono::duration<double> dur = curr_tp - last_press_tp;
-            double dur_cnt = dur.count();
-
-            last_press_tp = curr_tp;
-
-            if (dur_cnt < CDU_PRS_INTV_SEC)
-                return;
-
-            pos = (pos - scr_pos) / tex_scale;
-            if (pos.x >= 0 && pos.y >= 0 && pos.x < tex_size.x && pos.y < tex_size.y)
-            {
-                int event = int(key_map->get_at(size_t(pos.x), size_t(pos.y)));
-
-                if (event && (event < CDU_KEY_A || event == CDU_KEY_EXEC))
-                {
-                    std::string scratch_proc = strutils::strip(scratchpad);
-                    std::string scr_out;
-                    std::string msg = cdu_ptr->on_event(event, scratch_proc, &scr_out);
-
-                    if (scr_out != "")
-                    {
-                        scratch_curr = scr_out.size();
-                        scratchpad = scr_out + std::string(N_CDU_DATA_COLS - scr_out.size(), ' ');
-                    }
-                    else
-                    {
-                        if (msg == "")
-                            clear_scratchpad();
-                        else
-                            msg_stack.push(msg);
-                    }
-                }
-                update_scratchpad(event);
+                return INVALID_DELETE_MSG;
             }
         }
+        return "";
+    }
 
-        void CDUDisplay::draw(cairo_t * cr)
+    cdu_scr_data_t CDU::get_sel_des_page()
+    {
+        cdu_scr_data_t out = {};
+        fill_char_state_buf(out);
+
+        out.heading_small = get_small_heading();
+        out.heading_big = SEL_DES_WPT_HDG;
+        out.heading_color = CDUColor::WHITE;
+
+        size_t start_idx = size_t((curr_subpg - 1) * 6);
+        size_t end_idx = std::min(sel_des_data.size(), start_idx + 6);
+
+        for (size_t i = start_idx; i < end_idx; i++)
         {
-            cairo_utils::draw_image(cr, tex_mngr->data[CDU_TEXTURE_NAME], scr_pos,
-                                    tex_scale, false);
-
-            bool dr_exc = cdu_ptr->get_exec_lt();
-            if (dr_exc)
-                draw_exec(cr);
-
-            draw_screen(cr);
-        }
-
-        // Private member functions:
-
-        void CDUDisplay::add_to_scratchpad(char c)
-        {
-            if (scratch_curr != size_t(N_CDU_DATA_COLS))
+            std::string wpt_tp = sel_des_nm + " " + libnav::navaid_to_str(sel_des_data[i].type);
+            std::string lat_str = strutils::lat_to_str(sel_des_data[i].pos.lat_rad * geo::RAD_TO_DEG);
+            std::string lon_str = strutils::lon_to_str(sel_des_data[i].pos.lon_rad * geo::RAD_TO_DEG);
+            std::string main_str = lat_str + lon_str;
+            if (sel_des_data[i].navaid)
             {
-                scratchpad[scratch_curr] = c;
-                scratch_curr++;
+                main_str = strutils::freq_to_str(sel_des_data[i].navaid->freq) + " " + main_str;
             }
+            out.data_lines.push_back(wpt_tp);
+            out.data_lines.push_back(main_str);
         }
 
-        void CDUDisplay::clear_scratchpad()
+        return out;
+    }
+
+    cdu_scr_data_t CDU::get_rte_page()
+    {
+        bool exec_lt = fpl_sys->get_exec();
+
+        cdu_scr_data_t out = {};
+        fill_char_state_buf(out);
+
+        out.heading_small = get_small_heading();
+        std::string rte_offs = std::string(2, ' ');
+        std::string act_sts = std::string(4, ' ');
+
+        out.heading_color = CDUColor::CYAN;
+        if (sel_fpl_idx == act_fpl_idx)
         {
-            while (scratch_curr)
-            {
-                scratchpad[scratch_curr] = ' ';
-                scratch_curr--;
-            }
-            scratchpad[scratch_curr] = ' ';
-        }
-
-        void CDUDisplay::update_scratchpad(int event)
-        {
-            if (event == CDU_KEY_DELETE)
-            {
-                if (scratchpad[0] == DELETE_SYMBOL)
-                {
-                    scratchpad[0] = ' ';
-                }
-                else
-                {
-                    clear_scratchpad();
-                    scratchpad[0] = DELETE_SYMBOL;
-                }
-            }
-            else if (event == CDU_KEY_CLR)
-            {
-                if (msg_stack.size())
-                {
-                    msg_stack.pop();
-                }
-                else
-                {
-                    if (scratch_curr)
-                        scratch_curr--;
-                    scratchpad[scratch_curr] = ' ';
-                }
-            }
-
-            if (scratchpad[0] != DELETE_SYMBOL)
-            {
-                if (event >= CDU_KEY_A && event < CDU_KEY_A + 26)
-                {
-                    add_to_scratchpad('A' + char(event - CDU_KEY_A));
-                }
-                else if (event == CDU_KEY_SP)
-                {
-                    add_to_scratchpad(' ');
-                }
-                else if (event == CDU_KEY_SLASH)
-                {
-                    add_to_scratchpad('/');
-                }
-                else if (event >= CDU_KEY_1 && event < CDU_KEY_1 + 9)
-                {
-                    add_to_scratchpad('1' + char(event - CDU_KEY_1));
-                }
-                else if (event == CDU_KEY_DOT)
-                {
-                    add_to_scratchpad('.');
-                }
-                else if (event == CDU_KEY_0)
-                {
-                    add_to_scratchpad('0');
-                }
-                else if (event == CDU_KEY_PM)
-                {
-                    if (scratch_curr && scratchpad[scratch_curr - 1] == '-')
-                        scratchpad[scratch_curr - 1] = '+';
-                    else
-                        add_to_scratchpad('-');
-                }
-            }
-        }
-
-        int CDUDisplay::get_cdu_letter_idx(char c)
-        {
-            if (c >= '0' && c <= '9')
-                return 1 + c - '0';
-            else if (c >= 'A' && c <= 'Z')
-                return 11 + c - 'A';
-            else if (c == '%')
-                return 37;
-            else if (c == '(')
-                return 38;
-            else if (c == ')')
-                return 39;
-            else if (c == '-')
-                return 40;
-            else if (c == '_')
-                return 41;
-            else if (c == '+')
-                return 42;
-            else if (c == '=')
-                return 43;
-            else if (c == '|')
-                return 44;
-            else if (c == ':')
-                return 45;
-            else if (c == '<')
-                return 46;
-            else if (c == '.')
-                return 47;
-            else if (c == '>')
-                return 48;
-            else if (c == ',')
-                return 49;
-            else if (c == '/')
-                return 50;
-            else if (c == strutils::DEGREE_SYMBOL)
-                return 51;
-            else if (c == '@')
-                return 52;
-            return 0;
-        }
-
-        CDUColor CDUDisplay::get_cdu_color(char c)
-        {
-            if (c == CDU_S_WHITE || c == CDU_B_WHITE)
-                return CDUColor::WHITE;
-            else if (c == CDU_S_CYAN || c == CDU_B_CYAN)
-                return CDUColor::CYAN;
-            else if (c == CDU_S_GREEN || c == CDU_B_GREEN)
-                return CDUColor::GREEN;
-
-            return CDUColor::MAGENTA;
-        }
-
-        bool CDUDisplay::chr_is_big(char c)
-        {
-            if (c >= 'a' && c <= 'z')
-                return false;
-            return true;
-        }
-
-        cairo_surface_t *CDUDisplay::get_font_sfc(CDUColor cl)
-        {
-            cairo_surface_t *font_sfc;
-            if (cl == CDUColor::GREEN)
-                font_sfc = tex_mngr->data[CDU_GREEN_TEXT_NAME];
-            else if (cl == CDUColor::CYAN)
-                font_sfc = tex_mngr->data[CDU_CYAN_TEXT_NAME];
-            else if (cl == CDUColor::MAGENTA)
-                font_sfc = tex_mngr->data[CDU_MAGENTA_TEXT_NAME];
+            if (exec_lt)
+                act_sts = MOD + " ";
             else
-                font_sfc = tex_mngr->data[CDU_WHITE_TEXT_NAME];
-
-            return font_sfc;
+                act_sts = ACT + " ";
+            out.heading_color = CDUColor::WHITE;
         }
-
-        void CDUDisplay::draw_cdu_letter(cairo_t * cr, char c, geom::vect2_t pos,
-                                         geom::vect2_t scale, cairo_surface_t *font_sfc)
+        std::string c_rte_top = "RTE 1";
+        std::string c_rte_btm = "<RTE 2";
+        if (sel_fpl_idx == test::RTE2_IDX)
         {
-            if (scale.x == 0 || scale.y == 0)
-                return;
-
-            int idx = get_cdu_letter_idx(c);
-            geom::vect2_t offs = {-CDU_LETTER_WIDTH * scale.x * double(idx), 0};
-            geom::vect2_t img_pos = pos + offs;
-            cairo_save(cr);
-            cairo_scale(cr, scale.x, scale.y);
-            cairo_set_source_surface(cr, font_sfc, img_pos.x / scale.x, img_pos.y / scale.y);
-            cairo_rectangle(cr, pos.x / scale.x, pos.y / scale.y,
-                            CDU_LETTER_WIDTH, CDU_LETTER_HEIGHT);
-            cairo_clip(cr);
-            cairo_paint(cr);
-            cairo_restore(cr);
+            c_rte_top = "RTE 2";
+            c_rte_btm = "<RTE 1";
         }
+        out.heading_big = rte_offs + act_sts + c_rte_top;
 
-        void CDUDisplay::draw_cdu_line(cairo_t * cr, std::string & s, geom::vect2_t pos,
-                                       double l_intv_px, std::string sts, geom::vect2_t scale, CDUColor clr)
+        if (curr_subpg == 1)
         {
-            if (sts != "")
-                assert(sts.size() >= s.size());
+            std::string dest_offs = std::string(N_CDU_DATA_COLS - 7 - 4, ' ');
+            std::string origin_dest = " ORIGIN" + dest_offs + "DEST";
+            out.data_lines.push_back(origin_dest);
+            std::string origin = fpln->get_dep_icao();
+            std::string dest = fpln->get_arr_icao();
+            bool incomplete = false;
 
-            cairo_surface_t *sfc_const = get_font_sfc(clr);
-            geom::vect2_t sc_big = CDU_BIG_TEXT_SZ;
-            geom::vect2_t sc_sml = CDU_SMALL_TEXT_SZ;
+            std::string flt_nbr = fpl_sys->get_flt_nbr();
+            if (flt_nbr == "")
+                flt_nbr = std::string(10, '-');
+            else
+                flt_nbr = std::string(N_FLT_NBR_CHR_MAX - flt_nbr.size(), ' ') + flt_nbr;
 
-            double res_ratio = size.y * CDU_RES_COEFF;
-            scale = scale.scmul(res_ratio);
-            sc_big = sc_big.scmul(res_ratio);
-            sc_sml = sc_sml.scmul(res_ratio);
-
-            for (size_t i = 0; i < s.size(); i++)
+            if (origin == "")
             {
-                cairo_surface_t *sfc = sfc_const;
-                geom::vect2_t sc_cr = scale;
-                if (sts != "")
+                origin = std::string(4, '@');
+                incomplete = true;
+            }
+            if (dest == "")
+            {
+                dest = std::string(4, '@');
+                incomplete = true;
+            }
+
+            std::string od_data = origin + std::string(N_CDU_DATA_COLS - 4 - 4, ' ') + dest;
+            out.data_lines.push_back(od_data);
+            std::string rwy_flt_no = " RUNWAY" + std::string(N_CDU_DATA_COLS - 7 - 6, ' ') + "FLT NO";
+            out.data_lines.push_back(rwy_flt_no);
+            std::string dep_rwy = "";
+            if (!incomplete)
+            {
+                dep_rwy = fpln->get_dep_rwy();
+                if (dep_rwy == "")
+                    dep_rwy = std::string(5, '-');
+                else
+                    dep_rwy = "RW" + dep_rwy;
+            }
+            std::string rf_data = dep_rwy + std::string(size_t(N_CDU_DATA_COLS) - dep_rwy.size() - 10, ' ') + flt_nbr;
+            out.data_lines.push_back(rf_data);
+            out.data_lines.push_back(" ROUTE" + std::string(N_CDU_DATA_COLS - 6 - 8, ' ') + "CO ROUTE");
+            out.data_lines.push_back("<REQUEST" + std::string(size_t(N_CDU_DATA_COLS) - 8 - 10, ' ') + std::string(10, '-'));
+            if (rte_copy == test::RTECopySts::READY && sel_fpl_idx == act_fpl_idx)
+            {
+                out.data_lines.push_back("");
+                size_t cp_pad = size_t(N_CDU_DATA_COLS) - RTE_COPY.size() - 1;
+                out.data_lines.push_back(std::string(cp_pad, ' ') + RTE_COPY + ">");
+            }
+            else if (rte_copy == test::RTECopySts::COMPLETE && sel_fpl_idx == act_fpl_idx)
+            {
+                size_t cp_pad1 = size_t(N_CDU_DATA_COLS) - RTE_COPY.size();
+                size_t cp_pad2 = size_t(N_CDU_DATA_COLS) - COMPLETE.size();
+                out.data_lines.push_back(std::string(cp_pad1, ' ') + RTE_COPY);
+                out.data_lines.push_back(std::string(cp_pad2, ' ') + COMPLETE);
+            }
+            else
+            {
+                out.data_lines.push_back("");
+                out.data_lines.push_back("");
+            }
+
+            std::string rte_final = " ROUTE ";
+            out.data_lines.push_back(rte_final + std::string(size_t(N_CDU_DATA_COLS) - 7, '-'));
+            out.data_lines.push_back("<SAVE" + std::string(size_t(N_CDU_DATA_COLS) - 10, ' ') + "ALTN>");
+        }
+        else
+        {
+            get_seg_page(&out);
+        }
+
+        if (out.data_lines.size() == 10)
+        {
+            if (curr_subpg != 1)
+                out.data_lines.push_back(ALL_DASH);
+            else
+                out.data_lines.push_back("");
+        }
+
+        std::string btm_line_nrm = c_rte_btm;
+        if (act_fpl_idx != sel_fpl_idx)
+            btm_line_nrm += std::string(size_t(N_CDU_DATA_COLS) - 15, ' ') + "ACTIVATE>";
+        if (!exec_lt)
+            out.data_lines.push_back(btm_line_nrm);
+        else
+            out.data_lines.push_back(ERASE_NML);
+
+        return out;
+    }
+
+    cdu_scr_data_t CDU::get_dep_arr_page()
+    {
+        cdu_scr_data_t out = {};
+        fill_char_state_buf(out);
+
+        out.heading_small = get_small_heading();
+        std::string hdg_offs = std::string((N_CDU_DATA_COLS - DEP_ARR_HDG.size()) / 2, ' ');
+        out.heading_big = hdg_offs + DEP_ARR_HDG;
+        out.heading_color = CDUColor::WHITE;
+
+        get_rte_dep_arr(out, false);
+        get_rte_dep_arr(out, true);
+
+        out.data_lines.push_back(std::string(N_CDU_DATA_COLS, '-'));
+        out.data_lines.push_back("");
+        out.data_lines.push_back(DEP_ARR_IDX_OTHER);
+        out.data_lines.push_back(DEP_ARR_ARROWS);
+
+        return out;
+    }
+
+    void CDU::dep_arr_set_bottom(cdu_scr_data_t &out)
+    {
+        out.data_lines[10] = std::string(N_CDU_DATA_COLS, '-');
+
+        bool exec_lt = fpl_sys->get_exec();
+        if (exec_lt)
+        {
+            out.data_lines[11] = DEP_ARR_BOTTOM_ACT;
+        }
+        else
+        {
+            out.data_lines[11] = DEP_ARR_BOTTOM_INACT;
+        }
+    }
+
+    cdu_scr_data_t CDU::get_dep_page(bool rte2)
+    {
+        std::shared_ptr<test::FplnInt> c_fpl = m_rte1_ptr;
+        if (rte2)
+        {
+            c_fpl = m_rte2_ptr;
+        }
+
+        std::string dep = c_fpl->get_dep_icao();
+        cdu_scr_data_t out = {};
+        fill_char_state_buf(out);
+
+        out.heading_small = get_small_heading();
+        out.heading_big = "   " + dep + " DEPARTURES";
+        out.heading_color = CDUColor::WHITE;
+
+        for (int i = 0; i < 12; i++)
+        {
+            out.data_lines.push_back("");
+        }
+        if (rte2)
+            out.data_lines[0] = DEP_COLS2;
+        else
+            out.data_lines[0] = DEP_COLS1;
+
+        std::string curr_sid = c_fpl->get_curr_proc(test::PROC_TYPE_SID);
+        std::string curr_trans = c_fpl->get_curr_proc(test::PROC_TYPE_SID, true);
+        std::string act_sid = m_act_ptr->get_curr_proc(test::PROC_TYPE_SID);
+        std::string act_trans = m_act_ptr->get_curr_proc(test::PROC_TYPE_SID, true);
+        get_procs(&out, curr_sid, curr_trans, act_sid, act_trans, rte2);
+
+        std::string dep_rwy = c_fpl->get_dep_rwy();
+        std::string act_rwy = m_act_ptr->get_dep_rwy();
+        get_rwys(&out, dep_rwy, act_rwy, rte2);
+
+        dep_arr_set_bottom(out);
+
+        return out;
+    }
+
+    cdu_scr_data_t CDU::get_arr_page(bool rte2)
+    {
+        std::shared_ptr<test::FplnInt> c_fpl = m_rte1_ptr;
+        if (rte2)
+        {
+            c_fpl = m_rte2_ptr;
+        }
+
+        std::string arr = c_fpl->get_arr_icao();
+        cdu_scr_data_t out = {};
+        fill_char_state_buf(out);
+
+        out.heading_small = get_small_heading();
+        out.heading_big = "   " + arr + " ARRIVALS";
+        out.heading_color = CDUColor::WHITE;
+
+        for (int i = 0; i < 12; i++)
+        {
+            out.data_lines.push_back("");
+        }
+        if (rte2)
+            out.data_lines[0] = ARR_COLS2;
+        else
+            out.data_lines[0] = ARR_COLS1;
+
+        std::string curr_star = c_fpl->get_curr_proc(test::PROC_TYPE_STAR);
+        std::string curr_trans = c_fpl->get_curr_proc(test::PROC_TYPE_STAR, true);
+        std::string act_star = m_act_ptr->get_curr_proc(test::PROC_TYPE_STAR);
+        std::string act_trans = m_act_ptr->get_curr_proc(test::PROC_TYPE_STAR, true);
+        get_procs(&out, curr_star, curr_trans, act_star, act_trans, rte2);
+
+        std::string arr_rwy = c_fpl->get_arr_rwy();
+        std::string arr_appr = c_fpl->get_curr_proc(test::PROC_TYPE_APPCH);
+        std::string arr_via = c_fpl->get_curr_proc(test::PROC_TYPE_APPCH, true);
+
+        std::string act_rwy = m_act_ptr->get_arr_rwy();
+        std::string act_appr = m_act_ptr->get_curr_proc(test::PROC_TYPE_APPCH);
+        std::string act_via = m_act_ptr->get_curr_proc(test::PROC_TYPE_APPCH, true);
+
+        get_rwys(&out, arr_rwy, act_rwy, rte2, arr_appr, arr_via, act_appr, act_via, true);
+
+        dep_arr_set_bottom(out);
+
+        return out;
+    }
+
+    std::string CDU::get_legs_btm()
+    {
+        bool is_act = sel_fpl_idx == act_fpl_idx;
+        bool exec_lt = fpl_sys->get_exec();
+
+        std::string c_legs_btm = "<RTE 2";
+        if (sel_fpl_idx == test::RTE2_IDX)
+        {
+            c_legs_btm = "<RTE 1";
+        }
+
+        if (!is_act && !exec_lt)
+        {
+            return c_legs_btm + LEGS_BTM_INACT;
+        }
+        else if (is_act && exec_lt)
+        {
+            return LEGS_BTM_MOD;
+        }
+        return c_legs_btm + LEGS_BTM_ACT;
+    }
+
+    cdu_scr_data_t CDU::get_legs_page()
+    {
+        cdu_scr_data_t out = {};
+        fill_char_state_buf(out);
+
+        out.heading_small = get_small_heading();
+        out.heading_color = CDUColor::WHITE;
+
+        out.heading_color = CDUColor::CYAN;
+        bool exec_lt = fpl_sys->get_exec();
+        std::string act_sts = std::string(4, ' ');
+        if (sel_fpl_idx == act_fpl_idx)
+        {
+            if (exec_lt)
+                act_sts = MOD + " ";
+            else
+                act_sts = ACT + " ";
+            out.heading_color = CDUColor::WHITE;
+        }
+        std::string c_legs_top = "RTE 1 LEGS";
+        if (sel_fpl_idx == test::RTE2_IDX)
+        {
+            c_legs_top = "RTE 2 LEGS";
+        }
+        out.heading_big = "  " + act_sts + c_legs_top;
+
+        assert(leg_list.size());
+        size_t i_start = get_leg_stt_idx();
+        size_t i_end = get_leg_end_idx();
+        bool disc_pr = false;
+        size_t sts_idx = 1;
+
+        test::act_leg_info_t act_info = fpl_sys->get_act_leg_info();
+
+        for (size_t i = i_start; i < i_end; i++)
+        {
+            if (!disc_pr)
+                out.data_lines.push_back(get_cdu_leg_prop(leg_list[i]));
+            if (leg_list[i].data.is_discon)
+            {
+                disc_pr = true;
+                out.data_lines.push_back("@@@@@");
+                out.data_lines.push_back(DISCO_AFTER_SEG);
+            }
+            else
+            {
+                disc_pr = false;
+
+                std::string cr_name = get_cdu_leg_nm(leg_list[i]);
+                if (cr_name == act_info.name)
                 {
-                    sfc = get_font_sfc(get_cdu_color(sts[i]));
-                    if (chr_is_big(sts[i]))
-                        sc_cr = sc_big;
+                    for (size_t j = 0; j < 5; j++)
+                        out.chr_sts[sts_idx][j] = CDU_B_MAGENTA;
+                }
+                // get leg constraints
+                std::string spdcstr = get_cdu_leg_spdcstr(leg_list[i]);
+                std::string vcstr = get_cdu_leg_vcstr(leg_list[i]);
+                if (vcstr.size() < N_LEG_VCSTR_ROWS)
+                    vcstr = std::string(N_LEG_VCSTR_ROWS - vcstr.size(), ' ') + vcstr;
+                std::string cstr = spdcstr + "/" + vcstr;
+
+                cr_name = cr_name + std::string(N_CDU_DATA_COLS - cr_name.size() - cstr.size(), ' ') + cstr;
+                out.data_lines.push_back(cr_name);
+            }
+            sts_idx += 2;
+        }
+
+        if (i_end - i_start < N_CDU_LEG_PP)
+        {
+            out.data_lines.push_back("");
+            out.data_lines.push_back(LEG_LAST);
+        }
+
+        while (out.data_lines.size() < 10)
+        {
+            out.data_lines.push_back("");
+        }
+
+        while (out.data_lines.size() > 10)
+        {
+            out.data_lines.pop_back();
+        }
+
+        out.data_lines.push_back(std::string(N_CDU_DATA_COLS, '-'));
+        out.data_lines.push_back(get_legs_btm());
+
+        return out;
+    }
+
+    // CDUDisplay definitions:
+    // Public member functions:
+
+    CDUDisplay::CDUDisplay(geom::vect2_t pos, geom::vect2_t sz, cairo_font_face_t *ff,
+                           std::shared_ptr<cairo_utils::texture_manager_t> tm,
+                           std::shared_ptr<CDU> cdu, byteutils::Bytemap *bm)
+    {
+        scr_pos = pos;
+        size = sz;
+        disp_pos = scr_pos + size * DISPLAY_OFFS;
+        disp_size = size * DISPLAY_SZ;
+
+        font_face = ff;
+
+        tex_mngr = tm;
+        cdu_ptr = cdu;
+
+        key_map = bm;
+
+        tex_size = cairo_utils::get_surf_sz(tex_mngr->data[CDU_TEXTURE_NAME]);
+        tex_scale = size / tex_size;
+
+        scratchpad = std::string(size_t(N_CDU_DATA_COLS), ' ');
+        scratch_curr = 0;
+
+        last_press_tp = std::chrono::steady_clock::now();
+    }
+
+    void CDUDisplay::on_click(geom::vect2_t pos)
+    {
+        auto curr_tp = std::chrono::steady_clock::now();
+        std::chrono::duration<double> dur = curr_tp - last_press_tp;
+        double dur_cnt = dur.count();
+
+        last_press_tp = curr_tp;
+
+        if (dur_cnt < CDU_PRS_INTV_SEC)
+            return;
+
+        pos = (pos - scr_pos) / tex_scale;
+        if (pos.x >= 0 && pos.y >= 0 && pos.x < tex_size.x && pos.y < tex_size.y)
+        {
+            int event = int(key_map->get_at(size_t(pos.x), size_t(pos.y)));
+
+            if (event && (event < CDU_KEY_A || event == CDU_KEY_EXEC))
+            {
+                std::string scratch_proc = strutils::strip(scratchpad);
+                std::string scr_out;
+                std::string msg = cdu_ptr->on_event(event, scratch_proc, &scr_out);
+
+                if (scr_out != "")
+                {
+                    scratch_curr = scr_out.size();
+                    scratchpad = scr_out + std::string(N_CDU_DATA_COLS - scr_out.size(), ' ');
+                }
+                else
+                {
+                    if (msg == "")
+                        clear_scratchpad();
                     else
-                        sc_cr = sc_sml;
+                        msg_stack.push(msg);
                 }
-                draw_cdu_letter(cr, s[i], pos, sc_cr, sfc);
-                pos.x += l_intv_px;
             }
+            update_scratchpad(event);
         }
+    }
 
-        void CDUDisplay::draw_exec(cairo_t * cr)
+    void CDUDisplay::draw(cairo_t *cr)
+    {
+        cairo_utils::draw_image(cr, tex_mngr->data[CDU_TEXTURE_NAME], scr_pos,
+                                tex_scale, false);
+
+        bool dr_exc = cdu_ptr->get_exec_lt();
+        if (dr_exc)
+            draw_exec(cr);
+
+        draw_screen(cr);
+    }
+
+    // Private member functions:
+
+    void CDUDisplay::add_to_scratchpad(char c)
+    {
+        if (scratch_curr != size_t(N_CDU_DATA_COLS))
         {
-            geom::vect2_t lt_pos = {scr_pos.x + size.x * EXEC_LT_POS.x,
-                                    scr_pos.y + size.y * EXEC_LT_POS.y};
-            geom::vect2_t lt_sz = {size.x * EXEC_LT_SZ.x, size.y * EXEC_LT_SZ.y};
-
-            cairo_utils::draw_rect(cr, lt_pos, lt_sz, EXEC_LT_CLR);
+            scratchpad[scratch_curr] = c;
+            scratch_curr++;
         }
+    }
 
-        void CDUDisplay::draw_screen(cairo_t * cr)
+    void CDUDisplay::clear_scratchpad()
+    {
+        while (scratch_curr)
         {
-            geom::vect2_t offs_hdg_small = {0, disp_size.y * CDU_V_OFFS_SMALL_FIRST};
-            geom::vect2_t pos_hdg_small = disp_pos + offs_hdg_small;
-            geom::vect2_t small_offs = {0, disp_size.y * CDU_V_OFFS_FIRST};
-            geom::vect2_t pos_small = disp_pos + small_offs;
-            geom::vect2_t big_offs = {0, disp_size.y * (CDU_BIG_TEXT_OFFS + CDU_V_OFFS_FIRST)};
-            geom::vect2_t pos_big = disp_pos + big_offs;
+            scratchpad[scratch_curr] = ' ';
+            scratch_curr--;
+        }
+        scratchpad[scratch_curr] = ' ';
+    }
 
-            cdu_scr_data_t curr_screen = cdu_ptr->get_screen_data();
-
-            draw_cdu_line(cr, curr_screen.heading_big, disp_pos,
-                          CDU_TEXT_INTV * disp_size.x, "",
-                          CDU_BIG_TEXT_SZ, curr_screen.heading_color);
-
-            draw_cdu_line(cr, curr_screen.heading_small, pos_hdg_small,
-                          CDU_TEXT_INTV * disp_size.x, "", CDU_SMALL_TEXT_SZ);
-
-            size_t j = 0;
-            for (size_t i = 0; i < size_t(N_CDU_DATA_LINES); i++)
+    void CDUDisplay::update_scratchpad(int event)
+    {
+        if (event == CDU_KEY_DELETE)
+        {
+            if (scratchpad[0] == DELETE_SYMBOL)
             {
-                if (j < curr_screen.data_lines.size())
-                {
-                    draw_cdu_line(cr, curr_screen.data_lines[j], pos_small,
-                                  CDU_TEXT_INTV * disp_size.x, curr_screen.chr_sts[j]);
-                }
-                if (j + 1 < curr_screen.data_lines.size())
-                {
-                    draw_cdu_line(cr, curr_screen.data_lines[j + 1], pos_big,
-                                  CDU_TEXT_INTV * disp_size.x, curr_screen.chr_sts[j + 1]);
-                }
-
-                pos_small.y += CDU_V_OFFS_REG * disp_size.y;
-                pos_big.y += CDU_V_OFFS_REG * disp_size.y;
-                j += 2;
+                scratchpad[0] = ' ';
             }
-
-            std::string tgt_scratch;
+            else
+            {
+                clear_scratchpad();
+                scratchpad[0] = DELETE_SYMBOL;
+            }
+        }
+        else if (event == CDU_KEY_CLR)
+        {
             if (msg_stack.size())
             {
-                tgt_scratch = msg_stack.top();
-            }
-            else if (scratchpad[0] == DELETE_SYMBOL)
-            {
-                tgt_scratch = DELETE_MSG;
+                msg_stack.pop();
             }
             else
             {
-                tgt_scratch = scratchpad;
+                if (scratch_curr)
+                    scratch_curr--;
+                scratchpad[scratch_curr] = ' ';
             }
-            draw_cdu_line(cr, tgt_scratch, pos_small,
-                          CDU_TEXT_INTV * disp_size.x, "", CDU_BIG_TEXT_SZ);
         }
-    
+
+        if (scratchpad[0] != DELETE_SYMBOL)
+        {
+            if (event >= CDU_KEY_A && event < CDU_KEY_A + 26)
+            {
+                add_to_scratchpad('A' + char(event - CDU_KEY_A));
+            }
+            else if (event == CDU_KEY_SP)
+            {
+                add_to_scratchpad(' ');
+            }
+            else if (event == CDU_KEY_SLASH)
+            {
+                add_to_scratchpad('/');
+            }
+            else if (event >= CDU_KEY_1 && event < CDU_KEY_1 + 9)
+            {
+                add_to_scratchpad('1' + char(event - CDU_KEY_1));
+            }
+            else if (event == CDU_KEY_DOT)
+            {
+                add_to_scratchpad('.');
+            }
+            else if (event == CDU_KEY_0)
+            {
+                add_to_scratchpad('0');
+            }
+            else if (event == CDU_KEY_PM)
+            {
+                if (scratch_curr && scratchpad[scratch_curr - 1] == '-')
+                    scratchpad[scratch_curr - 1] = '+';
+                else
+                    add_to_scratchpad('-');
+            }
+        }
     }
+
+    int CDUDisplay::get_cdu_letter_idx(char c)
+    {
+        if (c >= '0' && c <= '9')
+            return 1 + c - '0';
+        else if (c >= 'A' && c <= 'Z')
+            return 11 + c - 'A';
+        else if (c == '%')
+            return 37;
+        else if (c == '(')
+            return 38;
+        else if (c == ')')
+            return 39;
+        else if (c == '-')
+            return 40;
+        else if (c == '_')
+            return 41;
+        else if (c == '+')
+            return 42;
+        else if (c == '=')
+            return 43;
+        else if (c == '|')
+            return 44;
+        else if (c == ':')
+            return 45;
+        else if (c == '<')
+            return 46;
+        else if (c == '.')
+            return 47;
+        else if (c == '>')
+            return 48;
+        else if (c == ',')
+            return 49;
+        else if (c == '/')
+            return 50;
+        else if (c == strutils::DEGREE_SYMBOL)
+            return 51;
+        else if (c == '@')
+            return 52;
+        return 0;
+    }
+
+    CDUColor CDUDisplay::get_cdu_color(char c)
+    {
+        if (c == CDU_S_WHITE || c == CDU_B_WHITE)
+            return CDUColor::WHITE;
+        else if (c == CDU_S_CYAN || c == CDU_B_CYAN)
+            return CDUColor::CYAN;
+        else if (c == CDU_S_GREEN || c == CDU_B_GREEN)
+            return CDUColor::GREEN;
+
+        return CDUColor::MAGENTA;
+    }
+
+    bool CDUDisplay::chr_is_big(char c)
+    {
+        if (c >= 'a' && c <= 'z')
+            return false;
+        return true;
+    }
+
+    cairo_surface_t *CDUDisplay::get_font_sfc(CDUColor cl)
+    {
+        cairo_surface_t *font_sfc;
+        if (cl == CDUColor::GREEN)
+            font_sfc = tex_mngr->data[CDU_GREEN_TEXT_NAME];
+        else if (cl == CDUColor::CYAN)
+            font_sfc = tex_mngr->data[CDU_CYAN_TEXT_NAME];
+        else if (cl == CDUColor::MAGENTA)
+            font_sfc = tex_mngr->data[CDU_MAGENTA_TEXT_NAME];
+        else
+            font_sfc = tex_mngr->data[CDU_WHITE_TEXT_NAME];
+
+        return font_sfc;
+    }
+
+    void CDUDisplay::draw_cdu_letter(cairo_t *cr, char c, geom::vect2_t pos,
+                                     geom::vect2_t scale, cairo_surface_t *font_sfc)
+    {
+        if (scale.x == 0 || scale.y == 0)
+            return;
+
+        int idx = get_cdu_letter_idx(c);
+        geom::vect2_t offs = {-CDU_LETTER_WIDTH * scale.x * double(idx), 0};
+        geom::vect2_t img_pos = pos + offs;
+        cairo_save(cr);
+        cairo_scale(cr, scale.x, scale.y);
+        cairo_set_source_surface(cr, font_sfc, img_pos.x / scale.x, img_pos.y / scale.y);
+        cairo_rectangle(cr, pos.x / scale.x, pos.y / scale.y,
+                        CDU_LETTER_WIDTH, CDU_LETTER_HEIGHT);
+        cairo_clip(cr);
+        cairo_paint(cr);
+        cairo_restore(cr);
+    }
+
+    void CDUDisplay::draw_cdu_line(cairo_t *cr, std::string &s, geom::vect2_t pos,
+                                   double l_intv_px, std::string sts, geom::vect2_t scale, CDUColor clr)
+    {
+        if (sts != "")
+            assert(sts.size() >= s.size());
+
+        cairo_surface_t *sfc_const = get_font_sfc(clr);
+        geom::vect2_t sc_big = CDU_BIG_TEXT_SZ;
+        geom::vect2_t sc_sml = CDU_SMALL_TEXT_SZ;
+
+        double res_ratio = size.y * CDU_RES_COEFF;
+        scale = scale.scmul(res_ratio);
+        sc_big = sc_big.scmul(res_ratio);
+        sc_sml = sc_sml.scmul(res_ratio);
+
+        for (size_t i = 0; i < s.size(); i++)
+        {
+            cairo_surface_t *sfc = sfc_const;
+            geom::vect2_t sc_cr = scale;
+            if (sts != "")
+            {
+                sfc = get_font_sfc(get_cdu_color(sts[i]));
+                if (chr_is_big(sts[i]))
+                    sc_cr = sc_big;
+                else
+                    sc_cr = sc_sml;
+            }
+            draw_cdu_letter(cr, s[i], pos, sc_cr, sfc);
+            pos.x += l_intv_px;
+        }
+    }
+
+    void CDUDisplay::draw_exec(cairo_t *cr)
+    {
+        geom::vect2_t lt_pos = {scr_pos.x + size.x * EXEC_LT_POS.x,
+                                scr_pos.y + size.y * EXEC_LT_POS.y};
+        geom::vect2_t lt_sz = {size.x * EXEC_LT_SZ.x, size.y * EXEC_LT_SZ.y};
+
+        cairo_utils::draw_rect(cr, lt_pos, lt_sz, EXEC_LT_CLR);
+    }
+
+    void CDUDisplay::draw_screen(cairo_t *cr)
+    {
+        geom::vect2_t offs_hdg_small = {0, disp_size.y * CDU_V_OFFS_SMALL_FIRST};
+        geom::vect2_t pos_hdg_small = disp_pos + offs_hdg_small;
+        geom::vect2_t small_offs = {0, disp_size.y * CDU_V_OFFS_FIRST};
+        geom::vect2_t pos_small = disp_pos + small_offs;
+        geom::vect2_t big_offs = {0, disp_size.y * (CDU_BIG_TEXT_OFFS + CDU_V_OFFS_FIRST)};
+        geom::vect2_t pos_big = disp_pos + big_offs;
+
+        cdu_scr_data_t curr_screen = cdu_ptr->get_screen_data();
+
+        draw_cdu_line(cr, curr_screen.heading_big, disp_pos,
+                      CDU_TEXT_INTV * disp_size.x, "",
+                      CDU_BIG_TEXT_SZ, curr_screen.heading_color);
+
+        draw_cdu_line(cr, curr_screen.heading_small, pos_hdg_small,
+                      CDU_TEXT_INTV * disp_size.x, "", CDU_SMALL_TEXT_SZ);
+
+        size_t j = 0;
+        for (size_t i = 0; i < size_t(N_CDU_DATA_LINES); i++)
+        {
+            if (j < curr_screen.data_lines.size())
+            {
+                draw_cdu_line(cr, curr_screen.data_lines[j], pos_small,
+                              CDU_TEXT_INTV * disp_size.x, curr_screen.chr_sts[j]);
+            }
+            if (j + 1 < curr_screen.data_lines.size())
+            {
+                draw_cdu_line(cr, curr_screen.data_lines[j + 1], pos_big,
+                              CDU_TEXT_INTV * disp_size.x, curr_screen.chr_sts[j + 1]);
+            }
+
+            pos_small.y += CDU_V_OFFS_REG * disp_size.y;
+            pos_big.y += CDU_V_OFFS_REG * disp_size.y;
+            j += 2;
+        }
+
+        std::string tgt_scratch;
+        if (msg_stack.size())
+        {
+            tgt_scratch = msg_stack.top();
+        }
+        else if (scratchpad[0] == DELETE_SYMBOL)
+        {
+            tgt_scratch = DELETE_MSG;
+        }
+        else
+        {
+            tgt_scratch = scratchpad;
+        }
+        draw_cdu_line(cr, tgt_scratch, pos_small,
+                      CDU_TEXT_INTV * disp_size.x, "", CDU_BIG_TEXT_SZ);
+    }
+}
