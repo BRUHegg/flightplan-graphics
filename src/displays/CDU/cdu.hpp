@@ -299,6 +299,9 @@ namespace StratosphereAvionics
         void set_sel_des_state(double id, std::string& name, 
             std::vector<libnav::waypoint_entry_t>& w_e);
         
+        libnav::waypoint_t get_wpt_from_user(std::string name, bool *not_in_db, 
+            bool *inv_ent, bool *wait_sel, bool *sel_used);
+
         std::string set_departure(std::string icao, std::string *s_out);
 
         std::string set_arrival(std::string icao, std::string *s_out);
@@ -373,9 +376,12 @@ namespace StratosphereAvionics
             @desc:
             Handles legs direct from-to scenario
             @param usr_idx: index to a valid item in leg_list that the user has selected
+            @return: 1 if we need to handle this event as an insertion. Otherwise 0.
         */
 
-        void handle_legs_dto(size_t usr_idx, std::string scratchpad, std::string *s_out);
+        bool handle_legs_dto(size_t usr_idx, std::string scratchpad, std::string *s_out);
+
+        std::string handle_legs_insert(size_t usr_idx, std::string scratchpad, std::string *s_out);
 
         std::string handle_legs(int event_key, std::string scratchpad, std::string *s_out);
 
