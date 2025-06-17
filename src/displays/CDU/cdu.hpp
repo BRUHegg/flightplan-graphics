@@ -290,6 +290,8 @@ namespace StratosphereAvionics
 
         static std::string get_cdu_leg_nm(test::list_node_ref_t<test::leg_list_data_t>& src);
 
+        static bool scratchpad_has_delete(std::string& scratchpad);
+
         void update_fpl_infos();
         
         void set_page(CDUPage pg);
@@ -359,6 +361,21 @@ namespace StratosphereAvionics
         size_t get_leg_stt_idx();
 
         size_t get_leg_end_idx();
+
+        // reset_leg_dto_sel resets selection when user exits legs page
+        
+        void reset_leg_dto_sel(size_t fp_idx);
+
+        void reset_leg_all_sel();
+
+        /*
+            Function: handle_legs_dto
+            @desc:
+            Handles legs direct from-to scenario
+            @param usr_idx: index to a valid item in leg_list that the user has selected
+        */
+
+        void handle_legs_dto(size_t usr_idx, std::string scratchpad, std::string *s_out);
 
         std::string handle_legs(int event_key, std::string scratchpad, std::string *s_out);
 
