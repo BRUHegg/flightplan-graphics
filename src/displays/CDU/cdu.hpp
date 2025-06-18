@@ -231,7 +231,7 @@ namespace StratosphereAvionics
             The CDU will display sel des only if sel_des is set to true. It has priority
             over any other page. If user exits sel des without making a selection, sel_des 
             is set to false. Other variables get re-set as well in set_page function.
-            sel_des_event stores the page that was open before sel des as an event.
+            sel_des_event stores the event triggered before sel des page was open.
         */
 
         int sel_des_idx;
@@ -249,6 +249,7 @@ namespace StratosphereAvionics
         std::vector<std::vector<std::string>> procs, trans, apprs, rwys, vias;
 
         // LEGS data:
+        bool leg_sel_pr;
         size_t n_seg_list_sz, n_leg_list_sz;
         std::vector<test::list_node_ref_t<test::fpl_seg_t>> seg_list;
         std::vector<test::list_node_ref_t<test::leg_list_data_t>> leg_list;
