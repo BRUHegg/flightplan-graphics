@@ -32,7 +32,8 @@ namespace StratosphereAvionics
         sel_des_idx = -1;
         sel_des_subpg = 0;
         sel_des_event = 0;
-        sel_des_id = 0;
+        sel_des_seg_id = 0;
+        sel_des_leg_id = 0;
         sel_des = false;
 
         dep_arr_rwy_filter = std::vector<bool>(N_CDU_RTES, false);
@@ -144,36 +145,40 @@ namespace StratosphereAvionics
         }
         if (sel_des)
             return handle_sel_des(event_key);
+
+        std::string msg = "";
         if (curr_page == CDUPage::RTE)
         {
-            return handle_rte(event_key, scratchpad, s_out);
+            msg = handle_rte(event_key, scratchpad, s_out);
         }
         else if (curr_page == CDUPage::DEP_ARR_INTRO)
         {
-            return handle_dep_arr(event_key);
+            msg = handle_dep_arr(event_key);
         }
         else if (curr_page == CDUPage::DEP1)
         {
-            return handle_dep(event_key, false);
+            msg = handle_dep(event_key, false);
         }
         else if (curr_page == CDUPage::ARR1)
         {
-            return handle_arr(event_key, false);
+            msg = handle_arr(event_key, false);
         }
         else if (curr_page == CDUPage::DEP2)
         {
-            return handle_dep(event_key, true);
+            msg = handle_dep(event_key, true);
         }
         else if (curr_page == CDUPage::ARR2)
         {
-            return handle_arr(event_key, true);
+            msg = handle_arr(event_key, true);
         }
         else if (curr_page == CDUPage::LEGS)
         {
-            return handle_legs(event_key, scratchpad, s_out);
+            msg = handle_legs(event_key, scratchpad, s_out);
         }
+        if(sel_des)
+            sel_des_event = event_key;
 
-        return "";
+        return msg;
     }
 
     cdu_scr_data_t CDU::get_screen_data()
@@ -380,10 +385,11 @@ namespace StratosphereAvionics
         }
     }
 
-    void CDU::set_sel_des_state(double id, std::string &name,
-                                std::vector<libnav::waypoint_entry_t> &w_e)
+    void CDU::set_sel_des_state(double seg_id, double leg_id, std::string& name, 
+            std::vector<libnav::waypoint_entry_t>& w_e)
     {
-        sel_des_id = id;
+        sel_des_seg_id = seg_id;
+        sel_des_leg_id = leg_id;
         sel_des_data = w_e;
         sel_des_nm = name;
         sel_des_subpg = curr_subpg;
@@ -391,11 +397,9 @@ namespace StratosphereAvionics
         sel_des = true;
     }
 
-    libnav::waypoint_t CDU::get_wpt_from_user(std::string name, bool *not_in_db, 
-        bool *inv_ent, bool *wait_sel, bool *sel_used)
+    libnav::waypoint_t CDU::get_wpt_from_user(std::string name, double seg_id, double leg_id, 
+        bool *not_in_db, bool *inv_ent, bool *wait_sel, bool *sel_used)
     {
-        test::fpln_info_t f_inf = fpl_infos[sel_fpl_idx];
-        double id = f_inf.seg_list_id;
         libnav::waypoint_entry_t tgt;
         std::string wpt_nm;
 
@@ -416,7 +420,7 @@ namespace StratosphereAvionics
             }
             else if (n_found > 1)
             {
-                set_sel_des_state(id, name, wpt_entr);
+                set_sel_des_state(seg_id, leg_id, name, wpt_entr);
                 *wait_sel = 1;
                 return {};
             }
@@ -557,10 +561,11 @@ namespace StratosphereAvionics
     std::string CDU::add_to(size_t next_idx, std::string name)
     {
         test::fpln_info_t f_inf = fpl_infos[sel_fpl_idx];
-        double id = f_inf.seg_list_id;
+        double sg_id = f_inf.seg_list_id;
+        double lg_id = f_inf.leg_list_id;
 
         bool inv_ent = 0, not_in_db = 0, wait_sel = 0, sel_used = 0;
-        libnav::waypoint_t tgt_wpt = get_wpt_from_user(name, &not_in_db, &inv_ent, 
+        libnav::waypoint_t tgt_wpt = get_wpt_from_user(name, sg_id, lg_id, &not_in_db, &inv_ent, 
             &wait_sel, &sel_used);
         if(inv_ent)
             return INVALID_ENTRY_MSG;
@@ -570,7 +575,10 @@ namespace StratosphereAvionics
             return "";
         
         if(sel_used)
-            id = sel_des_id;
+        {
+            sg_id = sel_des_seg_id; // Only need segment id here
+        }
+            
 
         test::seg_list_node_t *s_ptr = nullptr;
         if (next_idx < n_seg_list_sz)
@@ -578,7 +586,7 @@ namespace StratosphereAvionics
             s_ptr = seg_list[next_idx].ptr;
         }
 
-        bool retval = fpln->awy_insert({s_ptr, id}, tgt_wpt);
+        bool retval = fpln->awy_insert({s_ptr, sg_id}, tgt_wpt);
 
         if (!retval)
             return NOT_IN_DB_MSG;
@@ -1097,12 +1105,7 @@ namespace StratosphereAvionics
                 {
                     if (scratchpad[0] != DELETE_SYMBOL)
                     {
-                        std::string ret = add_to(i_event + 1, scratchpad);
-                        if (sel_des)
-                        {
-                            sel_des_event = event_key;
-                        }
-                        return ret;
+                        return add_to(i_event + 1, scratchpad);
                     }
 
                     return delete_to(i_event);
@@ -1282,8 +1285,10 @@ namespace StratosphereAvionics
     bool CDU::handle_legs_dto(size_t usr_idx, std::string scratchpad, std::string *s_out)
     {
         size_t sd_idx = sel_fpl_idx - 1;
-        if (leg_sel[sd_idx].second == -1 || scratchpad == "")
+        if (leg_sel[sd_idx].second == -1)
         {
+            if(scratchpad != "") // User might be trying to insert a waypoint.
+                return 1;
             leg_sel[sd_idx].first = usr_idx;
             leg_sel[sd_idx].second = fpl_infos[sel_fpl_idx].leg_list_id;
             if (leg_list[usr_idx].data.is_discon == false)
@@ -1321,11 +1326,30 @@ namespace StratosphereAvionics
         return 0;
     }
 
-    //std::string CDU::handle_legs_insert(size_t usr_idx, std::string scratchpad, 
-    //    std::string *s_out)
-    //{
-    //    
-    //}
+    std::string CDU::handle_legs_insert(size_t usr_idx, std::string scratchpad)
+    {
+        test::fpln_info_t f_inf = fpl_infos[sel_fpl_idx];
+        double sg_id = f_inf.seg_list_id;
+        double lg_id = f_inf.leg_list_id;
+
+        bool inv_ent = 0, not_in_db = 0, wait_sel = 0, sel_used = 0;
+        libnav::waypoint_t tgt_wpt = get_wpt_from_user(scratchpad, sg_id, lg_id, &not_in_db, &inv_ent, 
+            &wait_sel, &sel_used);
+        if(inv_ent)
+            return INVALID_ENTRY_MSG;
+        if(not_in_db)
+            return NOT_IN_DB_MSG;
+        if(wait_sel)
+            return "";
+        
+        if(sel_used)
+        {
+            lg_id = sel_des_leg_id; // Only need segment id here
+        }
+
+        fpln->add_direct(tgt_wpt, {leg_list[usr_idx].ptr, lg_id});
+        return "";
+    }
 
     std::string CDU::handle_legs(int event_key, std::string scratchpad, std::string *s_out)
     {
@@ -1362,6 +1386,8 @@ namespace StratosphereAvionics
             size_t usr_idx = i_start + size_t(event_key - CDU_KEY_LSK_TOP);
             bool scr_is_del = scratchpad_has_delete(scratchpad);
             bool is_ins = 0;
+            if(!scr_is_del && usr_idx == i_end)
+                is_ins = 1;
             if (usr_idx < i_end && !scr_is_del)
             {
                 is_ins = handle_legs_dto(usr_idx, scratchpad, s_out);
@@ -1370,7 +1396,11 @@ namespace StratosphereAvionics
             {
                 return INVALID_DELETE_MSG;
             }
-            UNUSED(is_ins);
+
+            if(is_ins)
+            {
+                return handle_legs_insert(usr_idx, scratchpad);
+            }
         }
         return "";
     }
