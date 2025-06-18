@@ -507,7 +507,7 @@ namespace test
 
     bool FlightPlan::delete_singl_leg(leg_list_node_t *leg)  // leg before/after discontinuity
     {
-        if(leg->data.is_discon)
+        if(leg->data.is_discon || leg->next == nullptr || leg->prev == nullptr)
             return false;
 
         leg_list_node_t *prev_leg = leg->prev;

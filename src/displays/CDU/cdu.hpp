@@ -398,6 +398,8 @@ namespace StratosphereAvionics
 
         std::string handle_legs_insert(size_t usr_idx, std::string scratchpad);
 
+        std::string handle_legs_delete(size_t usr_idx);
+
         std::string handle_legs(int event_key, std::string scratchpad, std::string *s_out);
 
         cdu_scr_data_t get_sel_des_page();
