@@ -221,10 +221,24 @@ namespace StratosphereAvionics
         test::RTECopySts rte_copy;
 
         // sel des data
+        /*
+            How sel des works:
+            1) set_sel_des_state is called(typically from get_wpt_from_user)
+            2) The current page has to give way to sel_des
+            3) Once the user has selected something, the data is retrieved
+            segment list and leg list ids are stored to make sure that either list is valid
+            after the user has made the selection.
+            The CDU will display sel des only if sel_des is set to true. It has priority
+            over any other page. If user exits sel des without making a selection, sel_des 
+            is set to false. Other variables get re-set as well in set_page function.
+            sel_des_event stores the page that was open before sel des as an event.
+        */
+
         int sel_des_idx;
         int sel_des_event;
         int sel_des_subpg;
-        double sel_des_id;
+        double sel_des_seg_id;
+        double sel_des_leg_id;
         bool sel_des;
 
         // DEP/ARR data:
@@ -296,11 +310,11 @@ namespace StratosphereAvionics
         
         void set_page(CDUPage pg);
 
-        void set_sel_des_state(double id, std::string& name, 
+        void set_sel_des_state(double seg_id, double leg_id, std::string& name, 
             std::vector<libnav::waypoint_entry_t>& w_e);
         
-        libnav::waypoint_t get_wpt_from_user(std::string name, bool *not_in_db, 
-            bool *inv_ent, bool *wait_sel, bool *sel_used);
+        libnav::waypoint_t get_wpt_from_user(std::string name, double seg_id, double leg_id, 
+            bool *not_in_db, bool *inv_ent, bool *wait_sel, bool *sel_used);
 
         std::string set_departure(std::string icao, std::string *s_out);
 
@@ -381,7 +395,7 @@ namespace StratosphereAvionics
 
         bool handle_legs_dto(size_t usr_idx, std::string scratchpad, std::string *s_out);
 
-        std::string handle_legs_insert(size_t usr_idx, std::string scratchpad, std::string *s_out);
+        std::string handle_legs_insert(size_t usr_idx, std::string scratchpad);
 
         std::string handle_legs(int event_key, std::string scratchpad, std::string *s_out);
 
