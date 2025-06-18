@@ -1291,6 +1291,9 @@ namespace StratosphereAvionics
         size_t sd_idx = sel_fpl_idx - 1;
         if (leg_sel[sd_idx].second == -1)
         {
+            bool is_discon = leg_list[usr_idx].data.is_discon;
+            if(scratchpad == "" && is_discon)
+                return 0;
             if(scratchpad != "") // User might be trying to insert a waypoint.
                 return 1;
             leg_sel[sd_idx].first = usr_idx;
@@ -1336,9 +1339,8 @@ namespace StratosphereAvionics
         double sg_id = f_inf.seg_list_id;
         double lg_id = f_inf.leg_list_id;
 
-        bool inv_ent = 0, not_in_db = 0, wait_sel = 0, sel_used = 0;
+        bool inv_ent = 0, not_in_db = 0, sel_used = 0;
         leg_sel_pr = 0;
-        UNUSED(wait_sel);
         libnav::waypoint_t tgt_wpt = get_wpt_from_user(scratchpad, sg_id, lg_id, &not_in_db, &inv_ent, 
             &leg_sel_pr, &sel_used);
         if(inv_ent)
@@ -1350,10 +1352,21 @@ namespace StratosphereAvionics
         
         if(sel_used)
         {
-            lg_id = sel_des_leg_id; // Only need segment id here
+            lg_id = sel_des_leg_id; // Only need legs id here
         }
 
         fpln->add_direct(tgt_wpt, {leg_list[usr_idx].ptr, lg_id});
+        return "";
+    }
+
+    std::string CDU::handle_legs_delete(size_t usr_idx)
+    {
+        test::fpln_info_t f_inf = fpl_infos[sel_fpl_idx];
+        double lg_id = f_inf.leg_list_id;
+
+        bool retval = fpln->delete_leg({leg_list[usr_idx].ptr, lg_id});
+        if(!retval)
+            return INVALID_DELETE_MSG;
         return "";
     }
 
@@ -1400,9 +1413,12 @@ namespace StratosphereAvionics
                 {
                     is_ins = handle_legs_dto(usr_idx, scratchpad, s_out);
                 }
-                else if (scr_is_del && usr_idx == i_end)
+                else if (scr_is_del)
                 {
-                    return INVALID_DELETE_MSG;
+                    if(usr_idx < i_end)
+                        return handle_legs_delete(usr_idx);
+                    else
+                        return INVALID_DELETE_MSG;
                 }
             }
             if(is_ins)
