@@ -249,17 +249,29 @@ namespace StratosphereAvionics
             return HOLD_DESC;
         }
         double crs_deg = src.data.misc_data.true_trk_deg;
-        double dist_nm = src.data.leg.outbd_dist_time;
         std::string deg_str = std::string(1, strutils::DEGREE_SYMBOL);
         std::string crs_st = strutils::double_to_str(crs_deg, 0) + deg_str;
-        std::string dist_st = strutils::double_to_str(dist_nm, 0) + NAUT_MILES;
         assert(crs_st.size() <= N_LEG_CRS_ROWS);
         size_t crs_offs = N_LEG_CRS_ROWS - crs_st.size();
         crs_st = std::string(crs_offs, ' ') + crs_st;
-        assert(dist_st.size() + crs_st.size() <= N_LEG_PROP_ROWS);
-        size_t offs = N_LEG_PROP_ROWS - dist_st.size() - crs_st.size();
-        std::string out = crs_st + std::string(offs, ' ') +
-                          dist_st;
+
+        std::string out = "";
+        bool is_bp = src.data.misc_data.is_bypassed;
+        if(is_bp)
+        {
+            size_t offs = size_t(N_CDU_DATA_COLS)-crs_st.size()-LEG_BYPASS.size();
+            out = crs_st + std::string(offs, ' ') + LEG_BYPASS;
+        }
+        else
+        {
+            double dist_nm = src.data.leg.outbd_dist_time;
+            std::string dist_st = strutils::double_to_str(dist_nm, 0) + NAUT_MILES;
+            assert(dist_st.size() + crs_st.size() <= N_LEG_PROP_ROWS);
+            size_t offs = N_LEG_PROP_ROWS - dist_st.size() - crs_st.size();
+            out = crs_st + std::string(offs, ' ') +
+                            dist_st;
+        }
+        
         return out;
     }
 

@@ -162,6 +162,7 @@ namespace StratosphereAvionics
     const std::string DISCO_THEN = " THEN";
     const std::string HOLD_DESC = " HOLD AT";
     const std::string NAUT_MILES = "NM";
+    const std::string LEG_BYPASS = "BYPASS";
 
 
     const std::vector<CDUPage> CDU_PAGE_FACES = {
