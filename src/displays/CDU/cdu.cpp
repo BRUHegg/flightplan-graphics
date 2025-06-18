@@ -50,6 +50,8 @@ namespace StratosphereAvionics
         fpl_infos = std::vector<test::fpln_info_t>(test::N_FPL_SYS_RTES);
         leg_sel = std::vector<std::pair<size_t, double>>(N_CDU_RTES, {0LL, -1.0});
 
+        leg_sel_pr = false;
+
         sel_des_nm = "";
     }
 
@@ -375,6 +377,8 @@ namespace StratosphereAvionics
         curr_page = pg;
         sel_des_idx = -1;
         sel_des = false;
+
+        leg_sel_pr = false;
 
         for (size_t i = 0; i < N_CDU_RTES; i++)
         {
@@ -1103,7 +1107,7 @@ namespace StratosphereAvionics
             {
                 if (event_key >= CDU_KEY_RSK_TOP)
                 {
-                    if (scratchpad[0] != DELETE_SYMBOL)
+                    if (!scratchpad_has_delete(scratchpad))
                     {
                         return add_to(i_event + 1, scratchpad);
                     }
@@ -1112,7 +1116,7 @@ namespace StratosphereAvionics
                 }
                 else
                 {
-                    if (scratchpad[0] != DELETE_SYMBOL)
+                    if (!scratchpad_has_delete(scratchpad))
                         return add_via(i_event + 1, scratchpad);
                     return delete_via(i_event);
                 }
@@ -1333,13 +1337,15 @@ namespace StratosphereAvionics
         double lg_id = f_inf.leg_list_id;
 
         bool inv_ent = 0, not_in_db = 0, wait_sel = 0, sel_used = 0;
+        leg_sel_pr = 0;
+        UNUSED(wait_sel);
         libnav::waypoint_t tgt_wpt = get_wpt_from_user(scratchpad, sg_id, lg_id, &not_in_db, &inv_ent, 
-            &wait_sel, &sel_used);
+            &leg_sel_pr, &sel_used);
         if(inv_ent)
             return INVALID_ENTRY_MSG;
         if(not_in_db)
             return NOT_IN_DB_MSG;
-        if(wait_sel)
+        if(leg_sel_pr)
             return "";
         
         if(sel_used)
@@ -1386,17 +1392,19 @@ namespace StratosphereAvionics
             size_t usr_idx = i_start + size_t(event_key - CDU_KEY_LSK_TOP);
             bool scr_is_del = scratchpad_has_delete(scratchpad);
             bool is_ins = 0;
-            if(!scr_is_del && usr_idx == i_end)
+            if((!scr_is_del && usr_idx == i_end) || leg_sel_pr)
                 is_ins = 1;
-            if (usr_idx < i_end && !scr_is_del)
+            if(!is_ins)
             {
-                is_ins = handle_legs_dto(usr_idx, scratchpad, s_out);
+                if (usr_idx < i_end && !scr_is_del)
+                {
+                    is_ins = handle_legs_dto(usr_idx, scratchpad, s_out);
+                }
+                else if (scr_is_del && usr_idx == i_end)
+                {
+                    return INVALID_DELETE_MSG;
+                }
             }
-            else if (scr_is_del && usr_idx == i_end)
-            {
-                return INVALID_DELETE_MSG;
-            }
-
             if(is_ins)
             {
                 return handle_legs_insert(usr_idx, scratchpad);
