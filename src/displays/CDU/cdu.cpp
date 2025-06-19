@@ -248,7 +248,9 @@ namespace StratosphereAvionics
         {
             return HOLD_DESC;
         }
-        double crs_deg = src.data.misc_data.true_trk_deg;
+        double crs_deg = src.data.misc_data.true_trk_deg+360.0;
+        if(crs_deg > 360)
+            crs_deg -= 360;
         std::string deg_str = std::string(1, strutils::DEGREE_SYMBOL);
         std::string crs_st = strutils::double_to_str(crs_deg, 0) + deg_str;
         assert(crs_st.size() <= N_LEG_CRS_ROWS);

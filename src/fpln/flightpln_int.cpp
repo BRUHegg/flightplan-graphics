@@ -1114,6 +1114,7 @@ namespace test
             leg_t dir_leg{};
             dir_leg.leg_type = "DF";
             dir_leg.set_main_fix(wpt);
+            dir_leg.turn_dir = libnav::TurnDir::EITHER;
 
             add_direct_leg(dir_leg, next.ptr);
         }
