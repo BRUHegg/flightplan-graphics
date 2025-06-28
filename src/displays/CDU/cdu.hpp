@@ -359,6 +359,8 @@ namespace StratosphereAvionics
         void get_rte_dep_arr(cdu_scr_data_t& out, bool rte2);
 
 
+        // Per-page fetching of the number of subpages:
+
         int get_n_sel_des_subpg();
 
         int get_n_rte_subpg();
@@ -366,6 +368,8 @@ namespace StratosphereAvionics
         int get_n_dep_arr_subpg(bool rte2);
 
         int get_n_legs_subpg();
+
+        // Per-page event handling:
 
         std::string handle_sel_des(int event_key);
 
@@ -403,6 +407,8 @@ namespace StratosphereAvionics
 
         std::string handle_legs(int event_key, std::string scratchpad, std::string *s_out);
 
+        // Per-page content fetching. The CDU displays exactly what these functions output:
+        
         cdu_scr_data_t get_sel_des_page();
 
         cdu_scr_data_t get_rte_page();
