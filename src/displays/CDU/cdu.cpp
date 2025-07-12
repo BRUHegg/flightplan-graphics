@@ -715,7 +715,9 @@ namespace StratosphereAvionics
         if (trans[rte2].size() && procs[rte2].size() == 1)
         {
             size_t trans_start = size_t((curr_subpg - 1) * 4);
-            in->data_lines[j - 1] = " TRANS";
+            if(trans_start < trans[rte2].size())
+                in->data_lines[j - 1] = " TRANS";
+
             if (curr_trans == "")
                 curr_trans = libnav::NONE_TRANS;
             for (size_t i = trans_start; i < trans_start + 4 && i < trans[rte2].size(); i++)
@@ -729,7 +731,7 @@ namespace StratosphereAvionics
                 j += 2;
             }
         }
-        else if(procs[rte2].size() == 1 && dep_arr_proc_filter[rte2])
+        else if(procs[rte2].size() == 1 && dep_arr_proc_filter[rte2] && curr_subpg == 1)
         {
             in->data_lines[j - 1] = " TRANS";
             in->data_lines[j] = DEP_ARR_NO_PROC;
@@ -768,10 +770,10 @@ namespace StratosphereAvionics
             if (apprs[rte2].size() == 1 && curr_appr != "")
             {
                 size_t via_idx = 4 * (curr_subpg - 1);
-                if (j - 1 > 0)
+                if (j - 1 > 0 && via_idx < vias[rte2].size())
                     in->data_lines[j - 1] = get_cdu_line("TRANS ", in->data_lines[j - 1], true);
                 
-                if(!vias[rte2].size())
+                if(!vias[rte2].size() && curr_subpg == 1)
                 {
                     in->data_lines[j] = get_cdu_line(DEP_ARR_NO_PROC, in->data_lines[j], true);
                     j += 2;
