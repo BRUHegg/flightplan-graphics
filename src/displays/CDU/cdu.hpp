@@ -63,6 +63,11 @@ namespace StratosphereAvionics
     constexpr int CDU_KEY_0 = 67;
     constexpr int CDU_KEY_PM = 68;  // +/- key
     constexpr int CDU_KEY_EXEC = 69;
+    // LEGS:
+    constexpr int SPDCSTR_MX_KT = 340;
+    constexpr int SPDCSTR_MN_KT = 100;
+    constexpr int ALTCSTR_MX_FT = 41000;
+    constexpr int ALTCSTR_MN_FT = 100;
 
     constexpr char DELETE_SYMBOL = 'd';
 
@@ -75,6 +80,11 @@ namespace StratosphereAvionics
     constexpr size_t N_LEG_CRS_ROWS = 5;
     constexpr size_t N_LEG_CSTR_ROWS = 11;
     constexpr size_t N_LEG_VCSTR_ROWS = 6;
+
+    constexpr size_t N_LEG_SPDCSTR_MX_LN = 4;
+    constexpr size_t N_LEG_SPDCSTR_MN_LN = 3;
+    constexpr size_t N_LEG_ALTCSTR_MX_LN = N_LEG_VCSTR_ROWS;
+    constexpr size_t N_LEG_ALTCSTR_MN_LN = 2;
 
     constexpr double CDU_RES_COEFF = 1.0 / 900.0;
     constexpr double CDU_V_OFFS_FIRST = 0.095;
@@ -95,6 +105,11 @@ namespace StratosphereAvionics
     constexpr char CDU_B_GREEN = 'G';
     constexpr char CDU_S_MAGENTA = 'm';
     constexpr char CDU_B_MAGENTA = 'M';
+    
+    // Constraint designations used on LEGS page
+    constexpr char LEGS_CSTR_ABV = 'A';
+    constexpr char LEGS_CSTR_BLW = 'B';
+    constexpr char LEGS_CSTR_SEP = '/';
     
     const std::string CDU_ALL_S_WHITE = std::string(N_CDU_DATA_COLS, CDU_S_WHITE);
     const std::string CDU_ALL_B_WHITE = std::string(N_CDU_DATA_COLS, CDU_B_WHITE);
@@ -322,6 +337,10 @@ namespace StratosphereAvionics
 
         static bool scratchpad_has_delete(std::string& scratchpad);
 
+        static test::spd_cstr_t get_spd_cstr(std::string& str);
+
+        static test::alt_cstr_t get_alt_cstr(std::string& str);
+
         void update_fpl_infos();
         
         void set_page(CDUPage pg);
@@ -420,6 +439,8 @@ namespace StratosphereAvionics
         std::string handle_legs_insert(size_t usr_idx, std::string scratchpad);
 
         std::string handle_legs_delete(size_t usr_idx);
+
+        std::string handle_legs_cstr_mod(size_t usr_idx, std::string& scratchpad);
 
         std::string handle_legs(int event_key, std::string scratchpad, std::string *s_out);
 

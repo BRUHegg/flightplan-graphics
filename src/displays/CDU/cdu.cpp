@@ -375,6 +375,74 @@ namespace StratosphereAvionics
         return 0;
     }
 
+    test::spd_cstr_t CDU::get_spd_cstr(std::string& str)
+    {
+        test::spd_cstr_t out = {-1, libnav::SpeedMode::AT};
+        if(str.size() > N_LEG_SPDCSTR_MX_LN || str.size() < N_LEG_SPDCSTR_MN_LN)
+            return out;
+        if(str.size() == N_LEG_SPDCSTR_MX_LN)
+        {
+            if(str.back() == LEGS_CSTR_ABV)
+                out.md = libnav::SpeedMode::AT_OR_ABOVE;
+            else if(str.back() == LEGS_CSTR_BLW)
+                out.md = libnav::SpeedMode::AT_OR_BELOW;
+            else
+                return out;
+        }
+        int cnum = 0;
+        int pw = 1;
+        assert(N_LEG_SPDCSTR_MX_LN >= 2);
+        for(int i = int(N_LEG_SPDCSTR_MX_LN)-2; i >= 0; i--)
+        {
+            if(str[i] > '9' || str[i] < '0')
+                return out;
+            cnum += pw*int(str[i]-'0');
+            pw *= 10;
+        }
+        if(cnum > SPDCSTR_MX_KT || cnum < SPDCSTR_MN_KT)
+            return out;
+        out.nm = cnum;
+        return out;
+    }
+
+    test::alt_cstr_t CDU::get_alt_cstr(std::string& str)
+    {
+        test::alt_cstr_t out = {-1, libnav::AltMode::AT};
+        if(str.size() > N_LEG_ALTCSTR_MX_LN || str.size() < N_LEG_ALTCSTR_MN_LN)
+            return out;
+
+        if(str.back() == LEGS_CSTR_ABV)
+            out.md = libnav::AltMode::AT_OR_ABOVE;
+        else if(str.back() == LEGS_CSTR_BLW)
+            out.md = libnav::AltMode::AT_OR_BELOW;
+        else if(str.back() > '9' || str.back() < '0')
+            return out;
+
+        int st_add = 0;
+        if(str[0] == 'F' && str[1] == 'L')
+            st_add = 2;
+        int has_lt = out.md != libnav::AltMode::AT;
+        int cnum = 0;
+        int pw = 1;
+        int n_dgts = int(str.size())-st_add-has_lt;
+        for(int i = n_dgts+st_add-1; i >= st_add; i--)
+        {
+            if(str[i] > '9' || str[i] < '0')
+                return out;
+            cnum += pw*int(str[i]-'0');
+            pw *= 10;
+        }
+        if(cnum < 1000)
+        {
+            if(cnum >= 10 || (n_dgts >= 2 && n_dgts <= 3))
+                cnum *= 100;
+        }
+        if(cnum > ALTCSTR_MX_FT || cnum < ALTCSTR_MN_FT)
+            return out;
+        out.nm = cnum;
+        return out;
+    }
+
     // Non-static member-functions:
 
     void CDU::update_fpl_infos()
@@ -770,7 +838,7 @@ namespace StratosphereAvionics
             if (apprs[rte2].size() == 1 && curr_appr != "")
             {
                 size_t via_idx = 4 * (curr_subpg - 1);
-                if (j - 1 > 0 && via_idx < vias[rte2].size())
+                if (j - 1 > 0 && (via_idx < vias[rte2].size() || curr_subpg == 1))
                     in->data_lines[j - 1] = get_cdu_line("TRANS ", in->data_lines[j - 1], true);
                 
                 if(!vias[rte2].size() && curr_subpg == 1)
@@ -1409,6 +1477,45 @@ namespace StratosphereAvionics
         return "";
     }
 
+    std::string CDU::handle_legs_cstr_mod(size_t usr_idx, std::string& scratchpad)
+    {
+        bool scr_is_del = scratchpad_has_delete(scratchpad);
+        test::fpln_info_t f_inf = fpl_infos[sel_fpl_idx];
+        double lg_id = f_inf.leg_list_id;
+        if(scr_is_del)
+        {
+            return "";
+        }
+
+        std::vector<std::string> cst = {"", ""};
+        size_t idx = 0;
+        for(auto i: scratchpad)
+        {
+            if(idx == 0 && i == LEGS_CSTR_SEP)
+            {
+                idx = 1;
+                continue;
+            }
+            cst[idx].push_back(i);
+        }
+        
+        if(cst[0] != "")
+        {
+            test::spd_cstr_t spc = get_spd_cstr(cst[0]);
+            if(spc.nm == -1)
+                return INVALID_ENTRY_MSG;
+            fpln->set_spd_cstr({leg_list[usr_idx].ptr, lg_id}, spc);
+        }
+        if(cst[1] != "")
+        {
+            test::alt_cstr_t alc = get_alt_cstr(cst[1]);
+            if(alc.nm == -1)
+                return INVALID_ENTRY_MSG;
+            fpln->set_alt_cstr({leg_list[usr_idx].ptr, lg_id}, alc);
+        }
+        return "";
+    }
+
     std::string CDU::handle_legs(int event_key, std::string scratchpad, std::string *s_out)
     {
         if (event_key == CDU_KEY_LSK_TOP + 5)
@@ -1464,6 +1571,22 @@ namespace StratosphereAvionics
             {
                 return handle_legs_insert(usr_idx, scratchpad);
             }
+        }
+        else if(event_key >= CDU_KEY_RSK_TOP && event_key <= CDU_KEY_RSK_TOP + 5)
+        {
+            size_t usr_idx = get_leg_stt_idx() + size_t(event_key - CDU_KEY_RSK_TOP);
+            size_t i_end = get_leg_end_idx();
+            if(usr_idx >= i_end)
+            {
+                if(scratchpad != "")
+                {
+                    if(scratchpad_has_delete(scratchpad))
+                        return INVALID_DELETE_MSG;
+                    return INVALID_ENTRY_MSG;
+                }
+                return "";
+            }
+            return handle_legs_cstr_mod(usr_idx, scratchpad);
         }
         return "";
     }

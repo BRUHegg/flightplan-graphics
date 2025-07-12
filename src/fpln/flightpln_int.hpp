@@ -91,6 +91,18 @@ namespace test
         std::string star, star_trans, arr_rwy, arr_icao;
     };
 
+    struct spd_cstr_t
+    {
+        int nm;
+        libnav::SpeedMode md;
+    };
+
+    struct alt_cstr_t
+    {
+        int nm;
+        libnav::AltMode md;
+    };
+
     /*
         General info:
         turns:
@@ -207,6 +219,12 @@ namespace test
         void add_direct(libnav::waypoint_t wpt, timed_ptr_t<leg_list_node_t> next);
 
         bool delete_leg(timed_ptr_t<leg_list_node_t> next);
+
+        void set_spd_cstr(timed_ptr_t<leg_list_node_t> node, spd_cstr_t cst);
+
+        // This one only sets alt1 for now.
+
+        void set_alt_cstr(timed_ptr_t<leg_list_node_t> node, alt_cstr_t cst);
 
         // Calculation function
 
