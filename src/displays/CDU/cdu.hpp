@@ -249,6 +249,14 @@ namespace StratosphereAvionics
         bool sel_des;
 
         // DEP/ARR data:
+        /*
+            Info about filters:
+            filters are there to enable the user to see only the runways/procedures/etc that
+            are valid for the existing constraints(i.e. runways, procedures)
+            All filters are per-flightplan.
+            rwy_filter is set whenever a procedure is selected
+            proc_filter is set whenever a runway/approach is selected
+        */
         std::vector<bool> dep_arr_rwy_filter;
         std::vector<bool> dep_arr_proc_filter;
         std::vector<bool> dep_arr_trans_filter;
@@ -363,6 +371,8 @@ namespace StratosphereAvionics
         void set_fpl_proc(int event, test::ProcType ptp, bool is_arr, bool rte2);
 
         void get_rte_dep_arr(cdu_scr_data_t& out, bool rte2);
+
+        bool arr_has_rwys(std::string& cr_appr, bool rte2) const;
 
 
         // Per-page fetching of the number of subpages:
