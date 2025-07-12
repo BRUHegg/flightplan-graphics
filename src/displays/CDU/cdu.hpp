@@ -126,6 +126,7 @@ namespace StratosphereAvionics
     const std::string DISCO_AFTER_SEG = "-- ROUTE DISCONTINUITY -";
     const std::string SEG_LAST = "-------            -----";
     const std::string SEL_DES_WPT_HDG = " SELECT DESIRED WPT";
+    // DEP ARR page:
     const std::string DEP_ARR_HDG = "DEP/ARR INDEX";
     const std::string DEP_ARR_IDX_DASH_L = std::string(8, '-');
     const std::string DEP_ARR_IDX_DASH_R = std::string(10, '-');
@@ -133,22 +134,19 @@ namespace StratosphereAvionics
     const std::string DEP_ARR_ARR_OPT = std::string(6, ' ') + "ARR>";
     const std::string DEP_ARR_IDX_OTHER = " DEP      OTHER      ARR";
     const std::string DEP_ARR_ARROWS = "<----" + std::string(N_CDU_DATA_COLS-10, ' ') + "---->";
-    const std::string DEP_COLS1 = " SIDS    RTE 1   RUNWAYS";
-    const std::string DEP_COLS2 = " SIDS    RTE 2   RUNWAYS";
-    const std::string ARR_COLS1 = " STARS   RTE 1APPROACHES";
-    const std::string ARR_COLS2 = " STARS   RTE 2APPROACHES";
     const std::string DEP_ARR_BOTTOM_INACT = "<INDEX            ROUTE>";
     const std::string DEP_ARR_BOTTOM_ACT = "<ERASE            ROUTE>";
+    const std::string DEP_ARR_NO_PROC = "-NONE-";
+    // DEP page
+    const std::string DEP_COLS1 = " SIDS    RTE 1   RUNWAYS";
+    const std::string DEP_COLS2 = " SIDS    RTE 2   RUNWAYS";
+    // ARR page
+    const std::string ARR_COLS1 = " STARS   RTE 1APPROACHES";
+    const std::string ARR_COLS2 = " STARS   RTE 2APPROACHES";
     const std::string ARR_RWYS_STARS1 = " STARS   RTE 1   RUNWAYS";
     const std::string ARR_RWYS_STARS2 = " STARS   RTE 2   RUNWAYS";
     const std::string ARR_RWYS = std::string(17, ' ') + "RUNWAYS";
-    const std::string ALL_DASH = std::string(N_CDU_DATA_COLS, '-');
-    const std::string ERASE_NML = "<ERASE";
-    const std::string ACT = "ACT";
-    const std::string SEL = "SEL";
-    const std::string MOD = "MOD";
-    const std::string RTE_COPY = "RTE COPY";
-    const std::string COMPLETE = "COMPLETE";
+    // LEGS page:
     const std::string LEGS_BTM_ACT = " LEGS    RTE DATA>";
     const std::string LEGS_BTM_MOD = "<ERASE         RTE DATA>";
     const std::string LEGS_BTM_INACT = " LEGS    ACTIVATE>";
@@ -157,12 +155,20 @@ namespace StratosphereAvionics
     const std::string LEG_NO_ALT = std::string(6, '-');
     const std::string LEG_BIG_SPACING = std::string(8, ' ');
     const std::string DISCO_LEG_NM = std::string(5, '@');
-    const std::string LEG_VECTORS = "VECTORS";
+    const std::string LEG_VECTORS = "(VECTOR)";
     const std::string LEG_HOLD = "HOLD";
     const std::string DISCO_THEN = " THEN";
     const std::string HOLD_DESC = " HOLD AT";
     const std::string NAUT_MILES = "NM";
     const std::string LEG_BYPASS = "BYPASS";
+    // MISC:
+    const std::string ALL_DASH = std::string(N_CDU_DATA_COLS, '-');
+    const std::string ERASE_NML = "<ERASE";
+    const std::string ACT = "ACT";
+    const std::string SEL = "SEL";
+    const std::string MOD = "MOD";
+    const std::string RTE_COPY = "RTE COPY";
+    const std::string COMPLETE = "COMPLETE";
 
 
     const std::vector<CDUPage> CDU_PAGE_FACES = {
