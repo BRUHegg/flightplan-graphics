@@ -792,7 +792,8 @@ namespace test
         return {};
     }
 
-    std::vector<std::string> FplnInt::get_arpt_proc_trans(ProcType tp, bool is_rwy, bool is_arr)
+    std::vector<std::string> FplnInt::get_arpt_proc_trans(ProcType tp, bool is_rwy, 
+        bool is_arr, bool incl_none)
     {
         std::lock_guard<std::mutex> lock(fpl_mtx);
 
@@ -806,9 +807,11 @@ namespace test
             size_t db_idx = get_proc_db_idx(tp, is_arr);
             if (is_arr)
             {
-                return get_proc_trans(proc_name, proc_db[db_idx], arr_rnw, is_rwy);
+                return get_proc_trans(proc_name, proc_db[db_idx], arr_rnw, is_rwy, 
+                    incl_none);
             }
-            return get_proc_trans(proc_name, proc_db[db_idx], dep_rnw, is_rwy);
+            return get_proc_trans(proc_name, proc_db[db_idx], dep_rnw, is_rwy, 
+                incl_none);
         }
         return {};
     }
@@ -1286,7 +1289,8 @@ namespace test
     }
 
     std::vector<std::string> FplnInt::get_proc_trans(std::string proc, libnav::str_umap_t &db,
-                                                     libnav::arinc_rwy_db_t &rwy_db, bool is_rwy)
+                                                     libnav::arinc_rwy_db_t &rwy_db, bool is_rwy,
+                                                     bool incl_none)
     {
         std::vector<std::string> out;
 
@@ -1294,6 +1298,9 @@ namespace test
 
         for (auto i : db[proc])
         {
+            if(i == libnav::NONE_TRANS && !incl_none)
+                continue;
+
             if (is_rwy && rwy_db.find(i) != rwy_db.end())
             {
                 out.push_back(i);
@@ -1718,7 +1725,7 @@ namespace test
             {
                 libnav::arinc_leg_seq_t legs;
                 libnav::arinc_leg_seq_t legs_add; // Additional legs. Inserted if there is a blank transition
-                std::string none_trans = NONE_TRANS;
+                std::string none_trans = libnav::NONE_TRANS;
 
                 if (!is_star)
                 {
@@ -1841,7 +1848,7 @@ namespace test
             delete_ref(FPL_SEG_STAR_TRANS);
             delete_ref(FPL_SEG_STAR);
 
-            std::string tmp = NONE_TRANS;
+            std::string tmp = libnav::NONE_TRANS;
             libnav::arinc_leg_seq_t legs = arrival->get_appch(appch, tmp);
             std::string curr_tr = fpl_refs[FPL_SEG_APPCH].name;
             delete_ref(FPL_SEG_APPCH_TRANS);
@@ -1930,7 +1937,7 @@ namespace test
 
     bool FplnInt::set_proc_trans(ProcType tp, std::string trans, bool is_arr)
     {
-        if (trans == "NONE")
+        if (trans == libnav::NONE_TRANS)
         {
             trans = "";
         }
@@ -1968,7 +1975,7 @@ namespace test
         libnav::arinc_leg_seq_t legs_main = {};
         libnav::arinc_leg_seq_t legs = {};
 
-        std::string rwy = NONE_TRANS;
+        std::string rwy = libnav::NONE_TRANS;
         if (tp == ProcType::PROC_TYPE_SID)
             rwy = fpl_refs[FPL_SEG_DEP_RWY].name;
         else if (tp == PROC_TYPE_STAR)
