@@ -695,6 +695,12 @@ namespace StratosphereAvionics
         if (curr_proc != "" && procs[rte2].size() == 1)
             start_idx = 0;
 
+        if(!procs[rte2].size())
+        {
+            in->data_lines[j] = DEP_ARR_NO_PROC;
+            j += 2;
+        }
+
         for (size_t i = start_idx; i < start_idx + 6 && i < procs[rte2].size(); i++)
         {
             std::string curr = procs[rte2][i];
@@ -723,7 +729,7 @@ namespace StratosphereAvionics
                 j += 2;
             }
         }
-        else if(procs[rte2].size() == 1)
+        else if(procs[rte2].size() == 1 && dep_arr_proc_filter[rte2])
         {
             in->data_lines[j - 1] = " TRANS";
             in->data_lines[j] = DEP_ARR_NO_PROC;
@@ -741,11 +747,9 @@ namespace StratosphereAvionics
 
         if (get_appr)
         {
-            if ((dep_arr_rwy_filter[rte2] || dep_arr_proc_filter[rte2]) && curr_appr != "")
-            {
-                draw_rwys = false;
+            draw_rwys = arr_has_rwys(curr_appr, rte2);
+            if(!draw_rwys)
                 start_idx = 0;
-            }
 
             if (curr_appr != "")
                 curr_rwy = "";
@@ -975,6 +979,13 @@ namespace StratosphereAvionics
             out.data_lines.push_back("");
             out.data_lines.push_back("");
         }
+    }
+
+    bool CDU::arr_has_rwys(std::string& cr_appr, bool rte2) const
+    {
+        if (dep_arr_proc_filter[rte2] && cr_appr != "")
+            return false;
+        return true;
     }
 
     int CDU::get_n_sel_des_subpg()
@@ -1269,13 +1280,15 @@ namespace StratosphereAvionics
             else if (curr_idx >= int(apprs[rte2].size()))
             {
                 curr_idx -= int(apprs[rte2].size());
+                std::string curr_appr = c_fpl->get_curr_proc(test::PROC_TYPE_APPCH);
+                bool h_rwys = arr_has_rwys(curr_appr, rte2);
                 if (curr_idx < int(vias[rte2].size()))
                 {
                     c_fpl->set_arpt_proc_trans(test::PROC_TYPE_APPCH, vias[rte2][size_t(curr_idx)],
                                                true);
                     dep_arr_via_filter[rte2] = !dep_arr_via_filter[rte2];
                 }
-                else if (curr_idx < int(rwys.size()))
+                else if (curr_idx < int(rwys[rte2].size()) && h_rwys)
                 {
                     c_fpl->set_arr_rwy(rwys[rte2][size_t(curr_idx)]);
                     dep_arr_proc_filter[rte2] = !dep_arr_proc_filter[rte2];
