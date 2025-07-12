@@ -44,7 +44,6 @@ namespace test
     constexpr double ASSUMED_RNP_PROC_NM = 1;
     constexpr double ASSUMED_RNP_ENRT_NM = 3;
     constexpr double CF_STRAIGHT_DEV_RAD = (5 * geo::DEG_TO_RAD);
-    const std::string NONE_TRANS = "NONE";
     const std::string MISSED_APPR_SEG_NM = "MISSED APPRCH";
     const std::string INTC_LEG_NM = "(INTC)";
     // X-Plane .fms format stuff
@@ -179,7 +178,8 @@ namespace test
         std::vector<std::string> get_arpt_proc(ProcType tp, bool is_arr=false, 
             bool filter_rwy=false, bool filter_proc=false);
 
-        std::vector<std::string> get_arpt_proc_trans(ProcType tp, bool is_rwy=false, bool is_arr=false);
+        std::vector<std::string> get_arpt_proc_trans(ProcType tp, bool is_rwy=false, 
+            bool is_arr=false, bool incl_none=true);
 
         bool set_arpt_proc(ProcType tp, std::string proc_nm, bool is_arr=false);
 
@@ -243,7 +243,7 @@ namespace test
             libnav::str_umap_t& appr_db, std::string proc, bool filter=false);
 
         static std::vector<std::string> get_proc_trans(std::string proc, libnav::str_umap_t& db, 
-            libnav::arinc_rwy_db_t& rwy_db, bool is_rwy=false);
+            libnav::arinc_rwy_db_t& rwy_db, bool is_rwy=false, bool incl_none=true);
 
         static std::string get_dfms_enrt_leg(leg_list_node_t* lg, bool force_dir=false);
 

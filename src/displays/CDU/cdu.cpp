@@ -711,7 +711,7 @@ namespace StratosphereAvionics
             size_t trans_start = size_t((curr_subpg - 1) * 4);
             in->data_lines[j - 1] = " TRANS";
             if (curr_trans == "")
-                curr_trans = test::NONE_TRANS;
+                curr_trans = libnav::NONE_TRANS;
             for (size_t i = trans_start; i < trans_start + 4 && i < trans[rte2].size(); i++)
             {
                 std::string curr = trans[rte2][i];
@@ -853,7 +853,7 @@ namespace StratosphereAvionics
             if (!dep_arr_trans_filter[rte2])
             {
                 trans[rte2] = c_fpl->get_arpt_proc_trans(ptp,
-                                                         false, is_arr);
+                                                         false, is_arr, false);
                 sort(trans[rte2].begin(), trans[rte2].end());
             }
             else
@@ -862,7 +862,8 @@ namespace StratosphereAvionics
             }
             if (ptp == test::PROC_TYPE_STAR)
             {
-                vias[rte2] = c_fpl->get_arpt_proc_trans(test::PROC_TYPE_APPCH, false, is_arr);
+                vias[rte2] = c_fpl->get_arpt_proc_trans(test::PROC_TYPE_APPCH, 
+                    false, is_arr, false);
                 sort(vias[rte2].begin(), vias[rte2].end());
             }
             else
