@@ -633,8 +633,8 @@ namespace StratosphereAvionics
         std::string via_to = " VIA" + std::string(N_CDU_DATA_COLS - 6, ' ') + "TO";
         in->data_lines.push_back(via_to);
 
-        size_t i_start = 1 + N_CDU_LEG_PP * size_t(curr_subpg - 2);
-        size_t i_end = std::min(seg_list.size() - 1, i_start + N_CDU_LEG_PP);
+        size_t i_start = 1 + N_CDU_ITM_PP * size_t(curr_subpg - 2);
+        size_t i_end = std::min(seg_list.size() - 1, i_start + N_CDU_ITM_PP);
 
         for (size_t i = i_start; i < i_end; i++)
         {
@@ -668,7 +668,7 @@ namespace StratosphereAvionics
                     in->data_lines.push_back("");
             }
         }
-        if (i_end - i_start < N_CDU_LEG_PP)
+        if (i_end - i_start < N_CDU_ITM_PP)
             in->data_lines.push_back(SEG_LAST);
 
         while (in->data_lines.size() < 10)
@@ -736,18 +736,15 @@ namespace StratosphereAvionics
 
         if (get_appr)
         {
-            if (dep_arr_rwy_filter[rte2] && curr_appr != "")
+            if ((dep_arr_rwy_filter[rte2] || dep_arr_proc_filter[rte2]) && curr_appr != "")
             {
                 draw_rwys = false;
                 start_idx = 0;
             }
-            else if (start_idx + 5 < size_t(n_subpg))
-            {
-                draw_rwys = false;
-            }
+
             if (curr_appr != "")
                 curr_rwy = "";
-            for (size_t i = start_idx; i < start_idx + 6 && i < apprs[rte2].size(); i++)
+            for (size_t i = start_idx; i <= start_idx + N_CDU_ITM_PP && i < apprs[rte2].size(); i++)
             {
                 std::string curr = apprs[rte2][i];
                 if (curr == curr_appr)
@@ -803,7 +800,7 @@ namespace StratosphereAvionics
                 }
             }
 
-            for (size_t i = start_idx; i < start_idx + 6 && i < rwys[rte2].size(); i++)
+            for (size_t i = start_idx; i <= start_idx + N_CDU_ITM_PP && i < rwys[rte2].size(); i++)
             {
                 if (j > 11)
                     break;
@@ -980,7 +977,7 @@ namespace StratosphereAvionics
         if (dep_rwy != "")
         {
             size_t n_seg_act = n_seg_list_sz - 1;
-            return 1 + (n_seg_act / N_CDU_LEG_PP) + bool(n_seg_act % N_CDU_LEG_PP);
+            return 1 + (n_seg_act / N_CDU_ITM_PP) + bool(n_seg_act % N_CDU_ITM_PP);
         }
         return 1;
     }
@@ -1026,7 +1023,7 @@ namespace StratosphereAvionics
     int CDU::get_n_legs_subpg()
     {
         size_t n_leg_act = n_leg_list_sz - 2;
-        return (n_leg_act / N_CDU_LEG_PP) + bool(n_leg_act % N_CDU_LEG_PP);
+        return (n_leg_act / N_CDU_ITM_PP) + bool(n_leg_act % N_CDU_ITM_PP);
     }
 
     std::string CDU::handle_sel_des(int event_key)
@@ -1110,8 +1107,8 @@ namespace StratosphereAvionics
         }
         else
         {
-            size_t i_start = 1 + N_CDU_LEG_PP * size_t(curr_subpg - 2);
-            size_t i_end = std::min(n_seg_list_sz - 1, i_start + N_CDU_LEG_PP);
+            size_t i_start = 1 + N_CDU_ITM_PP * size_t(curr_subpg - 2);
+            size_t i_end = std::min(n_seg_list_sz - 1, i_start + N_CDU_ITM_PP);
             size_t i_event = i_start + size_t(event_key - 1) % 6;
             if (i_event > i_end || (i_event == i_end && i_event < n_seg_list_sz - 1))
             {
@@ -1277,13 +1274,13 @@ namespace StratosphereAvionics
 
     size_t CDU::get_leg_stt_idx()
     {
-        return 2 + N_CDU_LEG_PP * size_t(curr_subpg - 1);
+        return 2 + N_CDU_ITM_PP * size_t(curr_subpg - 1);
     }
 
     size_t CDU::get_leg_end_idx()
     {
         size_t stt_idx = get_leg_stt_idx();
-        return std::min(leg_list.size() - 1, stt_idx + N_CDU_LEG_PP);
+        return std::min(leg_list.size() - 1, stt_idx + N_CDU_ITM_PP);
     }
 
     void CDU::reset_leg_dto_sel(size_t fp_idx)
@@ -1802,7 +1799,7 @@ namespace StratosphereAvionics
             sts_idx += 2;
         }
 
-        if (i_end - i_start < N_CDU_LEG_PP)
+        if (i_end - i_start < N_CDU_ITM_PP)
         {
             out.data_lines.push_back("");
             out.data_lines.push_back(LEG_LAST);

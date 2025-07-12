@@ -66,7 +66,7 @@ namespace StratosphereAvionics
 
     constexpr char DELETE_SYMBOL = 'd';
 
-    constexpr size_t N_CDU_LEG_PP = 5; // How many legs can be drawn on 1 page
+    constexpr size_t N_CDU_ITM_PP = 5; // How many items can be drawn on 1 page
     constexpr size_t N_CDU_RTES = 2;
 
     constexpr size_t N_FLT_NBR_CHR_MAX = 10; // Maximum number of characters for flight number
