@@ -723,6 +723,11 @@ namespace StratosphereAvionics
                 j += 2;
             }
         }
+        else if(procs[rte2].size() == 1)
+        {
+            in->data_lines[j - 1] = " TRANS";
+            in->data_lines[j] = DEP_ARR_NO_PROC;
+        }
     }
 
     void CDU::get_rwys(cdu_scr_data_t *in, std::string curr_rwy, std::string act_rwy,
@@ -761,6 +766,13 @@ namespace StratosphereAvionics
                 size_t via_idx = 4 * (curr_subpg - 1);
                 if (j - 1 > 0)
                     in->data_lines[j - 1] = get_cdu_line("TRANS ", in->data_lines[j - 1], true);
+                
+                if(!vias[rte2].size())
+                {
+                    in->data_lines[j] = get_cdu_line(DEP_ARR_NO_PROC, in->data_lines[j], true);
+                    j += 2;
+                }
+
                 for (size_t i = via_idx; i < via_idx + 4 && i < vias[rte2].size(); i++)
                 {
                     std::string curr = vias[rte2][i];
