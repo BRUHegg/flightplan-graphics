@@ -1134,6 +1134,29 @@ namespace test
         return false;
     }
 
+    void FplnInt::set_spd_cstr(timed_ptr_t<leg_list_node_t> node, spd_cstr_t cst)
+    {
+        std::lock_guard<std::mutex> lock(fpl_mtx);
+        if(node.id != leg_list.id)
+            return;
+        node.ptr->data.leg.speed_desc = cst.md;
+        node.ptr->data.leg.spd_lim_kias = cst.nm;
+
+        update_id();
+    }
+
+    void FplnInt::set_alt_cstr(timed_ptr_t<leg_list_node_t> node, alt_cstr_t cst)
+    {
+        std::lock_guard<std::mutex> lock(fpl_mtx);
+        if(node.id != leg_list.id)
+            return;
+        node.ptr->data.leg.alt_desc = cst.md;
+        node.ptr->data.leg.alt1_ft = cst.nm;
+        node.ptr->data.leg.alt2_ft = 0;
+
+        update_id();
+    }
+
     void FplnInt::update(double hdg_trk_diff)
     {
         std::lock_guard<std::mutex> lock(fpl_mtx);
