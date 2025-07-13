@@ -22,6 +22,7 @@ namespace StratosphereAvionics
     constexpr size_t N_PROJ_CACHE_SZ = 202;
     constexpr size_t DEP_RWY_PROJ_IDX = N_PROJ_CACHE_SZ-2;
     constexpr size_t ARR_RWY_PROJ_IDX = N_PROJ_CACHE_SZ-1;
+    constexpr size_t N_MP_DATA_SZ = 2;
     constexpr double N_MAX_DIST_NM = 600;
     constexpr double ND_DEFAULT_RNG_NM = 10;
     // Percentage of resolution that translates into full range:
@@ -89,6 +90,20 @@ namespace StratosphereAvionics
         std::string get_draw_nm();
     };
 
+    struct map_data_t
+    {
+        leg_proj_t *proj_legs;
+        geom::line_joint_t *line_joints;
+
+        size_t n_act_proj_legs;
+        size_t n_act_joints;
+
+
+        void create();
+
+        void destroy();
+    };
+
 
     class NDData
     {
@@ -126,18 +141,10 @@ namespace StratosphereAvionics
         test::nd_leg_data_t *m_leg_data;
         size_t m_n_act_leg_data;
 
-        leg_proj_t *m_proj_legs_cap;
-        leg_proj_t *m_proj_legs_fo;
-        geom::line_joint_t *m_line_joints_cap;
-        geom::line_joint_t *m_line_joints_fo;
+        std::vector<map_data_t> m_mp_data;
 
         geom::vect2_t m_ac_pos_proj_cap;
         geom::vect2_t m_ac_pos_proj_fo;
-
-        size_t m_n_act_proj_legs_cap;
-        size_t m_n_act_proj_legs_fo;
-        size_t m_n_act_joints_cap;
-        size_t m_n_act_joints_fo;
 
         geo::point m_ctr_cap;
         geo::point m_ctr_fo;
