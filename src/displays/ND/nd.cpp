@@ -54,54 +54,58 @@ namespace StratosphereAvionics
     NDData::NDData(std::shared_ptr<test::FPLSys> fpl_sys)
     {
         m_fpl_sys_ptr = fpl_sys;
-        m_fpl_ptr = fpl_sys->fpl_vec[test::ACT_RTE_IDX];
+        m_fpl_vec = fpl_sys->fpl_vec;
 
-        m_leg_data = new test::nd_leg_data_t[N_LEG_PROJ_CACHE_SZ];
+        m_leg_data = std::vector<test::nd_leg_data_t*>(test::N_FPL_SYS_RTES);
+        m_leg_data_sz = std::vector<size_t>(test::N_FPL_SYS_RTES, 0);
+        for(size_t i = 0; i < test::N_FPL_SYS_RTES; i++)
+            m_leg_data[i] = new test::nd_leg_data_t[N_LEG_PROJ_CACHE_SZ];
 
         m_mp_data = std::vector<map_data_t>(N_MP_DATA_SZ);
+        m_ctr = std::vector<geo::point>(N_MP_DATA_SZ);
+        m_act_leg_idx_sd = std::vector<int>(N_MP_DATA_SZ, 0);
         for(size_t i = 0; i < N_MP_DATA_SZ; i++)
         {
             m_mp_data[i].create();
-        }
-
-        m_ac_pos_proj = std::vector<geom::vect2_t>(N_ND_SDS);
-        m_ctr = std::vector<geo::point>(N_ND_SDS);
-        m_ac_pos_ok = std::vector<bool>(N_ND_SDS, 0);
-        m_rng_idx = std::vector<size_t>(N_ND_SDS, 0);
-        m_act_leg_idx_sd = std::vector<int>(N_ND_SDS, 0);
-        for(size_t i = 0; i < N_ND_SDS; i++)
-        {
-            m_ac_pos_proj[i] = {};
             m_ctr[i] = {};
         }
 
-        m_fpl_id_last = 0;
+        m_ac_pos_proj = std::vector<geom::vect2_t>(N_ND_SDS);
+        
+        m_ac_pos_ok = std::vector<bool>(N_ND_SDS, 0);
+        m_rng_idx = std::vector<size_t>(N_ND_SDS, 0);
+        for(size_t i = 0; i < N_ND_SDS; i++)
+        {
+            m_ac_pos_proj[i] = {};
+        }
+
+        m_fpl_id_last = std::vector<double>(test::N_FPL_SYS_RTES, 0);
 
         m_hdg_data = {};
 
-        m_has_dep_rwy = false;
-        m_has_arr_rwy = false;
+        m_has_dep_rwy = std::vector<bool>(test::N_FPL_SYS_RTES, false);
+        m_has_arr_rwy = std::vector<bool>(test::N_FPL_SYS_RTES, false);
 
-        m_act_leg_idx = -1;
+        m_act_leg_idx = std::vector<int>(test::N_FPL_SYS_RTES, -1);
     }
 
-    size_t NDData::get_proj_legs(leg_proj_t **out, bool fo_side)
+    size_t NDData::get_proj_legs(leg_proj_t **out, size_t sd_idx)
     {
-        *out = m_mp_data[fo_side].proj_legs;
-        return m_mp_data[fo_side].n_act_proj_legs;
+        *out = m_mp_data[sd_idx].proj_legs;
+        return m_mp_data[sd_idx].n_act_proj_legs;
     }
 
-    int NDData::get_act_leg_idx(bool fo_side)
+    int NDData::get_act_leg_idx(size_t sd_idx)
     {
-        return m_act_leg_idx_sd[fo_side];
+        return m_act_leg_idx_sd[sd_idx];
     }
 
-    bool NDData::get_ac_pos(geom::vect2_t *out, bool fo_side)
+    bool NDData::get_ac_pos(geom::vect2_t *out, size_t sd_idx)
     { 
-        if(!m_ac_pos_ok[fo_side])
+        if(!m_ac_pos_ok[sd_idx])
             return false;
 
-        *out = m_ac_pos_proj[fo_side];
+        *out = m_ac_pos_proj[sd_idx];
         return true;
     }
 
@@ -120,82 +124,52 @@ namespace StratosphereAvionics
         return m_fpl_sys_ptr->get_act_leg_info();
     }
 
-    bool NDData::has_dep_rwy()
+    bool NDData::has_dep_rwy(size_t idx)
     {
-        return m_has_dep_rwy;
+        return m_has_dep_rwy[idx];
     }
 
-    bool NDData::has_arr_rwy()
+    bool NDData::has_arr_rwy(size_t idx)
     {
-        return m_has_arr_rwy;
+        return m_has_arr_rwy[idx];
     }
 
-    void NDData::switch_range(bool down, bool fo_side)
+    void NDData::switch_range(bool down, size_t sd_idx)
     {
         if (down)
         {
-            if (m_rng_idx[fo_side])
-                m_rng_idx[fo_side]--;
+            if (m_rng_idx[sd_idx])
+                m_rng_idx[sd_idx]--;
         }
         else
         {
-            if (m_rng_idx[fo_side] + 1 < ND_RANGES_NM.size())
-                m_rng_idx[fo_side]++;
+            if (m_rng_idx[sd_idx] + 1 < ND_RANGES_NM.size())
+                m_rng_idx[sd_idx]++;
         }
     }
 
-    double NDData::get_range(bool fo_side)
+    double NDData::get_range(size_t sd_idx)
     {
-        return ND_RANGES_NM[m_rng_idx[fo_side]];
+        return ND_RANGES_NM[m_rng_idx[sd_idx]];
     }
 
     void NDData::update()
     {
-        double id_curr = m_fpl_ptr->get_id();
-
-        if (id_curr != m_fpl_id_last)
-        {
-            fetch_legs();
-        }
-
         m_hdg_data = m_fpl_sys_ptr->get_hdg_info();
-
-        update_ctr(false);
-        update_ctr(true);
-
-        project_legs(false);
-        project_legs(true);
-
-        project_rwys(false);
-        project_rwys(true);
-
-        m_ac_pos_ok[0] = project_ac_pos(false);
-        m_ac_pos_ok[1] = project_ac_pos(true);
-
-        m_fpl_id_last = id_curr;
+        for(size_t i = 0; i < test::N_FPL_SYS_RTES; i++)
+            update_fpl(i);
     }
 
     NDData::~NDData()
     {
-        delete[] m_leg_data;
+        for(size_t i = 0; i < test::N_FPL_SYS_RTES; i++)
+            delete[] m_leg_data[i];
         for(size_t i = 0; i < N_MP_DATA_SZ; i++)
-        {
             m_mp_data[i].destroy();
-        }
     }
 
     // Private member functions:
-
-    void NDData::update_ctr(bool fo_side)
-    {
-        geo::point tmp;
-        bool ret = m_fpl_sys_ptr->get_ctr(&tmp, fo_side);
-        if (!ret)
-        {
-            tmp = m_fpl_sys_ptr->get_ac_pos();
-        }
-        m_ctr[fo_side] = tmp;
-    }
+    // Static member functions:
 
     bool NDData::bound_check(double x1, double x2, double rng)
     {
@@ -204,10 +178,29 @@ namespace StratosphereAvionics
                (abs(x1) <= rng && abs(x2) <= rng);
     }
 
-    bool NDData::in_view(geom::vect2_t start, geom::vect2_t end, bool fo_side)
+    nd_util_idx_t NDData::get_util_idx(size_t gn_idx)
+    {
+        return {gn_idx%N_ND_SDS, gn_idx/N_ND_SDS};
+    }
+
+    // Non-static member functions:
+
+    void NDData::update_ctr(size_t gn_idx)
+    {
+        nd_util_idx_t idxs = get_util_idx(gn_idx);
+        geo::point tmp;
+        bool ret = m_fpl_sys_ptr->get_ctr(&tmp, idxs.sd_idx, idxs.dt_idx);
+        if (!ret)
+        {
+            tmp = m_fpl_sys_ptr->get_ac_pos();
+        }
+        m_ctr[gn_idx] = tmp;
+    }
+
+    bool NDData::in_view(geom::vect2_t start, geom::vect2_t end, size_t sd_idx)
     {
         double a = start.x - end.x;
-        double rng = get_range(fo_side) / 2;
+        double rng = get_range(sd_idx) / 2;
 
         if (a != 0)
         {
@@ -237,38 +230,42 @@ namespace StratosphereAvionics
         return false;
     }
 
-    void NDData::project_legs(bool fo_side)
+    void NDData::project_legs(size_t gn_idx)
     {
-        geo::point map_ctr = m_ctr[fo_side];
+        nd_util_idx_t idxs = get_util_idx(gn_idx);
 
-        leg_proj_t *dst = m_mp_data[fo_side].proj_legs;
-        geom::line_joint_t *dst_joint = m_mp_data[fo_side].line_joints;
+        geo::point map_ctr = m_ctr[idxs.sd_idx];
 
-        size_t *sz_ptr = &m_mp_data[fo_side].n_act_proj_legs;
-        size_t *sz_ptr_joint = &m_mp_data[fo_side].n_act_joints;
+        leg_proj_t *dst = m_mp_data[idxs.sd_idx].proj_legs;
+        geom::line_joint_t *dst_joint = m_mp_data[idxs.sd_idx].line_joints;
+
+        size_t *sz_ptr = &m_mp_data[idxs.sd_idx].n_act_proj_legs;
+        size_t *sz_ptr_joint = &m_mp_data[idxs.sd_idx].n_act_joints;
 
         *sz_ptr = 0;
         *sz_ptr_joint = 0;
-        m_act_leg_idx_sd[fo_side] = -1;
+        m_act_leg_idx_sd[gn_idx] = -1;
 
         bool prev_skipped = false;
         bool prev_bypassed = false;
 
-        for (size_t i = 0; i < m_n_act_leg_data; i++)
+        for (size_t i = 0; i < m_leg_data_sz[idxs.dt_idx]; i++)
         {
             if (i >= N_LEG_PROJ_CACHE_SZ)
                 break;
 
             dst[*sz_ptr].joint = nullptr;
 
-            if ((!m_leg_data[i].leg_data.is_finite && !m_leg_data[i].leg_data.is_bypassed) ||
-                m_leg_data[i].leg_data.is_arc)
+            if ((!m_leg_data[idxs.dt_idx][i].leg_data.is_finite && 
+                !m_leg_data[idxs.dt_idx][i].leg_data.is_bypassed) ||
+                m_leg_data[idxs.dt_idx][i].leg_data.is_arc)
                 continue;
 
-            if (m_leg_data[i].leg_data.is_finite && m_leg_data[i].leg_data.has_calc_wpt)
+            if (m_leg_data[idxs.dt_idx][i].leg_data.is_finite && 
+                m_leg_data[idxs.dt_idx][i].leg_data.has_calc_wpt)
             {
-                geo::point end_wpt = m_leg_data[i].leg_data.calc_wpt.data.pos;
-                std::string end_name = m_leg_data[i].leg_data.calc_wpt.id;
+                geo::point end_wpt = m_leg_data[idxs.dt_idx][i].leg_data.calc_wpt.data.pos;
+                std::string end_name = m_leg_data[idxs.dt_idx][i].leg_data.calc_wpt.id;
 
                 double dist_wpt = map_ctr.get_gc_dist_nm(end_wpt);
                 double brng_wpt = map_ctr.get_gc_bearing_rad(end_wpt);
@@ -276,24 +273,24 @@ namespace StratosphereAvionics
                 dst[*sz_ptr].end_wpt = {dist_wpt * sin(brng_wpt), dist_wpt * cos(brng_wpt)};
                 dst[*sz_ptr].end_nm = end_name;
                 dst[*sz_ptr].is_finite = true;
-                dst[*sz_ptr].is_arc = m_leg_data[i].leg_data.is_arc;
+                dst[*sz_ptr].is_arc = m_leg_data[idxs.dt_idx][i].leg_data.is_arc;
                 dst[*sz_ptr].has_path = false;
             }
 
-            if (m_leg_data[i].leg_data.turn_rad_nm != -1)
+            if (m_leg_data[idxs.dt_idx][i].leg_data.turn_rad_nm != -1)
             {
-                geom::vect2_t start_proj = geom::project_point(m_leg_data[i].leg_data.start,
+                geom::vect2_t start_proj = geom::project_point(m_leg_data[idxs.dt_idx][i].leg_data.start,
                                                                map_ctr);
-                geom::vect2_t end_proj = geom::project_point(m_leg_data[i].leg_data.end,
+                geom::vect2_t end_proj = geom::project_point(m_leg_data[idxs.dt_idx][i].leg_data.end,
                                                              map_ctr);
 
-                if (!in_view(start_proj, end_proj, fo_side))
+                if (!in_view(start_proj, end_proj, idxs.sd_idx))
                 {
                     prev_skipped = true;
                     continue;
                 }
 
-                if (*sz_ptr && !prev_skipped && !m_leg_data[i].leg_data.has_disc)
+                if (*sz_ptr && !prev_skipped && !m_leg_data[idxs.dt_idx][i].leg_data.has_disc)
                 {
                     size_t bwd_offs = 1;
                     if(prev_bypassed)
@@ -312,48 +309,50 @@ namespace StratosphereAvionics
 
                 dst[*sz_ptr].start = start_proj;
                 dst[*sz_ptr].end = end_proj;
-                dst[*sz_ptr].has_path = !m_leg_data[i].leg_data.is_bypassed;
+                dst[*sz_ptr].has_path = !m_leg_data[idxs.dt_idx][i].leg_data.is_bypassed;
 
-                dst[*sz_ptr].is_rwy = m_leg_data[i].leg_data.is_rwy;
-                dst[*sz_ptr].turn_rad_nm = m_leg_data[i].leg_data.turn_rad_nm;
+                dst[*sz_ptr].is_rwy = m_leg_data[idxs.dt_idx][i].leg_data.is_rwy;
+                dst[*sz_ptr].turn_rad_nm = m_leg_data[idxs.dt_idx][i].leg_data.turn_rad_nm;
 
-                if(m_act_leg_idx != -1 && i == size_t(m_act_leg_idx))
+                if(m_act_leg_idx[idxs.dt_idx] != -1 && i == size_t(m_act_leg_idx[idxs.dt_idx]))
                 {
-                    m_act_leg_idx_sd[fo_side] = int(*sz_ptr);
+                    m_act_leg_idx_sd[gn_idx] = int(*sz_ptr);
                 }
 
                 *sz_ptr = *sz_ptr + 1;
                 prev_skipped = false;
                 prev_bypassed = false;
             }
-            else if (m_leg_data[i].leg_data.is_finite)
+            else if (m_leg_data[idxs.dt_idx][i].leg_data.is_finite)
             {
                 *sz_ptr = *sz_ptr + 1;
-                prev_skipped = !m_leg_data[i].leg_data.is_bypassed;
+                prev_skipped = !m_leg_data[idxs.dt_idx][i].leg_data.is_bypassed;
             }
-            prev_bypassed = m_leg_data[i].leg_data.turn_rad_nm == -1;
+            prev_bypassed = m_leg_data[idxs.dt_idx][i].leg_data.turn_rad_nm == -1;
         }
     }
 
-    void NDData::project_rwys(bool fo_side)
+    void NDData::project_rwys(size_t gn_idx)
     {
-        std::string dep_rwy = m_fpl_ptr->get_dep_rwy();
-        std::string arr_rwy = m_fpl_ptr->get_arr_rwy();
+        nd_util_idx_t idxs = get_util_idx(gn_idx);
 
-        m_has_dep_rwy = dep_rwy != "";
-        m_has_arr_rwy = arr_rwy != "";
+        std::string dep_rwy = m_fpl_vec[idxs.dt_idx]->get_dep_rwy();
+        std::string arr_rwy = m_fpl_vec[idxs.dt_idx]->get_arr_rwy();
 
-        if (!m_has_dep_rwy && !m_has_arr_rwy)
+        m_has_dep_rwy[idxs.dt_idx] = dep_rwy != "";
+        m_has_arr_rwy[idxs.dt_idx] = arr_rwy != "";
+
+        if (!m_has_dep_rwy[idxs.dt_idx] && !m_has_arr_rwy[idxs.dt_idx])
             return;
 
-        geo::point map_ctr = m_ctr[fo_side];
+        geo::point map_ctr = m_ctr[gn_idx];
 
-        leg_proj_t *dst = m_mp_data[fo_side].proj_legs;
+        leg_proj_t *dst = m_mp_data[gn_idx].proj_legs;
 
-        if (m_has_dep_rwy)
+        if (m_has_dep_rwy[idxs.dt_idx])
         {
             libnav::runway_entry_t rnw_data;
-            bool has_data = m_fpl_ptr->get_dep_rwy_data(&rnw_data);
+            bool has_data = m_fpl_vec[idxs.dt_idx]->get_dep_rwy_data(&rnw_data);
 
             if (has_data)
             {
@@ -362,10 +361,10 @@ namespace StratosphereAvionics
             }
         }
 
-        if (m_has_arr_rwy)
+        if (m_has_arr_rwy[idxs.dt_idx])
         {
             libnav::runway_entry_t rnw_data;
-            bool has_data = m_fpl_ptr->get_arr_rwy_data(&rnw_data);
+            bool has_data = m_fpl_vec[idxs.dt_idx]->get_arr_rwy_data(&rnw_data);
 
             if (has_data)
             {
@@ -375,27 +374,55 @@ namespace StratosphereAvionics
         }
     }
 
-    bool NDData::project_ac_pos(bool fo_side)
+    bool NDData::project_ac_pos(size_t sd_idx)
     {
-        geo::point map_ctr = m_ctr[fo_side];
+        geo::point map_ctr = m_ctr[sd_idx];
         geo::point curr_pos = m_fpl_sys_ptr->get_ac_pos();
         
         double gc_dist_nm = map_ctr.get_gc_dist_nm(curr_pos);
-        double rng = get_range(fo_side) / 2;
+        double rng = get_range(sd_idx) / 2;
 
         if(rng < gc_dist_nm)
             return false;
 
         double gc_brng_rad = map_ctr.get_gc_bearing_rad(curr_pos);
-        m_ac_pos_proj[fo_side] = geom::get_projection(gc_brng_rad, gc_dist_nm);
+        m_ac_pos_proj[sd_idx] = geom::get_projection(gc_brng_rad, gc_dist_nm);
 
         return true;
     }
 
-    void NDData::fetch_legs()
+    void NDData::fetch_legs(size_t dt_idx)
     {
-        m_n_act_leg_data = m_fpl_sys_ptr->get_nd_seg(m_leg_data, N_LEG_PROJ_CACHE_SZ);
-        m_act_leg_idx = m_fpl_sys_ptr->get_act_leg_idx();
+        m_leg_data_sz[dt_idx] = m_fpl_sys_ptr->get_nd_seg(m_leg_data[dt_idx], 
+            N_LEG_PROJ_CACHE_SZ, dt_idx);
+        m_act_leg_idx[dt_idx] = m_fpl_sys_ptr->get_act_leg_idx();
+    }
+
+    void NDData::update_fpl(size_t idx)
+    {
+        double id_curr = m_fpl_vec[idx]->get_id();
+
+        if (id_curr != m_fpl_id_last[idx])
+        {
+            fetch_legs(idx);
+        }
+
+        for(size_t i = 0; i < N_ND_SDS; i++)
+        {
+            update_ctr(i+idx);
+            update_ctr(i+idx);
+
+            project_legs(i+idx);
+            project_legs(i+idx);
+
+            project_rwys(i+idx);
+            project_rwys(i+idx);
+
+            m_ac_pos_ok[0] = project_ac_pos(i+idx);
+            m_ac_pos_ok[1] = project_ac_pos(i+idx);
+        }
+
+        m_fpl_id_last[idx] = id_curr;
     }
 
     // NDDisplay member functions:
@@ -404,7 +431,8 @@ namespace StratosphereAvionics
 
     NDDisplay::NDDisplay(std::shared_ptr<NDData> data,
                          std::shared_ptr<cairo_utils::texture_manager_t> mngr,
-                         cairo_font_face_t *ff, geom::vect2_t pos, geom::vect2_t sz, bool fo_sd)
+                         cairo_font_face_t *ff, geom::vect2_t pos, geom::vect2_t sz, 
+                         size_t sd_idx)
     {
         nd_data = data;
         tex_mngr = mngr;
@@ -414,14 +442,14 @@ namespace StratosphereAvionics
         scr_pos = pos;
         size = sz;
 
-        fo_side = fo_sd;
+        side_idx = sd_idx;
 
-        rng = nd_data->get_range(fo_side);
+        rng = nd_data->get_range(side_idx);
     }
 
     void NDDisplay::draw(cairo_t *cr)
     {
-        rng = nd_data->get_range(fo_side);
+        rng = nd_data->get_range(side_idx);
         update_map_params();
         hdg_data = nd_data->get_hdg_data();
 
@@ -491,8 +519,8 @@ namespace StratosphereAvionics
     void NDDisplay::draw_flight_plan(cairo_t *cr, bool draw_labels)
     {
         leg_proj_t *buf;
-        size_t buf_size = nd_data->get_proj_legs(&buf, fo_side);
-        int act_leg_idx = nd_data->get_act_leg_idx(fo_side);
+        size_t buf_size = nd_data->get_proj_legs(&buf, side_idx);
+        int act_leg_idx = nd_data->get_act_leg_idx(side_idx);
 
         for (size_t i = 0; i < buf_size; i++)
         {
@@ -626,15 +654,15 @@ namespace StratosphereAvionics
     void NDDisplay::draw_runways(cairo_t *cr)
     {
         leg_proj_t *buf;
-        size_t buf_size = nd_data->get_proj_legs(&buf, fo_side);
+        size_t buf_size = nd_data->get_proj_legs(&buf, side_idx);
         UNUSED(buf_size);
 
-        if (nd_data->has_dep_rwy())
+        if (nd_data->has_dep_rwy(test::ACT_RTE_IDX))
         {
             draw_runway(cr, buf[DEP_RWY_PROJ_IDX]);
         }
 
-        if (nd_data->has_arr_rwy())
+        if (nd_data->has_arr_rwy(test::ACT_RTE_IDX))
         {
             draw_runway(cr, buf[ARR_RWY_PROJ_IDX]);
         }
@@ -643,7 +671,7 @@ namespace StratosphereAvionics
     void NDDisplay::draw_airplane(cairo_t *cr)
     {
         geom::vect2_t pos;
-        bool do_drawing = nd_data->get_ac_pos(&pos, fo_side);
+        bool do_drawing = nd_data->get_ac_pos(&pos, side_idx);
 
         if(do_drawing)
         {
