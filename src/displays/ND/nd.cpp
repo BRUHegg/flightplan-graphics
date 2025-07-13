@@ -29,6 +29,8 @@ namespace StratosphereAvionics
         return name_draw;
     }
 
+    // map_data_t definitions:
+
     void map_data_t::create()
     {
         proj_legs = new leg_proj_t[N_PROJ_CACHE_SZ];
@@ -62,11 +64,16 @@ namespace StratosphereAvionics
             m_mp_data[i].create();
         }
 
-        m_ac_pos_proj_cap = {};
-        m_ac_pos_proj_fo = {};
-
-        m_rng_idx_cap = 0;
-        m_rng_idx_fo = 0;
+        m_ac_pos_proj = std::vector<geom::vect2_t>(N_ND_SDS);
+        m_ctr = std::vector<geo::point>(N_ND_SDS);
+        m_ac_pos_ok = std::vector<bool>(N_ND_SDS, 0);
+        m_rng_idx = std::vector<size_t>(N_ND_SDS, 0);
+        m_act_leg_idx_sd = std::vector<int>(N_ND_SDS, 0);
+        for(size_t i = 0; i < N_ND_SDS; i++)
+        {
+            m_ac_pos_proj[i] = {};
+            m_ctr[i] = {};
+        }
 
         m_fpl_id_last = 0;
 
@@ -74,12 +81,8 @@ namespace StratosphereAvionics
 
         m_has_dep_rwy = false;
         m_has_arr_rwy = false;
-        m_ac_pos_ok_cap = false;
-        m_ac_pos_ok_fo = false;
 
         m_act_leg_idx = -1;
-        m_act_leg_idx_cap = -1;
-        m_act_leg_idx_fo = -1;
     }
 
     size_t NDData::get_proj_legs(leg_proj_t **out, bool fo_side)
@@ -90,25 +93,15 @@ namespace StratosphereAvionics
 
     int NDData::get_act_leg_idx(bool fo_side)
     {
-        if(fo_side)
-            return m_act_leg_idx_fo;
-        return m_act_leg_idx_cap;
+        return m_act_leg_idx_sd[fo_side];
     }
 
     bool NDData::get_ac_pos(geom::vect2_t *out, bool fo_side)
-    {
-        bool is_ok = m_ac_pos_ok_cap;
-        if(fo_side)
-            is_ok = m_ac_pos_ok_fo;
-        
-        if(!is_ok)
+    { 
+        if(!m_ac_pos_ok[fo_side])
             return false;
-        
-        geom::vect2_t src = m_ac_pos_proj_cap;
-        if(fo_side)
-            src = m_ac_pos_proj_fo;
 
-        *out = src;
+        *out = m_ac_pos_proj[fo_side];
         return true;
     }
 
@@ -139,29 +132,21 @@ namespace StratosphereAvionics
 
     void NDData::switch_range(bool down, bool fo_side)
     {
-        size_t *tgt = &m_rng_idx_cap;
-
-        if (fo_side)
-            tgt = &m_rng_idx_fo;
-
         if (down)
         {
-            if (*tgt)
-                *tgt = *tgt - 1;
+            if (m_rng_idx[fo_side])
+                m_rng_idx[fo_side]--;
         }
         else
         {
-            if (*tgt + 1 < ND_RANGES_NM.size())
-                *tgt = *tgt + 1;
+            if (m_rng_idx[fo_side] + 1 < ND_RANGES_NM.size())
+                m_rng_idx[fo_side]++;
         }
     }
 
     double NDData::get_range(bool fo_side)
     {
-        if (fo_side)
-            return ND_RANGES_NM[m_rng_idx_fo];
-        else
-            return ND_RANGES_NM[m_rng_idx_cap];
+        return ND_RANGES_NM[m_rng_idx[fo_side]];
     }
 
     void NDData::update()
@@ -175,8 +160,8 @@ namespace StratosphereAvionics
 
         m_hdg_data = m_fpl_sys_ptr->get_hdg_info();
 
-        update_ctr(&m_ctr_cap, false);
-        update_ctr(&m_ctr_fo, true);
+        update_ctr(false);
+        update_ctr(true);
 
         project_legs(false);
         project_legs(true);
@@ -184,8 +169,8 @@ namespace StratosphereAvionics
         project_rwys(false);
         project_rwys(true);
 
-        m_ac_pos_ok_cap = project_ac_pos(false);
-        m_ac_pos_ok_fo = project_ac_pos(true);
+        m_ac_pos_ok[0] = project_ac_pos(false);
+        m_ac_pos_ok[1] = project_ac_pos(true);
 
         m_fpl_id_last = id_curr;
     }
@@ -201,13 +186,15 @@ namespace StratosphereAvionics
 
     // Private member functions:
 
-    void NDData::update_ctr(geo::point *ctr, bool fo_side)
+    void NDData::update_ctr(bool fo_side)
     {
-        bool ret = m_fpl_sys_ptr->get_ctr(ctr, fo_side);
+        geo::point tmp;
+        bool ret = m_fpl_sys_ptr->get_ctr(&tmp, fo_side);
         if (!ret)
         {
-            *ctr = m_fpl_sys_ptr->get_ac_pos();
+            tmp = m_fpl_sys_ptr->get_ac_pos();
         }
+        m_ctr[fo_side] = tmp;
     }
 
     bool NDData::bound_check(double x1, double x2, double rng)
@@ -252,24 +239,17 @@ namespace StratosphereAvionics
 
     void NDData::project_legs(bool fo_side)
     {
-        geo::point map_ctr = m_ctr_cap;
-        if (fo_side)
-            map_ctr = m_ctr_fo;
+        geo::point map_ctr = m_ctr[fo_side];
 
         leg_proj_t *dst = m_mp_data[fo_side].proj_legs;
         geom::line_joint_t *dst_joint = m_mp_data[fo_side].line_joints;
 
         size_t *sz_ptr = &m_mp_data[fo_side].n_act_proj_legs;
         size_t *sz_ptr_joint = &m_mp_data[fo_side].n_act_joints;
-        int *act_idx_ptr = &m_act_leg_idx_cap;
-        if (fo_side)
-        {
-            act_idx_ptr = &m_act_leg_idx_fo;
-        }
 
         *sz_ptr = 0;
         *sz_ptr_joint = 0;
-        *act_idx_ptr = -1;
+        m_act_leg_idx_sd[fo_side] = -1;
 
         bool prev_skipped = false;
         bool prev_bypassed = false;
@@ -339,7 +319,7 @@ namespace StratosphereAvionics
 
                 if(m_act_leg_idx != -1 && i == size_t(m_act_leg_idx))
                 {
-                    *act_idx_ptr = int(*sz_ptr);
+                    m_act_leg_idx_sd[fo_side] = int(*sz_ptr);
                 }
 
                 *sz_ptr = *sz_ptr + 1;
@@ -366,9 +346,7 @@ namespace StratosphereAvionics
         if (!m_has_dep_rwy && !m_has_arr_rwy)
             return;
 
-        geo::point map_ctr = m_ctr_cap;
-        if (fo_side)
-            map_ctr = m_ctr_fo;
+        geo::point map_ctr = m_ctr[fo_side];
 
         leg_proj_t *dst = m_mp_data[fo_side].proj_legs;
 
@@ -399,14 +377,7 @@ namespace StratosphereAvionics
 
     bool NDData::project_ac_pos(bool fo_side)
     {
-        geo::point map_ctr = m_ctr_cap;
-        if (fo_side)
-            map_ctr = m_ctr_fo;
-
-        geom::vect2_t *dst = &m_ac_pos_proj_cap;
-        if(fo_side)
-            dst = &m_ac_pos_proj_fo;
-
+        geo::point map_ctr = m_ctr[fo_side];
         geo::point curr_pos = m_fpl_sys_ptr->get_ac_pos();
         
         double gc_dist_nm = map_ctr.get_gc_dist_nm(curr_pos);
@@ -416,7 +387,7 @@ namespace StratosphereAvionics
             return false;
 
         double gc_brng_rad = map_ctr.get_gc_bearing_rad(curr_pos);
-        *dst = geom::get_projection(gc_brng_rad, gc_dist_nm);
+        m_ac_pos_proj[fo_side] = geom::get_projection(gc_brng_rad, gc_dist_nm);
 
         return true;
     }

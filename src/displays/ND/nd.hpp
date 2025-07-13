@@ -23,6 +23,7 @@ namespace StratosphereAvionics
     constexpr size_t DEP_RWY_PROJ_IDX = N_PROJ_CACHE_SZ-2;
     constexpr size_t ARR_RWY_PROJ_IDX = N_PROJ_CACHE_SZ-1;
     constexpr size_t N_MP_DATA_SZ = 2;
+    constexpr size_t N_ND_SDS = 2; // Essentially this is how many NDs we can have
     constexpr double N_MAX_DIST_NM = 600;
     constexpr double ND_DEFAULT_RNG_NM = 10;
     // Percentage of resolution that translates into full range:
@@ -141,31 +142,29 @@ namespace StratosphereAvionics
         test::nd_leg_data_t *m_leg_data;
         size_t m_n_act_leg_data;
 
+        // 2*number of routes
         std::vector<map_data_t> m_mp_data;
-
-        geom::vect2_t m_ac_pos_proj_cap;
-        geom::vect2_t m_ac_pos_proj_fo;
-
-        geo::point m_ctr_cap;
-        geo::point m_ctr_fo;
+        // Stored 1 per fo, 1 per cap
+        std::vector<geom::vect2_t> m_ac_pos_proj;
+        std::vector<geo::point> m_ctr;
+        std::vector<bool> m_ac_pos_ok;
+        std::vector<size_t> m_rng_idx;
+        std::vector<int> m_act_leg_idx_sd;
 
         test::hdg_info_t m_hdg_data;
 
-        size_t m_rng_idx_cap;
-        size_t m_rng_idx_fo;
-
         double m_fpl_id_last;
 
-        bool m_has_dep_rwy, m_has_arr_rwy, m_ac_pos_ok_cap, m_ac_pos_ok_fo;
+        bool m_has_dep_rwy, m_has_arr_rwy;
 
-        int m_act_leg_idx, m_act_leg_idx_cap, m_act_leg_idx_fo;
+        int m_act_leg_idx;
 
 
         static bool bound_check(double x1, double x2, double rng);
 
         bool in_view(geom::vect2_t start, geom::vect2_t , bool fo_side);
 
-        void update_ctr(geo::point *ctr, bool fo_side);
+        void update_ctr(bool fo_side);
 
         void project_legs(bool fo_side);
 
