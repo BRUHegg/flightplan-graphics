@@ -22,8 +22,8 @@ namespace StratosphereAvionics
     constexpr size_t N_PROJ_CACHE_SZ = 202;
     constexpr size_t DEP_RWY_PROJ_IDX = N_PROJ_CACHE_SZ-2;
     constexpr size_t ARR_RWY_PROJ_IDX = N_PROJ_CACHE_SZ-1;
-    constexpr size_t N_MP_DATA_SZ = 2;
     constexpr size_t N_ND_SDS = 2; // Essentially this is how many NDs we can have
+    constexpr size_t N_MP_DATA_SZ = N_ND_SDS*test::N_FPL_SYS_RTES;
     constexpr double N_MAX_DIST_NM = 600;
     constexpr double ND_DEFAULT_RNG_NM = 10;
     // Percentage of resolution that translates into full range:
@@ -79,6 +79,11 @@ namespace StratosphereAvionics
     constexpr double RNG_DEC_2_NM = 1.25;
 
 
+    struct nd_util_idx_t
+    {
+        size_t sd_idx, dt_idx;
+    };
+
     struct leg_proj_t
     {
         geom::vect2_t start, end, arc_ctr, end_wpt;
@@ -111,11 +116,11 @@ namespace StratosphereAvionics
     public:
         NDData(std::shared_ptr<test::FPLSys> fpl_sys);
 
-        size_t get_proj_legs(leg_proj_t **out, bool fo_side);
+        size_t get_proj_legs(leg_proj_t **out, size_t sd_idx);
 
-        int get_act_leg_idx(bool fo_side);
+        int get_act_leg_idx(size_t sd_idx);
 
-        bool get_ac_pos(geom::vect2_t *out, bool fo_side);
+        bool get_ac_pos(geom::vect2_t *out, size_t sd_idx);
 
         test::hdg_info_t get_hdg_data();
 
@@ -123,56 +128,59 @@ namespace StratosphereAvionics
 
         test::act_leg_info_t get_act_leg_info();
 
-        bool has_dep_rwy();
+        bool has_dep_rwy(size_t idx);
 
-        bool has_arr_rwy();
+        bool has_arr_rwy(size_t idx);
 
-        void switch_range(bool down, bool fo_side);
+        void switch_range(bool down, size_t sd_idx);
 
-        double get_range(bool fo_side);
+        double get_range(size_t sd_idx);
 
         void update();
 
         ~NDData();
 
     private:
-        std::shared_ptr<test::FplnInt> m_fpl_ptr;
+        std::vector<std::shared_ptr<test::FplnInt>> m_fpl_vec;
         std::shared_ptr<test::FPLSys> m_fpl_sys_ptr;
 
-        test::nd_leg_data_t *m_leg_data;
-        size_t m_n_act_leg_data;
+        std::vector<test::nd_leg_data_t*> m_leg_data;
+        std::vector<size_t> m_leg_data_sz;
 
         // 2*number of routes
         std::vector<map_data_t> m_mp_data;
+        std::vector<geo::point> m_ctr;
+        std::vector<int> m_act_leg_idx_sd;
         // Stored 1 per fo, 1 per cap
         std::vector<geom::vect2_t> m_ac_pos_proj;
-        std::vector<geo::point> m_ctr;
         std::vector<bool> m_ac_pos_ok;
         std::vector<size_t> m_rng_idx;
-        std::vector<int> m_act_leg_idx_sd;
 
         test::hdg_info_t m_hdg_data;
 
-        double m_fpl_id_last;
-
-        bool m_has_dep_rwy, m_has_arr_rwy;
-
-        int m_act_leg_idx;
+        // Of size N_FPL_SYS_RTES
+        std::vector<double> m_fpl_id_last;
+        std::vector<bool> m_has_dep_rwy, m_has_arr_rwy;
+        std::vector<int> m_act_leg_idx;
 
 
         static bool bound_check(double x1, double x2, double rng);
 
-        bool in_view(geom::vect2_t start, geom::vect2_t , bool fo_side);
+        static nd_util_idx_t get_util_idx(size_t gn_idx);
 
-        void update_ctr(bool fo_side);
+        bool in_view(geom::vect2_t start, geom::vect2_t end, size_t sd_idx);
 
-        void project_legs(bool fo_side);
+        void update_ctr(size_t gn_idx);
 
-        void project_rwys(bool fo_side);
+        void project_legs(size_t gn_idx);
 
-        bool project_ac_pos(bool fo_side);
+        void project_rwys(size_t gn_idx);
 
-        void fetch_legs();
+        bool project_ac_pos(size_t gn_idx);
+
+        void fetch_legs(size_t dt_idx);
+
+        void update_fpl(size_t idx);
     };
 
     class NDDisplay
@@ -180,7 +188,7 @@ namespace StratosphereAvionics
     public:
         NDDisplay(std::shared_ptr<NDData> data, 
             std::shared_ptr<cairo_utils::texture_manager_t> mngr,
-            cairo_font_face_t *ff, geom::vect2_t pos, geom::vect2_t sz, bool fo_sd);
+            cairo_font_face_t *ff, geom::vect2_t pos, geom::vect2_t sz, size_t sd_idx);
 
         void draw(cairo_t *cr);
 
@@ -196,7 +204,7 @@ namespace StratosphereAvionics
         test::hdg_info_t hdg_data;
         double rng, curr_rng;
 
-        bool fo_side;
+        size_t side_idx;
 
 
         void update_map_params();
