@@ -29,6 +29,22 @@ namespace StratosphereAvionics
         return name_draw;
     }
 
+    void map_data_t::create()
+    {
+        proj_legs = new leg_proj_t[N_PROJ_CACHE_SZ];
+        line_joints = new geom::line_joint_t[N_LN_JOINT_CACHE_SZ];
+        n_act_proj_legs = 0;
+        n_act_joints = 0;
+    }
+
+    void map_data_t::destroy()
+    {
+        delete[] proj_legs;
+        delete[] line_joints;
+        n_act_proj_legs = 0;
+        n_act_joints = 0;
+    }
+
     // NDData member funcrion definitions:
 
     // Public member functions:
@@ -40,18 +56,14 @@ namespace StratosphereAvionics
 
         m_leg_data = new test::nd_leg_data_t[N_LEG_PROJ_CACHE_SZ];
 
-        m_proj_legs_cap = new leg_proj_t[N_PROJ_CACHE_SZ];
-        m_proj_legs_fo = new leg_proj_t[N_PROJ_CACHE_SZ];
-        m_line_joints_cap = new geom::line_joint_t[N_LN_JOINT_CACHE_SZ];
-        m_line_joints_fo = new geom::line_joint_t[N_LN_JOINT_CACHE_SZ];
+        m_mp_data = std::vector<map_data_t>(N_MP_DATA_SZ);
+        for(size_t i = 0; i < N_MP_DATA_SZ; i++)
+        {
+            m_mp_data[i].create();
+        }
 
         m_ac_pos_proj_cap = {};
         m_ac_pos_proj_fo = {};
-
-        m_n_act_proj_legs_cap = 0;
-        m_n_act_proj_legs_fo = 0;
-        m_n_act_joints_cap = 0;
-        m_n_act_joints_fo = 0;
 
         m_rng_idx_cap = 0;
         m_rng_idx_fo = 0;
@@ -72,14 +84,8 @@ namespace StratosphereAvionics
 
     size_t NDData::get_proj_legs(leg_proj_t **out, bool fo_side)
     {
-        if (fo_side)
-        {
-            *out = m_proj_legs_fo;
-            return m_n_act_proj_legs_fo;
-        }
-
-        *out = m_proj_legs_cap;
-        return m_n_act_proj_legs_cap;
+        *out = m_mp_data[fo_side].proj_legs;
+        return m_mp_data[fo_side].n_act_proj_legs;
     }
 
     int NDData::get_act_leg_idx(bool fo_side)
@@ -187,10 +193,10 @@ namespace StratosphereAvionics
     NDData::~NDData()
     {
         delete[] m_leg_data;
-        delete[] m_proj_legs_cap;
-        delete[] m_proj_legs_fo;
-        delete[] m_line_joints_cap;
-        delete[] m_line_joints_fo;
+        for(size_t i = 0; i < N_MP_DATA_SZ; i++)
+        {
+            m_mp_data[i].destroy();
+        }
     }
 
     // Private member functions:
@@ -250,22 +256,14 @@ namespace StratosphereAvionics
         if (fo_side)
             map_ctr = m_ctr_fo;
 
-        leg_proj_t *dst = m_proj_legs_cap;
-        geom::line_joint_t *dst_joint = m_line_joints_cap;
+        leg_proj_t *dst = m_mp_data[fo_side].proj_legs;
+        geom::line_joint_t *dst_joint = m_mp_data[fo_side].line_joints;
 
-        if (fo_side)
-        {
-            dst = m_proj_legs_fo;
-            dst_joint = m_line_joints_fo;
-        }
-
-        size_t *sz_ptr = &m_n_act_proj_legs_cap;
-        size_t *sz_ptr_joint = &m_n_act_joints_cap;
+        size_t *sz_ptr = &m_mp_data[fo_side].n_act_proj_legs;
+        size_t *sz_ptr_joint = &m_mp_data[fo_side].n_act_joints;
         int *act_idx_ptr = &m_act_leg_idx_cap;
         if (fo_side)
         {
-            sz_ptr = &m_n_act_proj_legs_fo;
-            sz_ptr_joint = &m_n_act_joints_fo;
             act_idx_ptr = &m_act_leg_idx_fo;
         }
 
@@ -316,7 +314,6 @@ namespace StratosphereAvionics
                 }
 
                 if (*sz_ptr && !prev_skipped && !m_leg_data[i].leg_data.has_disc)
-                //if(false && prev_skipped)
                 {
                     size_t bwd_offs = 1;
                     if(prev_bypassed)
@@ -373,10 +370,7 @@ namespace StratosphereAvionics
         if (fo_side)
             map_ctr = m_ctr_fo;
 
-        leg_proj_t *dst = m_proj_legs_cap;
-
-        if (fo_side)
-            dst = m_proj_legs_fo;
+        leg_proj_t *dst = m_mp_data[fo_side].proj_legs;
 
         if (m_has_dep_rwy)
         {
