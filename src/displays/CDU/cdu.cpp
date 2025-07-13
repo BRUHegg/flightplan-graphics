@@ -13,8 +13,10 @@ namespace StratosphereAvionics
     // CDU definitions:
     // Public member functions:
 
-    CDU::CDU(std::shared_ptr<test::FPLSys> fs)
+    CDU::CDU(std::shared_ptr<test::FPLSys> fs, size_t sd_idx)
     {
+        act_sd_idx = sd_idx;
+
         fpl_sys = fs;
         sel_fpl_idx = test::RTE1_IDX;
         act_fpl_idx = test::N_FPL_SYS_RTES;
@@ -49,6 +51,8 @@ namespace StratosphereAvionics
         vias = std::vector<std::vector<std::string>>(N_CDU_RTES);
         fpl_infos = std::vector<test::fpln_info_t>(test::N_FPL_SYS_RTES);
         leg_sel = std::vector<std::pair<size_t, double>>(N_CDU_RTES, {0LL, -1.0});
+        pln_ctr_idx = std::vector<size_t>(N_CDU_RTES, 0);
+        pln_ctr_pos = std::vector<geo::point>(N_CDU_RTES, {0, 0});
 
         leg_sel_pr = false;
 
@@ -91,6 +95,7 @@ namespace StratosphereAvionics
         }
 
         update_fpl_infos();
+        fpl_sys->set_cdu_sel_fpl_idx(sel_fpl_idx, act_sd_idx);
     }
 
     bool CDU::get_exec_lt()

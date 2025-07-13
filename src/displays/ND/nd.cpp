@@ -62,22 +62,16 @@ namespace StratosphereAvionics
             m_leg_data[i] = new test::nd_leg_data_t[N_LEG_PROJ_CACHE_SZ];
 
         m_mp_data = std::vector<map_data_t>(N_MP_DATA_SZ);
-        m_ctr = std::vector<geo::point>(N_MP_DATA_SZ);
         m_act_leg_idx_sd = std::vector<int>(N_MP_DATA_SZ, 0);
         for(size_t i = 0; i < N_MP_DATA_SZ; i++)
         {
             m_mp_data[i].create();
-            m_ctr[i] = {};
         }
 
-        m_ac_pos_proj = std::vector<geom::vect2_t>(N_ND_SDS);
-        
+        m_ac_pos_proj = std::vector<geom::vect2_t>(N_ND_SDS, {0, 0});
         m_ac_pos_ok = std::vector<bool>(N_ND_SDS, 0);
         m_rng_idx = std::vector<size_t>(N_ND_SDS, 0);
-        for(size_t i = 0; i < N_ND_SDS; i++)
-        {
-            m_ac_pos_proj[i] = {};
-        }
+        m_ctr = std::vector<geo::point>(N_ND_SDS, {0, 0});
 
         m_fpl_id_last = std::vector<double>(test::N_FPL_SYS_RTES, 0);
 
@@ -156,6 +150,11 @@ namespace StratosphereAvionics
     void NDData::update()
     {
         m_hdg_data = m_fpl_sys_ptr->get_hdg_info();
+        for(size_t i = 0; i < N_ND_SDS; i++)
+        {
+            update_ctr(i);
+            m_ac_pos_ok[i] = project_ac_pos(i);
+        }
         for(size_t i = 0; i < test::N_FPL_SYS_RTES; i++)
             update_fpl(i);
     }
@@ -185,16 +184,15 @@ namespace StratosphereAvionics
 
     // Non-static member functions:
 
-    void NDData::update_ctr(size_t gn_idx)
+    void NDData::update_ctr(size_t sd_idx)
     {
-        nd_util_idx_t idxs = get_util_idx(gn_idx);
         geo::point tmp;
-        bool ret = m_fpl_sys_ptr->get_ctr(&tmp, idxs.sd_idx, idxs.dt_idx);
+        bool ret = m_fpl_sys_ptr->get_ctr(&tmp, sd_idx);
         if (!ret)
         {
             tmp = m_fpl_sys_ptr->get_ac_pos();
         }
-        m_ctr[gn_idx] = tmp;
+        m_ctr[sd_idx] = tmp;
     }
 
     bool NDData::in_view(geom::vect2_t start, geom::vect2_t end, size_t sd_idx)
@@ -409,17 +407,11 @@ namespace StratosphereAvionics
 
         for(size_t i = 0; i < N_ND_SDS; i++)
         {
-            update_ctr(i+idx);
-            update_ctr(i+idx);
-
             project_legs(i+idx);
             project_legs(i+idx);
 
             project_rwys(i+idx);
             project_rwys(i+idx);
-
-            m_ac_pos_ok[0] = project_ac_pos(i+idx);
-            m_ac_pos_ok[1] = project_ac_pos(i+idx);
         }
 
         m_fpl_id_last[idx] = id_curr;

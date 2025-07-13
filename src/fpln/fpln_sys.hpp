@@ -13,6 +13,7 @@
 #pragma once
 
 #include "flightpln_int.hpp"
+#include <mutex>
 #include <iostream>
 
 #define UNUSED(x) (void)(x)
@@ -26,6 +27,16 @@ namespace test
         COMPLETE,
         UNAVAIL
     };
+
+    enum class NDMode
+    {
+        APP,
+        VOR,
+        MAP,
+        PLAN
+    };
+
+    constexpr NDMode DFLT_ND_MODE = NDMode::PLAN;
 
     const std::string AC_LAT_DEG_VAR = "ac_lat_deg";
     const std::string AC_LON_DEG_VAR = "ac_lon_deg";
@@ -43,6 +54,7 @@ namespace test
     constexpr size_t ACT_RTE_IDX = 0;
     constexpr size_t RTE1_IDX = 1;
     constexpr size_t RTE2_IDX = 2;
+    constexpr size_t N_INTFCS = 2; // Number of interfaces(interface is a CDU+ND)
 
     constexpr double AC_LAT_DEF = 45.588670483;
     constexpr double AC_LON_DEF = -122.598150383;
@@ -147,7 +159,15 @@ namespace test
 
         int get_act_leg_idx(size_t idx=0);
 
-        bool get_ctr(geo::point *out, bool fo_side, size_t idx=0);
+        void set_cdu_sel_fpl_idx(size_t src, size_t sd_idx);
+
+        size_t get_cdu_sel_fpl_idx(size_t sd_idx);
+
+        void set_nd_mode(NDMode src, size_t sd_idx);
+
+        NDMode get_nd_mode(size_t sd_idx);
+
+        bool get_ctr(geo::point *out, size_t sd_idx);
 
         geo::point get_ac_pos();
 
@@ -159,7 +179,7 @@ namespace test
 
         act_leg_info_t get_act_leg_info(size_t idx=0);
 
-        void step_ctr(bool bwd, bool fo_side, size_t idx=0);
+        void step_ctr(bool bwd, size_t sd_idx);
 
         void rte_activate(size_t idx);
 
@@ -178,6 +198,8 @@ namespace test
         void update();
 
     private:
+        std::mutex intnl_mtx;
+    
         std::vector<fpln_data_t> fpl_datas;
 
         size_t act_rte_idx;
@@ -186,6 +208,8 @@ namespace test
         std::vector<size_t> cdu_rte_idx;
         std::string flt_nbr;
         std::vector<std::string> fnb_dep_icao;  // Departure icaos used to reset flight number
+        std::vector<NDMode> nd_modes;
+        std::vector<size_t> cdu_sel_fpl;
 
         bool m_exec_st;
 

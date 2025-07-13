@@ -22,7 +22,7 @@ namespace StratosphereAvionics
     constexpr size_t N_PROJ_CACHE_SZ = 202;
     constexpr size_t DEP_RWY_PROJ_IDX = N_PROJ_CACHE_SZ-2;
     constexpr size_t ARR_RWY_PROJ_IDX = N_PROJ_CACHE_SZ-1;
-    constexpr size_t N_ND_SDS = 2; // Essentially this is how many NDs we can have
+    constexpr size_t N_ND_SDS = test::N_INTFCS; // Essentially this is how many NDs we can have
     constexpr size_t N_MP_DATA_SZ = N_ND_SDS*test::N_FPL_SYS_RTES;
     constexpr double N_MAX_DIST_NM = 600;
     constexpr double ND_DEFAULT_RNG_NM = 10;
@@ -149,12 +149,13 @@ namespace StratosphereAvionics
 
         // 2*number of routes
         std::vector<map_data_t> m_mp_data;
-        std::vector<geo::point> m_ctr;
+       
         std::vector<int> m_act_leg_idx_sd;
         // Stored 1 per fo, 1 per cap
         std::vector<geom::vect2_t> m_ac_pos_proj;
         std::vector<bool> m_ac_pos_ok;
         std::vector<size_t> m_rng_idx;
+        std::vector<geo::point> m_ctr;
 
         test::hdg_info_t m_hdg_data;
 
@@ -170,17 +171,17 @@ namespace StratosphereAvionics
 
         bool in_view(geom::vect2_t start, geom::vect2_t end, size_t sd_idx);
 
-        void update_ctr(size_t gn_idx);
+        void update_ctr(size_t sd_idx);
+
+        bool project_ac_pos(size_t sd_idx);
 
         void project_legs(size_t gn_idx);
 
         void project_rwys(size_t gn_idx);
 
-        bool project_ac_pos(size_t gn_idx);
-
         void fetch_legs(size_t dt_idx);
 
-        void update_fpl(size_t idx);
+        void update_fpl(size_t dt_idx);
     };
 
     class NDDisplay

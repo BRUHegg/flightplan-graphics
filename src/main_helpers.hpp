@@ -410,8 +410,8 @@ namespace test
 
             nd_data = std::make_shared<StratosphereAvionics::NDData>(avncs->fpl_sys);
             nd_display = std::make_shared<StratosphereAvionics::NDDisplay>(
-                nd_data, tex_mngr, boeing_font_face, ND_POS, ND_SZ, false);
-            cdu_l = std::make_shared<StratosphereAvionics::CDU>(avncs->fpl_sys);
+                nd_data, tex_mngr, boeing_font_face, ND_POS, ND_SZ, 0);
+            cdu_l = std::make_shared<StratosphereAvionics::CDU>(avncs->fpl_sys, 0);
             byteutils::Bytemap *cdu_map = byte_mngr.get_bytemap(CDU_BYTEMAP_NAME.first);
             cdu_display_l = std::make_shared<StratosphereAvionics::CDUDisplay>(
                 CDU_L_POS, CDU_L_SZ, boeing_font_face, tex_mngr, cdu_l, cdu_map
