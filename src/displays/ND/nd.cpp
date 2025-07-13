@@ -83,10 +83,10 @@ namespace StratosphereAvionics
         m_act_leg_idx = std::vector<int>(test::N_FPL_SYS_RTES, -1);
     }
 
-    size_t NDData::get_proj_legs(leg_proj_t **out, size_t sd_idx)
+    size_t NDData::get_proj_legs(leg_proj_t **out, size_t sd_idx, size_t dt_idx)
     {
-        *out = m_mp_data[sd_idx].proj_legs;
-        return m_mp_data[sd_idx].n_act_proj_legs;
+        *out = m_mp_data[sd_idx+dt_idx*N_ND_SDS].proj_legs;
+        return m_mp_data[sd_idx+dt_idx*N_ND_SDS].n_act_proj_legs;
     }
 
     int NDData::get_act_leg_idx(size_t sd_idx)
@@ -234,11 +234,11 @@ namespace StratosphereAvionics
 
         geo::point map_ctr = m_ctr[idxs.sd_idx];
 
-        leg_proj_t *dst = m_mp_data[idxs.sd_idx].proj_legs;
-        geom::line_joint_t *dst_joint = m_mp_data[idxs.sd_idx].line_joints;
+        leg_proj_t *dst = m_mp_data[gn_idx].proj_legs;
+        geom::line_joint_t *dst_joint = m_mp_data[gn_idx].line_joints;
 
-        size_t *sz_ptr = &m_mp_data[idxs.sd_idx].n_act_proj_legs;
-        size_t *sz_ptr_joint = &m_mp_data[idxs.sd_idx].n_act_joints;
+        size_t *sz_ptr = &m_mp_data[gn_idx].n_act_proj_legs;
+        size_t *sz_ptr_joint = &m_mp_data[gn_idx].n_act_joints;
 
         *sz_ptr = 0;
         *sz_ptr_joint = 0;
@@ -343,7 +343,7 @@ namespace StratosphereAvionics
         if (!m_has_dep_rwy[idxs.dt_idx] && !m_has_arr_rwy[idxs.dt_idx])
             return;
 
-        geo::point map_ctr = m_ctr[gn_idx];
+        geo::point map_ctr = m_ctr[idxs.sd_idx];
 
         leg_proj_t *dst = m_mp_data[gn_idx].proj_legs;
 
@@ -407,11 +407,8 @@ namespace StratosphereAvionics
 
         for(size_t i = 0; i < N_ND_SDS; i++)
         {
-            project_legs(i+idx);
-            project_legs(i+idx);
-
-            project_rwys(i+idx);
-            project_rwys(i+idx);
+            project_legs(i+idx*N_ND_SDS);
+            project_rwys(i+idx*N_ND_SDS);
         }
 
         m_fpl_id_last[idx] = id_curr;
@@ -511,7 +508,7 @@ namespace StratosphereAvionics
     void NDDisplay::draw_flight_plan(cairo_t *cr, bool draw_labels)
     {
         leg_proj_t *buf;
-        size_t buf_size = nd_data->get_proj_legs(&buf, side_idx);
+        size_t buf_size = nd_data->get_proj_legs(&buf, side_idx, 0);
         int act_leg_idx = nd_data->get_act_leg_idx(side_idx);
 
         for (size_t i = 0; i < buf_size; i++)
@@ -646,7 +643,7 @@ namespace StratosphereAvionics
     void NDDisplay::draw_runways(cairo_t *cr)
     {
         leg_proj_t *buf;
-        size_t buf_size = nd_data->get_proj_legs(&buf, side_idx);
+        size_t buf_size = nd_data->get_proj_legs(&buf, side_idx, 0);
         UNUSED(buf_size);
 
         if (nd_data->has_dep_rwy(test::ACT_RTE_IDX))
