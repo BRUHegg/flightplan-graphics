@@ -78,6 +78,9 @@ namespace test
         flt_nbr = "";
         fnb_dep_icao = {"", ""};
 
+        nd_modes = std::vector<NDMode>(N_INTFCS, DFLT_ND_MODE);
+        cdu_sel_fpl = std::vector<size_t>(N_INTFCS);
+
         update_pos();
     }
 
@@ -148,13 +151,40 @@ namespace test
         return 1;
     }
 
-    bool FPLSys::get_ctr(geo::point *out, bool fo_side, size_t idx)
+    void FPLSys::set_cdu_sel_fpl_idx(size_t src, size_t sd_idx)
     {
-        assert(idx < N_FPL_SYS_RTES);
+        assert(sd_idx < cdu_sel_fpl.size());
+        std::lock_guard<std::mutex> lock(intnl_mtx);
+        cdu_sel_fpl[sd_idx] = src;
+    }
 
+    size_t FPLSys::get_cdu_sel_fpl_idx(size_t sd_idx)
+    {
+        assert(sd_idx < cdu_sel_fpl.size());
+        std::lock_guard<std::mutex> lock(intnl_mtx);
+        return cdu_sel_fpl[sd_idx];
+    }
+
+    void FPLSys::set_nd_mode(NDMode src, size_t sd_idx)
+    {
+        assert(sd_idx < nd_modes.size());
+        std::lock_guard<std::mutex> lock(intnl_mtx);
+        nd_modes[sd_idx] = src;
+    }
+
+    NDMode FPLSys::get_nd_mode(size_t sd_idx)
+    {
+        assert(sd_idx < nd_modes.size());
+        std::lock_guard<std::mutex> lock(intnl_mtx);
+        return nd_modes[sd_idx];
+    }
+
+    bool FPLSys::get_ctr(geo::point *out, size_t sd_idx)
+    {
+        size_t idx = cdu_sel_fpl[sd_idx];
         size_t curr_idx = fpl_datas[idx].cap_ctr_idx;
 
-        if (fo_side)
+        if (sd_idx)
             curr_idx = fpl_datas[idx].fo_ctr_idx;
 
         if (curr_idx+1 < fpl_datas[idx].leg_list.size())
@@ -243,16 +273,15 @@ namespace test
         return out;
     }
 
-    void FPLSys::step_ctr(bool bwd, bool fo_side, size_t idx)
+    void FPLSys::step_ctr(bool bwd, size_t sd_idx)
     {
-        assert(idx < N_FPL_SYS_RTES);
-
+        size_t idx = cdu_sel_fpl[sd_idx];
         if (!fpl_datas[idx].leg_list.size())
             return;
 
         size_t *curr_idx = &fpl_datas[idx].cap_ctr_idx;
 
-        if (fo_side)
+        if (sd_idx)
             curr_idx = &fpl_datas[idx].fo_ctr_idx;
 
         if (bwd)

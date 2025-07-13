@@ -216,7 +216,7 @@ namespace StratosphereAvionics
     class CDU
     {
     public:
-        CDU(std::shared_ptr<test::FPLSys> fs);
+        CDU(std::shared_ptr<test::FPLSys> fs, size_t sd_idx);
 
         void update();
 
@@ -227,13 +227,15 @@ namespace StratosphereAvionics
         cdu_scr_data_t get_screen_data();
 
     private:
+        size_t act_sd_idx;
+
         std::shared_ptr<test::FPLSys> fpl_sys;
         std::shared_ptr<test::FplnInt> fpln;
         std::shared_ptr<test::FplnInt> m_rte1_ptr;
         std::shared_ptr<test::FplnInt> m_rte2_ptr;
         std::shared_ptr<test::FplnInt> m_act_ptr;
-        size_t sel_fpl_idx;
-        size_t act_fpl_idx;
+        size_t sel_fpl_idx; // [0;3]
+        size_t act_fpl_idx; // [0;3]
         
         CDUPage curr_page;
         int n_subpg;
@@ -285,6 +287,8 @@ namespace StratosphereAvionics
         std::vector<test::list_node_ref_t<test::leg_list_data_t>> leg_list;
         std::vector<test::fpln_info_t> fpl_infos;
         std::vector<std::pair<size_t, double>> leg_sel;
+        std::vector<size_t> pln_ctr_idx;
+        std::vector<geo::point> pln_ctr_pos;
 
         // Select desired data:
         std::vector<libnav::waypoint_entry_t> sel_des_data;
