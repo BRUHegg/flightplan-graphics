@@ -116,7 +116,7 @@ namespace StratosphereAvionics
     public:
         NDData(std::shared_ptr<test::FPLSys> fpl_sys);
 
-        size_t get_proj_legs(leg_proj_t **out, size_t sd_idx);
+        size_t get_proj_legs(leg_proj_t **out, size_t sd_idx, size_t dt_idx);
 
         int get_act_leg_idx(size_t sd_idx);
 
