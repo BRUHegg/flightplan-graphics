@@ -1484,6 +1484,8 @@ namespace StratosphereAvionics
         double lg_id = f_inf.leg_list_id;
         if(scr_is_del)
         {
+            fpln->set_spd_cstr({leg_list[usr_idx].ptr, lg_id}, {0, libnav::SpeedMode::AT});
+            fpln->set_alt_cstr({leg_list[usr_idx].ptr, lg_id}, {0, libnav::AltMode::AT});
             return "";
         }
 
