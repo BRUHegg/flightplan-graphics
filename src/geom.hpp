@@ -148,6 +148,26 @@ namespace geom
     };
 
 
+    inline bool operator==(vect2_t const& a, vect2_t const& b)
+    {
+        return a.x == b.x && a.y == b.y;
+    }
+
+    inline bool operator!=(vect2_t const& a, vect2_t const& b)
+    {
+        return !operator==(a, b);
+    }
+
+    inline bool operator==(vect3_t const& a, vect3_t const& b)
+    {
+        return a.x == b.x && a.y == b.y && a.z == b.z;
+    }
+
+    inline bool operator!=(vect3_t const& a, vect3_t const& b)
+    {
+        return !operator==(a, b);
+    }
+
     /*
         Function: get_point_line_dist
         Description:
