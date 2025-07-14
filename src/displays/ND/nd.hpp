@@ -224,9 +224,10 @@ namespace StratosphereAvionics
 
         geom::vect2_t get_screen_coords(geom::vect2_t src);
 
-        void draw_line_joint(cairo_t *cr, geom::line_joint_t lj);
+        void draw_line_joint(cairo_t *cr, geom::line_joint_t lj, geom::vect3_t ln_clr);
 
-        void draw_flight_plan(cairo_t *cr, bool draw_labels, size_t idx=0);
+        void draw_flight_plan(cairo_t *cr, bool draw_labels, geom::vect3_t ln_clr, 
+            size_t idx=0);
 
         void draw_ext_rwy_ctr_line(cairo_t *cr, leg_proj_t rnw_proj);
 

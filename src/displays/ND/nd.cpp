@@ -244,11 +244,11 @@ namespace StratosphereAvionics
                 tmp[0] = -1;
             for(size_t j = 0; j < test::N_FPL_SYS_RTES; j++)
             {
-                if(ND_RTE_CLRS[i] == cairo_utils::WHITE)
+                if(ND_RTE_CLRS[j] == cairo_utils::WHITE)
                     m_rte_draw_seq[i][j] = tmp[0];
-                else if(ND_RTE_CLRS[i] == cairo_utils::MAGENTA)
+                else if(ND_RTE_CLRS[j] == cairo_utils::MAGENTA)
                     m_rte_draw_seq[i][j] = tmp[1];
-                else if(ND_RTE_CLRS[i] == cairo_utils::ND_CYAN)
+                else if(ND_RTE_CLRS[j] == cairo_utils::ND_CYAN)
                     m_rte_draw_seq[i][j] = tmp[2];
             }
         }
@@ -478,14 +478,20 @@ namespace StratosphereAvionics
         rng = nd_data->get_range(side_idx);
         update_map_params();
         hdg_data = nd_data->get_hdg_data();
+        std::vector<int> fpl_draw_seq = nd_data->get_rte_draw_seq(side_idx);
 
         cairo_utils::draw_rect(cr, scr_pos, size, ND_BCKGRND_CLR);
 
         draw_background(cr, true);
 
-        draw_runways(cr);
-        draw_flight_plan(cr, false);
-        draw_flight_plan(cr, true);
+        for(size_t i = 0; i < test::N_FPL_SYS_RTES; i++)
+        {
+            if(fpl_draw_seq[i] == -1)
+                continue;
+            draw_runways(cr, fpl_draw_seq[i]);
+            draw_flight_plan(cr, false, ND_RTE_CLRS[i], fpl_draw_seq[i]);
+            draw_flight_plan(cr, true, ND_RTE_CLRS[i], fpl_draw_seq[i]);
+        }
         draw_airplane(cr);
 
         draw_background(cr, false);
@@ -512,7 +518,7 @@ namespace StratosphereAvionics
         return out;
     }
 
-    void NDDisplay::draw_line_joint(cairo_t *cr, geom::line_joint_t lj)
+    void NDDisplay::draw_line_joint(cairo_t *cr, geom::line_joint_t lj, geom::vect3_t ln_clr)
     {
         double radius_px = lj.turn_radius * scale_factor.x;
         if (lj.tp == geom::JointType::CIRC_CIRC)
@@ -522,27 +528,28 @@ namespace StratosphereAvionics
 
             cairo_utils::draw_arc(cr, arc1_trans, radius_px, lj.arc1.ang_start_rad,
                                   lj.arc1.ang_end_rad, ND_FPL_LINE_THICK * size.x, 
-                                    cairo_utils::MAGENTA);
+                                    ln_clr);
             cairo_utils::draw_arc(cr, arc2_trans, radius_px, lj.arc2.ang_start_rad,
                                   lj.arc2.ang_end_rad, ND_FPL_LINE_THICK * size.x, 
-                                  cairo_utils::MAGENTA);
+                                  ln_clr);
         }
         else if (lj.tp == geom::JointType::CIRC)
         {
             geom::vect2_t arc1_trans = get_screen_coords(lj.arc1.pos);
             cairo_utils::draw_arc(cr, arc1_trans, radius_px, lj.arc1.ang_start_rad,
                                   lj.arc1.ang_end_rad, ND_FPL_LINE_THICK * size.x, 
-                                  cairo_utils::MAGENTA);
+                                  ln_clr);
         }
 
         geom::vect2_t s_trans = get_screen_coords(lj.line.start);
         geom::vect2_t e_trans = get_screen_coords(lj.line.end);
 
         cairo_utils::draw_line(cr, s_trans, e_trans,
-                               cairo_utils::MAGENTA, ND_FPL_LINE_THICK * size.x);
+                               ln_clr, ND_FPL_LINE_THICK * size.x);
     }
 
-    void NDDisplay::draw_flight_plan(cairo_t *cr, bool draw_labels, size_t idx)
+    void NDDisplay::draw_flight_plan(cairo_t *cr, bool draw_labels, 
+        geom::vect3_t ln_clr, size_t idx)
     {
         leg_proj_t *buf;
         size_t buf_size = nd_data->get_proj_legs(&buf, side_idx, idx);
@@ -564,7 +571,7 @@ namespace StratosphereAvionics
                         if(curr_joint.tp != geom::JointType::LINE)
                             start = curr_joint.line.start;
 
-                        draw_line_joint(cr, curr_joint);
+                        draw_line_joint(cr, curr_joint, ln_clr);
                     }
 
                     if(buf[i].has_path)
@@ -573,7 +580,7 @@ namespace StratosphereAvionics
                         geom::vect2_t e_trans = get_screen_coords(end);
                         
                         cairo_utils::draw_line(cr, s_trans, e_trans,
-                                            cairo_utils::MAGENTA, ND_FPL_LINE_THICK * size.x);
+                                            ln_clr, ND_FPL_LINE_THICK * size.x);
                     }
                 }
                 else if (buf[i].end_nm.size() && draw_labels)
