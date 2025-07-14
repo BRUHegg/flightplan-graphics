@@ -240,7 +240,7 @@ namespace StratosphereAvionics
                 tmp[2] = sel_idx;
             else
                 tmp[0] = act_idx;
-            if(!exec_st)
+            if(!exec_st || act_idx >= test::N_FPL_SYS_RTES)
                 tmp[0] = -1;
             for(size_t j = 0; j < test::N_FPL_SYS_RTES; j++)
             {

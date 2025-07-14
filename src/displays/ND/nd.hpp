@@ -54,7 +54,7 @@ namespace StratosphereAvionics
     constexpr double PSEUDO_WPT_RADIUS_RAT = 0.007;
     constexpr double PSEUDO_WPT_THICK_RAT = 0.0025;
     // Percentage of horisontal resolution that translates into magenta line width
-    constexpr double ND_FPL_LINE_THICK = 0.003;
+    constexpr double ND_FPL_LINE_THICK = 0.005;
     // Route drawing
     constexpr geom::vect2_t FIX_NAME_OFFS = {0.02, 0.03};
     const std::vector<geom::vect3_t> ND_RTE_CLRS = {cairo_utils::WHITE, 

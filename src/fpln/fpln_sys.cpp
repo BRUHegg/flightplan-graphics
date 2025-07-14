@@ -423,10 +423,9 @@ namespace test
             m_exec_st = true;
         }
 
-        if(act_rte_idx < N_FPL_SYS_RTES && !fpl_vec[act_rte_idx]->can_activate())
+        if(act_rte_idx < N_FPL_SYS_RTES && !fpl_vec[act_rte_idx]->can_activate() && !m_exec_st)
         {
             act_rte_idx = N_FPL_SYS_RTES;
-            m_exec_st = false;
             act_id = -1;
         }
     }
