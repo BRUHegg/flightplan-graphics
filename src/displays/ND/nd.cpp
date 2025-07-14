@@ -690,12 +690,12 @@ namespace StratosphereAvionics
         size_t buf_size = nd_data->get_proj_legs(&buf, side_idx, idx);
         UNUSED(buf_size);
 
-        if (nd_data->has_dep_rwy(test::ACT_RTE_IDX))
+        if (nd_data->has_dep_rwy(idx))
         {
             draw_runway(cr, buf[DEP_RWY_PROJ_IDX]);
         }
 
-        if (nd_data->has_arr_rwy(test::ACT_RTE_IDX))
+        if (nd_data->has_arr_rwy(idx))
         {
             draw_runway(cr, buf[ARR_RWY_PROJ_IDX]);
         }
