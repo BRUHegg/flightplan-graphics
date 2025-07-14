@@ -555,6 +555,13 @@ namespace StratosphereAvionics
         size_t buf_size = nd_data->get_proj_legs(&buf, side_idx, idx);
         int act_leg_idx = nd_data->get_act_leg_idx(side_idx);
 
+        bool draw_dash = !draw_labels && ln_clr != cairo_utils::MAGENTA; 
+        if(draw_dash)
+        {
+            cairo_save(cr);
+            cairo_set_dash(cr, FPLN_LN_DASH, N_FPLN_DASHES, 2);
+        }
+
         for (size_t i = 0; i < buf_size; i++)
         {
             if (buf[i].is_finite && !buf[i].is_arc)
@@ -628,6 +635,9 @@ namespace StratosphereAvionics
                 }
             }
         }
+
+        if(draw_dash)
+            cairo_restore(cr);
     }
 
     void NDDisplay::draw_ext_rwy_ctr_line(cairo_t *cr, leg_proj_t rnw_proj)

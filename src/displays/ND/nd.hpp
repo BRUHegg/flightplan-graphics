@@ -38,6 +38,9 @@ namespace StratosphereAvionics
     // For extended centerline dashes:
     const double RWY_EXT_CTR_LINE_DASH[] = {9.0, 9.0};
     constexpr int N_RWY_DASHES  = sizeof(RWY_EXT_CTR_LINE_DASH) / sizeof(RWY_EXT_CTR_LINE_DASH[0]);
+    // For flightplan line dashes:
+    const double FPLN_LN_DASH[] = {9.0, 9.0};
+    constexpr int N_FPLN_DASHES  = sizeof(FPLN_LN_DASH) / sizeof(FPLN_LN_DASH[0]);
     constexpr int V_RTE_NOT_DRAWN = -1;
 
 
@@ -54,7 +57,7 @@ namespace StratosphereAvionics
     constexpr double PSEUDO_WPT_RADIUS_RAT = 0.007;
     constexpr double PSEUDO_WPT_THICK_RAT = 0.0025;
     // Percentage of horisontal resolution that translates into magenta line width
-    constexpr double ND_FPL_LINE_THICK = 0.005;
+    constexpr double ND_FPL_LINE_THICK = 0.0042;
     // Route drawing
     constexpr geom::vect2_t FIX_NAME_OFFS = {0.02, 0.03};
     const std::vector<geom::vect3_t> ND_RTE_CLRS = {cairo_utils::WHITE, 
