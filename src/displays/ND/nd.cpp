@@ -479,7 +479,7 @@ namespace StratosphereAvionics
         update_map_params();
         hdg_data = nd_data->get_hdg_data();
 
-        cairo_utils::draw_rect(cr, scr_pos, size, cairo_utils::DARK_BLUE);
+        cairo_utils::draw_rect(cr, scr_pos, size, ND_BCKGRND_CLR);
 
         draw_background(cr, true);
 

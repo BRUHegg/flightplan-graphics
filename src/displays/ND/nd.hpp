@@ -70,6 +70,8 @@ namespace StratosphereAvionics
     constexpr geom::vect2_t TAS_OFFS = {0.15, 0.034};
     constexpr geom::vect2_t TAS_TEXT_OFFS = {0.079, 0.034};
 
+    constexpr geom::vect3_t ND_BCKGRND_CLR = cairo_utils::BLACK;
+
 
     const std::string WPT_INACT_NAME = "wpt_inact";
     const std::string WPT_ACT_NAME = "wpt_act";
