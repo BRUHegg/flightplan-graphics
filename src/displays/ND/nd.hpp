@@ -38,6 +38,7 @@ namespace StratosphereAvionics
     // For extended centerline dashes:
     const double RWY_EXT_CTR_LINE_DASH[] = {9.0, 9.0};
     constexpr int N_RWY_DASHES  = sizeof(RWY_EXT_CTR_LINE_DASH) / sizeof(RWY_EXT_CTR_LINE_DASH[0]);
+    constexpr int V_RTE_NOT_DRAWN = -1;
 
 
     constexpr double ND_WPT_FONT_SZ = 18;
@@ -56,6 +57,8 @@ namespace StratosphereAvionics
     constexpr double ND_FPL_LINE_THICK = 0.003;
     // Route drawing
     constexpr geom::vect2_t FIX_NAME_OFFS = {0.02, 0.03};
+    const std::vector<geom::vect3_t> ND_RTE_CLRS = {cairo_utils::WHITE, 
+        cairo_utils::MAGENTA, cairo_utils::ND_CYAN};
     // Active leg
     constexpr geom::vect2_t ACT_LEG_NAME_OFFS = {0.911, 0.03};
     constexpr geom::vect2_t ACT_LEG_TIME_OFFS = {0.911, 0.05};
@@ -116,6 +119,8 @@ namespace StratosphereAvionics
     public:
         NDData(std::shared_ptr<test::FPLSys> fpl_sys);
 
+        std::vector<int> get_rte_draw_seq(size_t sd_idx);
+
         size_t get_proj_legs(leg_proj_t **out, size_t sd_idx, size_t dt_idx);
 
         int get_act_leg_idx(size_t sd_idx);
@@ -144,8 +149,16 @@ namespace StratosphereAvionics
         std::vector<std::shared_ptr<test::FplnInt>> m_fpl_vec;
         std::shared_ptr<test::FPLSys> m_fpl_sys_ptr;
 
+        // Of size N_FPL_SYS_RTES
         std::vector<test::nd_leg_data_t*> m_leg_data;
         std::vector<size_t> m_leg_data_sz;
+
+        std::vector<double> m_fpl_id_last;
+        std::vector<bool> m_has_dep_rwy, m_has_arr_rwy;
+        std::vector<int> m_act_leg_idx;
+        // -1 if route is not to be drawn, index otherwise.
+        // Routes are ordered by color. Refer to ND_RTE_CLRS.
+        std::vector<std::vector<int>> m_rte_draw_seq; 
 
         // 2*number of routes
         std::vector<map_data_t> m_mp_data;
@@ -159,17 +172,14 @@ namespace StratosphereAvionics
 
         test::hdg_info_t m_hdg_data;
 
-        // Of size N_FPL_SYS_RTES
-        std::vector<double> m_fpl_id_last;
-        std::vector<bool> m_has_dep_rwy, m_has_arr_rwy;
-        std::vector<int> m_act_leg_idx;
-
 
         static bool bound_check(double x1, double x2, double rng);
 
         static nd_util_idx_t get_util_idx(size_t gn_idx);
 
         bool in_view(geom::vect2_t start, geom::vect2_t end, size_t sd_idx);
+
+        void update_rte_draw_seq();
 
         void update_ctr(size_t sd_idx);
 
@@ -214,13 +224,13 @@ namespace StratosphereAvionics
 
         void draw_line_joint(cairo_t *cr, geom::line_joint_t lj);
 
-        void draw_flight_plan(cairo_t *cr, bool draw_labels);
+        void draw_flight_plan(cairo_t *cr, bool draw_labels, size_t idx=0);
 
         void draw_ext_rwy_ctr_line(cairo_t *cr, leg_proj_t rnw_proj);
 
         void draw_runway(cairo_t *cr, leg_proj_t rnw_proj);
 
-        void draw_runways(cairo_t *cr);
+        void draw_runways(cairo_t *cr, size_t idx=0);
 
         void draw_airplane(cairo_t *cr);
 

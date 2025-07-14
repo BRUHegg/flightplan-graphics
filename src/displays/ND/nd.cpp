@@ -60,6 +60,9 @@ namespace StratosphereAvionics
         m_leg_data_sz = std::vector<size_t>(test::N_FPL_SYS_RTES, 0);
         for(size_t i = 0; i < test::N_FPL_SYS_RTES; i++)
             m_leg_data[i] = new test::nd_leg_data_t[N_LEG_PROJ_CACHE_SZ];
+        
+        m_rte_draw_seq = std::vector<std::vector<int>>(N_ND_SDS, 
+            std::vector<int>(test::N_FPL_SYS_RTES, V_RTE_NOT_DRAWN));
 
         m_mp_data = std::vector<map_data_t>(N_MP_DATA_SZ);
         m_act_leg_idx_sd = std::vector<int>(N_MP_DATA_SZ, 0);
@@ -81,6 +84,12 @@ namespace StratosphereAvionics
         m_has_arr_rwy = std::vector<bool>(test::N_FPL_SYS_RTES, false);
 
         m_act_leg_idx = std::vector<int>(test::N_FPL_SYS_RTES, -1);
+    }
+
+    std::vector<int> NDData::get_rte_draw_seq(size_t sd_idx)
+    {
+        assert(sd_idx < N_ND_SDS);
+        return m_rte_draw_seq[sd_idx];
     }
 
     size_t NDData::get_proj_legs(leg_proj_t **out, size_t sd_idx, size_t dt_idx)
@@ -150,6 +159,7 @@ namespace StratosphereAvionics
     void NDData::update()
     {
         m_hdg_data = m_fpl_sys_ptr->get_hdg_info();
+        update_rte_draw_seq();
         for(size_t i = 0; i < N_ND_SDS; i++)
         {
             update_ctr(i);
@@ -184,17 +194,6 @@ namespace StratosphereAvionics
 
     // Non-static member functions:
 
-    void NDData::update_ctr(size_t sd_idx)
-    {
-        geo::point tmp;
-        bool ret = m_fpl_sys_ptr->get_ctr(&tmp, sd_idx);
-        if (!ret)
-        {
-            tmp = m_fpl_sys_ptr->get_ac_pos();
-        }
-        m_ctr[sd_idx] = tmp;
-    }
-
     bool NDData::in_view(geom::vect2_t start, geom::vect2_t end, size_t sd_idx)
     {
         double a = start.x - end.x;
@@ -226,6 +225,44 @@ namespace StratosphereAvionics
         }
 
         return false;
+    }
+
+    void NDData::update_rte_draw_seq()
+    {
+        size_t act_idx = m_fpl_sys_ptr->get_act_idx();
+        bool exec_st = m_fpl_sys_ptr->get_exec();
+        for(size_t i = 0; i < N_ND_SDS; i++)
+        {
+            std::vector<int> tmp(test::N_FPL_SYS_RTES, V_RTE_NOT_DRAWN);
+            size_t sel_idx = m_fpl_sys_ptr->get_cdu_sel_fpl_idx(i);
+            tmp[1] = test::ACT_RTE_IDX;
+            if(act_idx != sel_idx)
+                tmp[2] = sel_idx;
+            else
+                tmp[0] = act_idx;
+            if(!exec_st)
+                tmp[0] = -1;
+            for(size_t j = 0; j < test::N_FPL_SYS_RTES; j++)
+            {
+                if(ND_RTE_CLRS[i] == cairo_utils::WHITE)
+                    m_rte_draw_seq[i][j] = tmp[0];
+                else if(ND_RTE_CLRS[i] == cairo_utils::MAGENTA)
+                    m_rte_draw_seq[i][j] = tmp[1];
+                else if(ND_RTE_CLRS[i] == cairo_utils::ND_CYAN)
+                    m_rte_draw_seq[i][j] = tmp[2];
+            }
+        }
+    }
+
+    void NDData::update_ctr(size_t sd_idx)
+    {
+        geo::point tmp;
+        bool ret = m_fpl_sys_ptr->get_ctr(&tmp, sd_idx);
+        if (!ret)
+        {
+            tmp = m_fpl_sys_ptr->get_ac_pos();
+        }
+        m_ctr[sd_idx] = tmp;
     }
 
     void NDData::project_legs(size_t gn_idx)
@@ -505,10 +542,10 @@ namespace StratosphereAvionics
                                cairo_utils::MAGENTA, ND_FPL_LINE_THICK * size.x);
     }
 
-    void NDDisplay::draw_flight_plan(cairo_t *cr, bool draw_labels)
+    void NDDisplay::draw_flight_plan(cairo_t *cr, bool draw_labels, size_t idx)
     {
         leg_proj_t *buf;
-        size_t buf_size = nd_data->get_proj_legs(&buf, side_idx, 0);
+        size_t buf_size = nd_data->get_proj_legs(&buf, side_idx, idx);
         int act_leg_idx = nd_data->get_act_leg_idx(side_idx);
 
         for (size_t i = 0; i < buf_size; i++)
@@ -640,10 +677,10 @@ namespace StratosphereAvionics
                                cairo_utils::WHITE, RWY_SIDE_THICK * size.x);
     }
 
-    void NDDisplay::draw_runways(cairo_t *cr)
+    void NDDisplay::draw_runways(cairo_t *cr, size_t idx)
     {
         leg_proj_t *buf;
-        size_t buf_size = nd_data->get_proj_legs(&buf, side_idx, 0);
+        size_t buf_size = nd_data->get_proj_legs(&buf, side_idx, idx);
         UNUSED(buf_size);
 
         if (nd_data->has_dep_rwy(test::ACT_RTE_IDX))
