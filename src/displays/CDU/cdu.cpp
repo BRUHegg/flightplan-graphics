@@ -1698,7 +1698,13 @@ namespace StratosphereAvionics
             std::string rf_data = dep_rwy + std::string(size_t(N_CDU_DATA_COLS) - dep_rwy.size() - 10, ' ') + flt_nbr;
             out.data_lines.push_back(rf_data);
             out.data_lines.push_back(" ROUTE" + std::string(N_CDU_DATA_COLS - 6 - 8, ' ') + "CO ROUTE");
-            out.data_lines.push_back("<REQUEST" + std::string(size_t(N_CDU_DATA_COLS) - 8 - 10, ' ') + std::string(10, '-'));
+            std::string co_rte_nm = fpln->get_co_rte_nm();
+            std::string co_rte_dsp = std::string(10, '-');
+            if(co_rte_nm != "" && co_rte_nm.size() <= 10)
+            {
+                co_rte_dsp = std::string(10-co_rte_nm.size(), ' ') + co_rte_nm;
+            }
+            out.data_lines.push_back("<REQUEST" + std::string(size_t(N_CDU_DATA_COLS) - 8 - 10, ' ') + co_rte_dsp);
             if (rte_copy == test::RTECopySts::READY && sel_fpl_idx == act_fpl_idx)
             {
                 out.data_lines.push_back("");

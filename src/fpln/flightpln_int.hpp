@@ -154,6 +154,8 @@ namespace test
 
         void save_to_fms(std::string& file_nm, bool save_sid_star=true);
 
+        std::string get_co_rte_nm();
+
         // Airport functions:
 
         libnav::DbErr set_dep(std::string icao);
@@ -231,6 +233,7 @@ namespace test
         void update(double hdg_trk_diff);
 
     private:
+        std::string co_rte_nm;
         std::string arr_rwy;
         bool appr_is_rwy;
 
@@ -267,6 +270,8 @@ namespace test
 
         // Non-static member functions:
 
+        bool is_apt_valid(libnav::Airport *ptr) const;
+
         void update_act_leg();
 
         // Auxiliury functions for import from .fms:
@@ -291,6 +296,10 @@ namespace test
         std::string get_dfms_arpt_leg(bool is_arr=false);
         
         size_t get_dfms_enrt_legs(std::vector<std::string>* out);
+
+        // The main .fms import function:
+        
+        libnav::DbErr load_fms_fpln(std::string& file_nm, bool set_arpts=true);
 
         // Other auxiliury functions:
 
