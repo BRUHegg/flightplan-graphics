@@ -277,6 +277,8 @@ namespace test
 
         bool delete_singl_leg(leg_list_node_t *leg);
 
+        void reset_fpln(bool leave_dep_rwy=false);
+
     private:
         std::map<fpl_segment_types, std::string> seg_to_str = {
             {FPL_SEG_DEP_RWY, "DEP RWY"},
@@ -294,7 +296,6 @@ namespace test
 
 
         // WARNING: these do not lock flight plan mutex
-        void reset_fpln(bool leave_dep_rwy=false);
 
         void delete_between(leg_list_node_t *start, leg_list_node_t *end);
 

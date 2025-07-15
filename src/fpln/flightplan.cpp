@@ -523,19 +523,6 @@ namespace test
         return true;
     }
 
-    FlightPlan::~FlightPlan()
-    {
-        std::lock_guard<std::mutex> lock(fpl_mtx);
-
-        reset_fpln();
-        leg_data_stack.destroy();
-        seg_stack.destroy();
-        delete[] dep_legs;
-        delete[] arr_legs;
-    }
-
-    // Private member functions:
-
     void FlightPlan::reset_fpln(bool leave_dep_rwy)
     {
         seg_list_node_t *seg_start = &seg_list.head;
@@ -566,6 +553,19 @@ namespace test
         
         update_id();
     }
+
+    FlightPlan::~FlightPlan()
+    {
+        std::lock_guard<std::mutex> lock(fpl_mtx);
+
+        reset_fpln();
+        leg_data_stack.destroy();
+        seg_stack.destroy();
+        delete[] dep_legs;
+        delete[] arr_legs;
+    }
+
+    // Private member functions:
 
     void FlightPlan::delete_between(leg_list_node_t* start, leg_list_node_t* end)
     {

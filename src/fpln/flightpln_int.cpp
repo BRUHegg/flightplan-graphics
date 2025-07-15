@@ -246,6 +246,8 @@ namespace test
         has_dep_rnw_data = false;
         has_arr_rnw_data = false;
 
+        co_rte_nm = "";
+
         arr_rwy = "";
         appr_is_rwy = false;
 
@@ -296,6 +298,8 @@ namespace test
         
         copy_act_leg(other);
 
+        co_rte_nm = other.co_rte_nm;
+
         arr_rwy = other.arr_rwy;
         appr_is_rwy = other.appr_is_rwy;
 
@@ -311,111 +315,28 @@ namespace test
 
     libnav::DbErr FplnInt::load_from_fms(std::string &file_nm, bool set_arpts)
     {
-        if (libnav::does_file_exist(file_nm + DFMS_FILE_POSTFIX))
+        libnav::DbErr out = load_fms_fpln(file_nm, set_arpts);
+        if(out != libnav::DbErr::SUCCESS)
         {
-            std::ifstream file(file_nm + DFMS_FILE_POSTFIX);
-            if (file.is_open())
-            {
-                std::string line;
-                bool read_enrt = false;
-                dfms_arr_data_t arr_data;
-                std::string awy_last = "";
-                std::string end_last = "";
-                while (getline(file, line))
-                {
-                    std::vector<std::string> ln_split = strutils::str_split(line);
-
-                    if (!read_enrt && ln_split.size() > 1)
-                    {
-                        if (ln_split[0] == DFMS_N_ENRT_NM)
-                        {
-                            read_enrt = true;
-                        }
-                        else if(ln_split[0] == DFMS_AIRAC_CYCLE_NM)
-                        {
-                            int fpl_cycle = strutils::stoi_with_strip(ln_split[1]);
-                            if(airac_mismatch || fix_airac_ver != fpl_cycle)
-                                return libnav::DbErr::DATA_BASE_ERROR;
-                        }
-                        else
-                        {
-                            libnav::DbErr err = process_dfms_proc_line(ln_split,
-                                                                       set_arpts, &arr_data);
-
-                            if (err != libnav::DbErr::SUCCESS)
-                            {
-                                return err;
-                            }
-                        }
-                    }
-                    else if (read_enrt && ln_split.size() == N_DFMS_ENRT_WORDS)
-                    {
-                        std::string wpt_id = "";
-                        bool add_awy_seg = false;
-                        if (ln_split[2] != DFMS_DEP_NM && ln_split[2] != DFMS_ARR_NM)
-                        {
-                            libnav::waypoint_t wpt;
-                            bool ret = get_dfms_wpt(ln_split, &wpt);
-                            wpt_id = wpt.get_awy_id();
-
-                            if (ret)
-                            {
-                                if (ln_split[2] == DFMS_DIR_SEG_NM ||
-                                    (ln_split[2] != awy_last && awy_last != ""))
-                                {
-                                    add_awy_seg = true;
-                                }
-                                else
-                                {
-                                    awy_last = ln_split[2];
-                                    end_last = wpt_id;
-                                }
-                            }
-                            else
-                            {
-                                return libnav::DbErr::DATA_BASE_ERROR;
-                            }
-                        }
-                        else
-                        {
-                            add_awy_seg = true;
-                        }
-
-                        if (add_awy_seg)
-                        {
-                            if (awy_last != "" && end_last != "")
-                            {
-                                add_enrt_seg({nullptr, seg_list.id}, awy_last);
-                                awy_insert_str({&(seg_list.tail), seg_list.id},
-                                               end_last);
-                            }
-                            awy_last = "";
-                            end_last = "";
-
-                            if (wpt_id != "")
-                                awy_insert_str({nullptr, seg_list.id}, wpt_id);
-                        }
-                    }
-                }
-
-                file.close();
-
-                return set_dfms_arr_data(&arr_data, set_arpts);
-            }
-
-            file.close();
+            reset_fpln();
         }
-        return libnav::DbErr::FILE_NOT_FOUND;
+        else
+        {
+            co_rte_nm = departure->icao_code+arrival->icao_code;
+        }
+        return out;
     }
 
     void FplnInt::save_to_fms(std::string &file_nm, bool save_sid_star)
     {
         std::lock_guard<std::mutex> lock(fpl_mtx);
-        if (!arpt_db->is_airport(departure->icao_code) ||
-            !arpt_db->is_airport(arrival->icao_code))
+        if (!is_apt_valid(departure) ||
+            !is_apt_valid(arrival))
         {
             return;
         }
+
+        co_rte_nm = departure->icao_code+arrival->icao_code;
 
         std::ofstream out(file_nm + DFMS_FILE_POSTFIX, std::ofstream::out);
 
@@ -481,6 +402,12 @@ namespace test
         }
 
         out.close();
+    }
+
+    std::string FplnInt::get_co_rte_nm()
+    {
+        std::lock_guard<std::mutex> lock(fpl_mtx);
+        return co_rte_nm;
     }
 
     libnav::DbErr FplnInt::set_dep(std::string icao)
@@ -1160,6 +1087,12 @@ namespace test
     void FplnInt::update(double hdg_trk_diff)
     {
         std::lock_guard<std::mutex> lock(fpl_mtx);
+        if (!is_apt_valid(departure) ||
+            !is_apt_valid(arrival))
+        {
+            co_rte_nm = "";
+            return;
+        }
         if (fpl_id_calc != fpl_id_curr)
         {
             double curr_alt_ft = 0;
@@ -1370,6 +1303,13 @@ namespace test
 
     // Non-static member functions:
 
+    bool FplnInt::is_apt_valid(libnav::Airport *ptr) const
+    {
+        if(ptr == nullptr)
+            return false;
+        return arpt_db->is_airport(ptr->icao_code);
+    }
+
     void FplnInt::update_act_leg()
     {
         if(!is_act)
@@ -1559,6 +1499,107 @@ namespace test
         out->push_back(get_dfms_arpt_leg(true));
 
         return out->size();
+    }
+
+    libnav::DbErr FplnInt::load_fms_fpln(std::string &file_nm, bool set_arpts)
+    {
+        if (libnav::does_file_exist(file_nm + DFMS_FILE_POSTFIX))
+        {
+            std::ifstream file(file_nm + DFMS_FILE_POSTFIX);
+            if (file.is_open())
+            {
+                std::string line;
+                bool read_enrt = false;
+                dfms_arr_data_t arr_data;
+                std::string awy_last = "";
+                std::string end_last = "";
+                while (getline(file, line))
+                {
+                    std::vector<std::string> ln_split = strutils::str_split(line);
+
+                    if (!read_enrt && ln_split.size() > 1)
+                    {
+                        if (ln_split[0] == DFMS_N_ENRT_NM)
+                        {
+                            read_enrt = true;
+                        }
+                        else if(ln_split[0] == DFMS_AIRAC_CYCLE_NM)
+                        {
+                            int fpl_cycle = strutils::stoi_with_strip(ln_split[1]);
+                            if(airac_mismatch || fix_airac_ver != fpl_cycle)
+                                return libnav::DbErr::DATA_BASE_ERROR;
+                        }
+                        else
+                        {
+                            libnav::DbErr err = process_dfms_proc_line(ln_split,
+                                                                       set_arpts, &arr_data);
+
+                            if (err != libnav::DbErr::SUCCESS)
+                            {
+                                return err;
+                            }
+                        }
+                    }
+                    else if (read_enrt && ln_split.size() == N_DFMS_ENRT_WORDS)
+                    {
+                        std::string wpt_id = "";
+                        bool add_awy_seg = false;
+                        if (ln_split[2] != DFMS_DEP_NM && ln_split[2] != DFMS_ARR_NM)
+                        {
+                            libnav::waypoint_t wpt;
+                            bool ret = get_dfms_wpt(ln_split, &wpt);
+                            wpt_id = wpt.get_awy_id();
+
+                            if (ret)
+                            {
+                                if (ln_split[2] == DFMS_DIR_SEG_NM ||
+                                    (ln_split[2] != awy_last && awy_last != ""))
+                                {
+                                    add_awy_seg = true;
+                                }
+                                else
+                                {
+                                    awy_last = ln_split[2];
+                                    end_last = wpt_id;
+                                }
+                            }
+                            else
+                            {
+                                return libnav::DbErr::DATA_BASE_ERROR;
+                            }
+                        }
+                        else
+                        {
+                            add_awy_seg = true;
+                        }
+
+                        if (add_awy_seg)
+                        {
+                            if (awy_last != "" && end_last != "")
+                            {
+                                add_enrt_seg({nullptr, seg_list.id}, awy_last);
+                                awy_insert_str({&(seg_list.tail), seg_list.id},
+                                               end_last);
+                            }
+                            awy_last = "";
+                            end_last = "";
+
+                            if (wpt_id != "")
+                                awy_insert_str({nullptr, seg_list.id}, wpt_id);
+                        }
+                    }
+                }
+
+                file.close();
+
+
+
+                return set_dfms_arr_data(&arr_data, set_arpts);
+            }
+
+            file.close();
+        }
+        return libnav::DbErr::FILE_NOT_FOUND;
     }
 
     // Other auxiliury functions:
