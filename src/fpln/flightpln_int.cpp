@@ -281,7 +281,7 @@ namespace test
             }
         }
 
-        for(std::size_t i = 0; i < other.fpl_refs.size(); i++)
+        for(std::size_t i = 1; i < other.fpl_refs.size(); i++)
         {
             fpl_refs[i] = other.fpl_refs[i];
             if(fpl_refs[i].ptr != nullptr)
