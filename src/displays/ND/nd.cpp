@@ -553,9 +553,11 @@ namespace StratosphereAvionics
     {
         leg_proj_t *buf;
         size_t buf_size = nd_data->get_proj_legs(&buf, side_idx, idx);
-        int act_leg_idx = nd_data->get_act_leg_idx(side_idx);
+        int act_leg_idx = -1;
+        if(ln_clr == cairo_utils::MAGENTA)
+            act_leg_idx = nd_data->get_act_leg_idx(side_idx);
 
-        bool draw_dash = !draw_labels && ln_clr != cairo_utils::MAGENTA; 
+        bool draw_dash = !draw_labels && ln_clr != cairo_utils::MAGENTA;
         if(draw_dash)
         {
             cairo_save(cr);
