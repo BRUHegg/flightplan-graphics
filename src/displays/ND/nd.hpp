@@ -12,6 +12,7 @@
 #include <libnav/str_utils.hpp>
 #include <common/cairo_utils.hpp>
 #include <geom.hpp>
+#include <util.hpp>
 #include <memory>
 
 
@@ -27,7 +28,10 @@ namespace StratosphereAvionics
     constexpr double N_MAX_DIST_NM = 600;
     constexpr double ND_DEFAULT_RNG_NM = 10;
     // Percentage of resolution that translates into full range:
-    constexpr double ND_RNG_FULL_RES_COEFF = 0.4;
+    static std::unordered_map<test::NDMode, double, util::enum_class_hash_t> ND_RNG_FULL_RES_COEFF = {
+        {test::NDMode::MAP, 0.76},
+        {test::NDMode::PLAN, 0.4}
+    };
     // Percentage of horisontal resolution that translates into runway width
     constexpr double DEFAULT_RWY_WIDTH = 0.015;
     // Percentage of horisontal resolution that translates into thikness of runway 
@@ -44,7 +48,7 @@ namespace StratosphereAvionics
     constexpr int V_RTE_NOT_DRAWN = -1;
 
 
-    constexpr double ND_WPT_FONT_SZ = 18;
+    constexpr double ND_WPT_FONT_SZ = 23;
     constexpr double ND_ACT_INFO_MAIN_FONT_SZ = 21;
     constexpr double ND_ACT_INFO_DIST_FONT_SZ = 19;
     constexpr double ND_SPD_BIG_FONT_SZ = 26;
@@ -58,6 +62,8 @@ namespace StratosphereAvionics
     constexpr double PSEUDO_WPT_THICK_RAT = 0.0025;
     // Percentage of horisontal resolution that translates into magenta line width
     constexpr double ND_FPL_LINE_THICK = 0.0042;
+    constexpr double ND_PRJ_CTR_V_OFFS_PLAN = 0.01; // Offset from the display center
+    constexpr double ND_PRJ_CTR_V_OFFS_MAP = 0.345; // Offset from the display center
     // Route drawing
     constexpr geom::vect2_t FIX_NAME_OFFS = {0.02, 0.03};
     const std::vector<geom::vect3_t> ND_RTE_CLRS = {cairo_utils::WHITE, 
@@ -72,6 +78,8 @@ namespace StratosphereAvionics
     constexpr geom::vect2_t GS_TEXT_OFFS = {0.003, 0.034};
     constexpr geom::vect2_t TAS_OFFS = {0.15, 0.034};
     constexpr geom::vect2_t TAS_TEXT_OFFS = {0.079, 0.034};
+    // General:
+    constexpr geom::vect2_t MAP_HDG_OFFS = {0, -0.049};
 
     constexpr geom::vect3_t ND_BCKGRND_CLR = cairo_utils::BLACK;
 
@@ -81,8 +89,13 @@ namespace StratosphereAvionics
     const std::string AIRPLANE_NAME = "airplane";
     const std::string PLN_BACKGND_INNER_NAME = "pln_back_inner";
     const std::string PLN_BACKGND_OUTER_NAME = "pln_back_outer";
+    const std::string MAP_BACKGND_NAME = "map_back";
+    const std::string MAP_HDG_NAME = "map_hdg";
+    const std::string MAP_AC_TRI  = "map_ac_ico";
 
     const std::vector<double> ND_RANGES_NM = {10, 20, 40, 80, 160, 320, 640};
+    // Only the supported modes are in ND_MDS
+    const std::vector<test::NDMode> ND_MDS = {test::NDMode::MAP, test::NDMode::PLAN};
     constexpr double RNG_DEC_1_NM = 2.5;
     constexpr double RNG_DEC_2_NM = 1.25;
 
@@ -124,6 +137,10 @@ namespace StratosphereAvionics
     public:
         NDData(std::shared_ptr<test::FPLSys> fpl_sys);
 
+        void set_mode(size_t sd_idx, test::NDMode md, bool set_ctr=false);
+
+        std::pair<test::NDMode, bool> get_mode(size_t sd_idx) const;
+
         std::vector<int> get_rte_draw_seq(size_t sd_idx);
 
         size_t get_proj_legs(leg_proj_t **out, size_t sd_idx, size_t dt_idx);
@@ -131,6 +148,8 @@ namespace StratosphereAvionics
         int get_act_leg_idx(size_t sd_idx);
 
         bool get_ac_pos(geom::vect2_t *out, size_t sd_idx);
+
+        double get_hdg_trk(size_t sd_idx) const;
 
         test::hdg_info_t get_hdg_data();
 
@@ -170,6 +189,7 @@ namespace StratosphereAvionics
        
         std::vector<int> m_act_leg_idx_sd;
         // Stored 1 per fo, 1 per cap
+        std::vector<std::pair<test::NDMode, bool>> cr_mds;
         std::vector<geom::vect2_t> m_ac_pos_proj;
         std::vector<bool> m_ac_pos_ok;
         std::vector<size_t> m_rng_idx;
@@ -181,6 +201,10 @@ namespace StratosphereAvionics
         static bool bound_check(double x1, double x2, double rng);
 
         static nd_util_idx_t get_util_idx(size_t gn_idx);
+
+        double get_cr_rot(size_t sd_idx) const;
+
+        std::pair<geo::point, double> get_proj_params(size_t sd_idx) const;
 
         bool in_view(geom::vect2_t start, geom::vect2_t end, size_t sd_idx);
 
@@ -212,6 +236,9 @@ namespace StratosphereAvionics
         std::shared_ptr<NDData> nd_data;
         std::shared_ptr<cairo_utils::texture_manager_t> tex_mngr;
 
+        test::NDMode cr_md;
+        bool is_ctr;
+
         cairo_font_face_t* font_face;
 
         geom::vect2_t scr_pos;
@@ -222,6 +249,8 @@ namespace StratosphereAvionics
 
         size_t side_idx;
 
+
+        void update_mode();
 
         void update_map_params();
 
@@ -237,6 +266,8 @@ namespace StratosphereAvionics
         void draw_runway(cairo_t *cr, leg_proj_t rnw_proj);
 
         void draw_runways(cairo_t *cr, size_t idx=0);
+
+        void draw_all_fplns(cairo_t *cr);
 
         void draw_airplane(cairo_t *cr);
 

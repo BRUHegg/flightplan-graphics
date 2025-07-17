@@ -360,6 +360,9 @@ namespace test
                 StratosphereAvionics::AIRPLANE_NAME,
                 StratosphereAvionics::PLN_BACKGND_INNER_NAME,
                 StratosphereAvionics::PLN_BACKGND_OUTER_NAME,
+                StratosphereAvionics::MAP_BACKGND_NAME,
+                StratosphereAvionics::MAP_AC_TRI,
+                StratosphereAvionics::MAP_HDG_NAME,
                 
                 StratosphereAvionics::CDU_TEXTURE_NAME,
                 StratosphereAvionics::CDU_WHITE_TEXT_NAME,
@@ -369,7 +372,7 @@ namespace test
                 };
             
             tex_mngr = std::make_shared<cairo_utils::texture_manager_t>();
-
+            
             if(!tex_mngr->load(tgt_names, TEXTURES_PATH))
             {
                 std::cout << "Failed to load textures. Aborting\n";
