@@ -459,9 +459,9 @@ namespace geom
         return {dist_nm * sin(brng_rad), dist_nm * cos(brng_rad)};
     }
 
-    inline vect2_t project_point(geo::point tgt, geo::point p_ctr)
+    inline vect2_t project_point(geo::point tgt, geo::point p_ctr, double brng_add_rad=0.0)
     {
-        double brng_rad = p_ctr.get_gc_bearing_rad(tgt);
+        double brng_rad = p_ctr.get_gc_bearing_rad(tgt)+brng_add_rad;
         double dist_nm = p_ctr.get_gc_dist_nm(tgt);
 
         return get_projection(brng_rad, dist_nm);

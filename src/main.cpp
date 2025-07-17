@@ -35,11 +35,19 @@ gboolean keypress_handler(GtkWidget *widget, GdkEventKey *event, gpointer data) 
     }
     else if(event->keyval == GDK_KEY_Up)
     {
-        cmdint->nd_data->switch_range(false, false);
+        cmdint->nd_data->switch_range(false, 0);
     }
     else if(event->keyval == GDK_KEY_Down)
     {
-        cmdint->nd_data->switch_range(true, false);
+        cmdint->nd_data->switch_range(true, 0);
+    }
+    else if(event->keyval == GDK_KEY_m || event->keyval == GDK_KEY_M)
+    {
+        cmdint->nd_data->set_mode(0, test::NDMode::MAP);
+    }
+    else if(event->keyval == GDK_KEY_p || event->keyval == GDK_KEY_P)
+    {
+        cmdint->nd_data->set_mode(0, test::NDMode::PLAN);
     }
     return FALSE;
 }
