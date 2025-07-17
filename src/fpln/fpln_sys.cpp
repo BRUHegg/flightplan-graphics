@@ -411,7 +411,7 @@ namespace test
                 else if((i != act_rte_idx && i) && cr_is_act)
                     fpl_vec[i]->deactivate();
             }
-            fpl_vec[i]->update(0);
+            fpl_vec[i]->update(ac_slip_deg * geo::DEG_TO_RAD);
             update_lists(i);
 
             update_flt_nbr(i);

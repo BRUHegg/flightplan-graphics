@@ -56,6 +56,8 @@ namespace StratosphereAvionics
         m_fpl_sys_ptr = fpl_sys;
         m_fpl_vec = fpl_sys->fpl_vec;
 
+        trk_up = true;
+
         m_leg_data = std::vector<test::nd_leg_data_t*>(test::N_FPL_SYS_RTES);
         m_leg_data_sz = std::vector<size_t>(test::N_FPL_SYS_RTES, 0);
         for(size_t i = 0; i < test::N_FPL_SYS_RTES; i++)
@@ -88,6 +90,16 @@ namespace StratosphereAvionics
         m_act_leg_idx = std::vector<int>(test::N_FPL_SYS_RTES, -1);
     }
 
+    void NDData::set_th_up()
+    {
+        trk_up = !trk_up;
+    }
+
+    bool NDData::get_th_up()
+    {
+        return trk_up;
+    }
+
     void NDData::set_mode(size_t sd_idx, test::NDMode md, bool set_ctr)
     {
         assert(sd_idx < N_ND_SDS);
@@ -96,6 +108,7 @@ namespace StratosphereAvionics
             cr_mds[sd_idx].second = false;
         else if(set_ctr)
             cr_mds[sd_idx].second = !cr_mds[sd_idx].second;
+        m_fpl_sys_ptr->set_nd_mode(md, sd_idx);
     }
 
     std::pair<test::NDMode, bool> NDData::get_mode(size_t sd_idx) const
@@ -130,9 +143,9 @@ namespace StratosphereAvionics
         return true;
     }
 
-    double NDData::get_hdg_trk(size_t sd_idx) const
+    double NDData::get_hdg_trk() const
     {
-        return get_cr_rot(sd_idx);
+        return get_cr_rot();
     }
 
     test::hdg_info_t NDData::get_hdg_data()
@@ -217,12 +230,11 @@ namespace StratosphereAvionics
 
     // Non-static member functions:
 
-    double NDData::get_cr_rot(size_t sd_idx) const
+    double NDData::get_cr_rot() const
     {
-        UNUSED(sd_idx);
-        // Assume the display is track-up
-        double rt_rad = m_hdg_data.brng_tru_rad+m_hdg_data.magvar_rad;
-        return -rt_rad;
+        if(trk_up)
+            return -(m_hdg_data.brng_tru_rad+m_hdg_data.magvar_rad);
+        return -(m_hdg_data.brng_tru_rad+m_hdg_data.magvar_rad+m_hdg_data.slip_rad);
     }
 
     std::pair<geo::point, double> NDData::get_proj_params(size_t sd_idx) const
@@ -230,13 +242,16 @@ namespace StratosphereAvionics
         assert(sd_idx < cr_mds.size());
         if(cr_mds[sd_idx].first == test::NDMode::PLAN)
             return {m_ctr[sd_idx], 0};
-        return {m_fpl_sys_ptr->get_ac_pos(), get_cr_rot(sd_idx)};
+        return {m_fpl_sys_ptr->get_ac_pos(), get_cr_rot()};
     }
 
     bool NDData::in_view(geom::vect2_t start, geom::vect2_t end, size_t sd_idx)
     {
+        assert(sd_idx < cr_mds.size());
         double a = start.x - end.x;
-        double rng = get_range(sd_idx) / 2;
+        double rng = get_range(sd_idx);
+        if(cr_mds[sd_idx].second || cr_mds[sd_idx].first == test::NDMode::PLAN)
+            rng /= 2;
 
         if (a != 0)
         {
@@ -515,6 +530,7 @@ namespace StratosphereAvionics
 
         side_idx = sd_idx;
 
+        is_trk_up = nd_data->get_th_up();
         rng = nd_data->get_range(side_idx);
     }
 
@@ -535,13 +551,14 @@ namespace StratosphereAvionics
         draw_act_leg_info(cr);
         draw_spd_info(cr);
         draw_range(cr);
-        cairo_utils::draw_circle(cr, scr_pos+map_ctr, 3, 3, cairo_utils::MAGENTA);
+        //cairo_utils::draw_circle(cr, scr_pos+map_ctr, 3, 3, cairo_utils::MAGENTA);
     }
 
     // Private member functions:
 
     void NDDisplay::update_mode()
     {
+        is_trk_up = nd_data->get_th_up();
         std::pair<test::NDMode, bool> md_dt = nd_data->get_mode(side_idx);
         cr_md = md_dt.first;
         is_ctr = md_dt.second;
@@ -786,17 +803,41 @@ namespace StratosphereAvionics
         {
             geom::vect2_t pos;
             bool do_drawing = nd_data->get_ac_pos(&pos, side_idx);
-
+            geom::vect2_t wpt_scale = size.scmul(1 / WPT_SCALE_FACT);
             if(do_drawing)
             {
                 geom::vect2_t pos_trans = get_screen_coords(pos);
-                geom::vect2_t scale = size.scmul(1 / WPT_SCALE_FACT);
-
                 cairo_utils::draw_rotated_image(cr, tex_mngr->data[AIRPLANE_NAME], pos_trans, 
-                    scale, hdg_data.brng_tru_rad);
+                    wpt_scale, hdg_data.brng_tru_rad);
             }
         }
-        
+        else
+        {
+            cairo_surface_t *tgt = tex_mngr->data[MAP_AC_TRI_NAME];
+            geom::vect2_t sz = cairo_utils::get_surf_sz(tgt) * MAP_AC_TRI_SC;
+            geom::vect2_t sz_shift = {0, 0.5};
+            geom::vect2_t pos = scr_pos + map_ctr + sz * sz_shift;
+            cairo_utils::draw_image(cr, tgt, pos, MAP_AC_TRI_SC, true);
+        }
+    }
+
+    void NDDisplay::draw_htrk_line(cairo_t *cr, bool is_inn)
+    {
+        double rot_rad = 0;
+        if(!is_trk_up)
+            rot_rad = -hdg_data.slip_rad;
+        geom::vect2_t dir = geom::vect2_t{size.x*sin(rot_rad), -size.x*cos(rot_rad)};
+        geom::vect2_t ln_end_inn = map_ctr + dir.scmul(MAP_TRK_LN_LN_INN);
+        geom::vect2_t pos_start = map_ctr+scr_pos;
+        geom::vect2_t pos_end = ln_end_inn+scr_pos;
+        geom::vect3_t clr = cairo_utils::WHITE;
+        if(!is_inn)
+        {
+            pos_start = pos_end+dir.scmul(MAP_TRK_LN_LN_OUT);
+            //clr = cairo_utils::MAGENTA;
+        }
+        cairo_utils::draw_line(cr, pos_start, pos_end, 
+            clr, ND_FPL_LINE_THICK*size.x);
     }
 
     void NDDisplay::draw_background(cairo_t *cr, bool draw_inner)
@@ -815,16 +856,29 @@ namespace StratosphereAvionics
             back_surf = tex_mngr->data[MAP_BACKGND_NAME];
         }
         
-        geom::vect2_t scale_back = size / cairo_utils::get_surf_sz(back_surf);
-        cairo_utils::draw_image(cr, back_surf, scr_pos, scale_back, false);
+        if((!draw_inner && cr_md == test::NDMode::MAP) || cr_md == test::NDMode::PLAN)
+        {
+            geom::vect2_t scale_back = size / cairo_utils::get_surf_sz(back_surf);
+            cairo_utils::draw_image(cr, back_surf, scr_pos, scale_back, false);
+        }
 
         if(cr_md == test::NDMode::MAP)
         {
-            cairo_surface_t *map_hdg_surf;
-            map_hdg_surf = tex_mngr->data[MAP_HDG_NAME];
-            geom::vect2_t scale_hdg = (size / cairo_utils::get_surf_sz(map_hdg_surf)).scmul(1.41);
-            geom::vect2_t hdg_pos = scr_pos+map_ctr+size*MAP_HDG_OFFS;
-            cairo_utils::draw_rotated_image(cr, map_hdg_surf, hdg_pos, scale_hdg, nd_data->get_hdg_trk(side_idx));
+            if(!draw_inner)
+            {
+                cairo_surface_t *map_hdg_surf = tex_mngr->data[MAP_HDG_NAME];
+                geom::vect2_t scale_hdg = (size / cairo_utils::get_surf_sz(map_hdg_surf)).scmul(1.41);
+                geom::vect2_t hdg_pos = scr_pos+map_ctr+size*MAP_HDG_OFFS;
+                cairo_utils::draw_rotated_image(cr, 
+                    map_hdg_surf, hdg_pos, scale_hdg, nd_data->get_hdg_trk());
+                cairo_surface_t *htrk_box = tex_mngr->data[HTRK_BOX_NAME];
+                geom::vect2_t box_sz = cairo_utils::get_surf_sz(htrk_box);
+                geom::vect2_t scale_box = (box_sz*size.scdiv(900))*MAP_HTK_BOX_SC;
+                double hht = box_sz.y*0.5*scale_box.y;
+                geom::vect2_t box_pos = scr_pos+geom::vect2_t{size.x/2, hht};
+                cairo_utils::draw_image(cr, htrk_box, box_pos, scale_box, true);
+            }
+            draw_htrk_line(cr, draw_inner);
         }
     }
 
