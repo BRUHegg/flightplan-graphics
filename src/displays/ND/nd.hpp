@@ -64,6 +64,8 @@ namespace StratosphereAvionics
     constexpr double ND_FPL_LINE_THICK = 0.0042;
     constexpr double ND_PRJ_CTR_V_OFFS_PLAN = 0.01; // Offset from the display center
     constexpr double ND_PRJ_CTR_V_OFFS_MAP = 0.345; // Offset from the display center
+    constexpr double MAP_TRK_LN_LN_INN = 0.754;
+    constexpr double MAP_TRK_LN_LN_OUT = 0.025;
     // Route drawing
     constexpr geom::vect2_t FIX_NAME_OFFS = {0.02, 0.03};
     const std::vector<geom::vect3_t> ND_RTE_CLRS = {cairo_utils::WHITE, 
@@ -80,6 +82,8 @@ namespace StratosphereAvionics
     constexpr geom::vect2_t TAS_TEXT_OFFS = {0.079, 0.034};
     // General:
     constexpr geom::vect2_t MAP_HDG_OFFS = {0, -0.049};
+    constexpr geom::vect2_t MAP_AC_TRI_SC = {1.5, 1.5};
+    constexpr geom::vect2_t MAP_HTK_BOX_SC = {0.04, 0.076};
 
     constexpr geom::vect3_t ND_BCKGRND_CLR = cairo_utils::BLACK;
 
@@ -91,7 +95,8 @@ namespace StratosphereAvionics
     const std::string PLN_BACKGND_OUTER_NAME = "pln_back_outer";
     const std::string MAP_BACKGND_NAME = "map_back";
     const std::string MAP_HDG_NAME = "map_hdg";
-    const std::string MAP_AC_TRI  = "map_ac_ico";
+    const std::string MAP_AC_TRI_NAME  = "map_ac_ico";
+    const std::string HTRK_BOX_NAME = "hdg_trk_box";
 
     const std::vector<double> ND_RANGES_NM = {10, 20, 40, 80, 160, 320, 640};
     // Only the supported modes are in ND_MDS
@@ -137,6 +142,23 @@ namespace StratosphereAvionics
     public:
         NDData(std::shared_ptr<test::FPLSys> fpl_sys);
 
+        /*
+            Function: set_th_up
+            @desc:
+            changes current track/heading up status. I.e. if we're heading up, 
+            change to track up and vice versa.
+        */
+
+        void set_th_up();
+
+        /*
+            Function: set_th_up
+            @return:
+            true if track up.
+        */
+
+        bool get_th_up();
+
         void set_mode(size_t sd_idx, test::NDMode md, bool set_ctr=false);
 
         std::pair<test::NDMode, bool> get_mode(size_t sd_idx) const;
@@ -149,7 +171,7 @@ namespace StratosphereAvionics
 
         bool get_ac_pos(geom::vect2_t *out, size_t sd_idx);
 
-        double get_hdg_trk(size_t sd_idx) const;
+        double get_hdg_trk() const;
 
         test::hdg_info_t get_hdg_data();
 
@@ -172,6 +194,8 @@ namespace StratosphereAvionics
     private:
         std::vector<std::shared_ptr<test::FplnInt>> m_fpl_vec;
         std::shared_ptr<test::FPLSys> m_fpl_sys_ptr;
+
+        bool trk_up;
 
         // Of size N_FPL_SYS_RTES
         std::vector<test::nd_leg_data_t*> m_leg_data;
@@ -202,7 +226,7 @@ namespace StratosphereAvionics
 
         static nd_util_idx_t get_util_idx(size_t gn_idx);
 
-        double get_cr_rot(size_t sd_idx) const;
+        double get_cr_rot() const;
 
         std::pair<geo::point, double> get_proj_params(size_t sd_idx) const;
 
@@ -236,6 +260,7 @@ namespace StratosphereAvionics
         std::shared_ptr<NDData> nd_data;
         std::shared_ptr<cairo_utils::texture_manager_t> tex_mngr;
 
+        bool is_trk_up;
         test::NDMode cr_md;
         bool is_ctr;
 
@@ -270,6 +295,8 @@ namespace StratosphereAvionics
         void draw_all_fplns(cairo_t *cr);
 
         void draw_airplane(cairo_t *cr);
+
+        void draw_htrk_line(cairo_t *cr, bool is_inn);
 
         void draw_background(cairo_t *cr, bool draw_inner);
 

@@ -361,8 +361,9 @@ namespace test
                 StratosphereAvionics::PLN_BACKGND_INNER_NAME,
                 StratosphereAvionics::PLN_BACKGND_OUTER_NAME,
                 StratosphereAvionics::MAP_BACKGND_NAME,
-                StratosphereAvionics::MAP_AC_TRI,
+                StratosphereAvionics::MAP_AC_TRI_NAME,
                 StratosphereAvionics::MAP_HDG_NAME,
+                StratosphereAvionics::HTRK_BOX_NAME,
                 
                 StratosphereAvionics::CDU_TEXTURE_NAME,
                 StratosphereAvionics::CDU_WHITE_TEXT_NAME,
