@@ -821,6 +821,30 @@ namespace StratosphereAvionics
         }
     }
 
+    void NDDisplay::draw_htrk(cairo_t *cr)
+    {
+        int rot_raw_deg = -int(std::round(nd_data->get_hdg_trk()*geom::RAD_TO_DEG)) % 360;
+        int rot_deg = (rot_raw_deg+360) % 360;
+        std::string htk_txt = strutils::double_to_str(rot_deg, 0);
+        htk_txt = std::string(3-htk_txt.size(), '0')+htk_txt;
+        cairo_utils::draw_centered_text(cr, font_face, htk_txt, scr_pos+size*MAP_HTK_TXT_POS, 
+            cairo_utils::WHITE, MAP_HTRK_FONT_SZ);
+        
+        geom::vect2_t pos_htk = geom::vect2_t{0.5-MAP_HTRK_STG_TXT_LOFFS, 
+            MAP_HTRK_STG_TXT_VOFFS};
+        geom::vect2_t pos_tmg = geom::vect2_t{0.5+MAP_HTRK_STG_TXT_LOFFS, 
+            MAP_HTRK_STG_TXT_VOFFS};
+        std::string htk_st_txt = "";
+        if(is_trk_up)
+            htk_st_txt = ND_TRKUP;
+        else
+            htk_st_txt = ND_HDGUP;
+        cairo_utils::draw_centered_text(cr, font_face, htk_st_txt, scr_pos+size*pos_htk, 
+            cairo_utils::GREEN, MAP_HTRK_STG_FONT_SZ);
+        cairo_utils::draw_centered_text(cr, font_face, "MAG", scr_pos+size*pos_tmg, 
+            cairo_utils::GREEN, MAP_HTRK_STG_FONT_SZ);
+    }
+
     void NDDisplay::draw_htrk_line(cairo_t *cr, bool is_inn)
     {
         double rot_rad = 0;
@@ -868,7 +892,7 @@ namespace StratosphereAvionics
             {
                 cairo_surface_t *map_hdg_surf = tex_mngr->data[MAP_HDG_NAME];
                 geom::vect2_t scale_hdg = (size / cairo_utils::get_surf_sz(map_hdg_surf)).scmul(1.41);
-                geom::vect2_t hdg_pos = scr_pos+map_ctr+size*MAP_HDG_OFFS;
+                geom::vect2_t hdg_pos = scr_pos+map_ctr;
                 cairo_utils::draw_rotated_image(cr, 
                     map_hdg_surf, hdg_pos, scale_hdg, nd_data->get_hdg_trk());
                 cairo_surface_t *htrk_box = tex_mngr->data[HTRK_BOX_NAME];
@@ -877,6 +901,7 @@ namespace StratosphereAvionics
                 double hht = box_sz.y*0.5*scale_box.y;
                 geom::vect2_t box_pos = scr_pos+geom::vect2_t{size.x/2, hht};
                 cairo_utils::draw_image(cr, htrk_box, box_pos, scale_box, true);
+                draw_htrk(cr);
             }
             draw_htrk_line(cr, draw_inner);
         }
