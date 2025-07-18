@@ -36,7 +36,7 @@ namespace test
         PLAN
     };
 
-    constexpr NDMode DFLT_ND_MODE = NDMode::PLAN;
+    constexpr NDMode DFLT_ND_MODE = NDMode::MAP;
 
     const std::string AC_LAT_DEG_VAR = "ac_lat_deg";
     const std::string AC_LON_DEG_VAR = "ac_lon_deg";

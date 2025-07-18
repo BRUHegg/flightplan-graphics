@@ -29,7 +29,7 @@ namespace StratosphereAvionics
     constexpr double ND_DEFAULT_RNG_NM = 10;
     // Percentage of resolution that translates into full range:
     static std::unordered_map<test::NDMode, double, util::enum_class_hash_t> ND_RNG_FULL_RES_COEFF = {
-        {test::NDMode::MAP, 0.76},
+        {test::NDMode::MAP, 0.7},
         {test::NDMode::PLAN, 0.4}
     };
     // Percentage of horisontal resolution that translates into runway width
@@ -63,9 +63,13 @@ namespace StratosphereAvionics
     // Percentage of horisontal resolution that translates into magenta line width
     constexpr double ND_FPL_LINE_THICK = 0.0042;
     constexpr double ND_PRJ_CTR_V_OFFS_PLAN = 0.01; // Offset from the display center
-    constexpr double ND_PRJ_CTR_V_OFFS_MAP = 0.345; // Offset from the display center
-    constexpr double MAP_TRK_LN_LN_INN = 0.754;
+    constexpr double ND_PRJ_CTR_V_OFFS_MAP = 0.296; // Offset from the display center
+    constexpr double MAP_TRK_LN_LN_INN = 0.706;
     constexpr double MAP_TRK_LN_LN_OUT = 0.025;
+    constexpr double MAP_HTRK_FONT_SZ = 51;
+    constexpr double MAP_HTRK_STG_TXT_LOFFS = 0.1;
+    constexpr double MAP_HTRK_STG_TXT_VOFFS = 0.033;
+    constexpr double MAP_HTRK_STG_FONT_SZ = 38;
     // Route drawing
     constexpr geom::vect2_t FIX_NAME_OFFS = {0.02, 0.03};
     const std::vector<geom::vect3_t> ND_RTE_CLRS = {cairo_utils::WHITE, 
@@ -81,13 +85,18 @@ namespace StratosphereAvionics
     constexpr geom::vect2_t TAS_OFFS = {0.15, 0.034};
     constexpr geom::vect2_t TAS_TEXT_OFFS = {0.079, 0.034};
     // General:
-    constexpr geom::vect2_t MAP_HDG_OFFS = {0, -0.049};
-    constexpr geom::vect2_t MAP_AC_TRI_SC = {1.5, 1.5};
-    constexpr geom::vect2_t MAP_HTK_BOX_SC = {0.04, 0.076};
+    constexpr geom::vect2_t MAP_AC_TRI_SC = {2, 2};
+    constexpr geom::vect2_t MAP_HTK_BOX_SC = {0.034, 0.073};
+    constexpr geom::vect2_t MAP_HTK_TXT_POS = {0.5, 0.029};
 
     constexpr geom::vect3_t ND_BCKGRND_CLR = cairo_utils::BLACK;
 
-
+    // Names for the UI logic
+    const std::string ND_TRKUP = "TRK";
+    const std::string ND_HDGUP = "HDG";
+    const std::string ND_HTRK_MAG = "MAG";
+    const std::string ND_HTRK_TRU = "TRU";
+    // Texture names(for use with texture manager)
     const std::string WPT_INACT_NAME = "wpt_inact";
     const std::string WPT_ACT_NAME = "wpt_act";
     const std::string AIRPLANE_NAME = "airplane";
@@ -295,6 +304,8 @@ namespace StratosphereAvionics
         void draw_all_fplns(cairo_t *cr);
 
         void draw_airplane(cairo_t *cr);
+
+        void draw_htrk(cairo_t *cr);
 
         void draw_htrk_line(cairo_t *cr, bool is_inn);
 
