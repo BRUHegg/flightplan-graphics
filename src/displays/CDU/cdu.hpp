@@ -87,7 +87,8 @@ namespace StratosphereAvionics
     constexpr size_t N_LEG_ALTCSTR_MN_LN = 2;
 
     constexpr double CDU_RES_COEFF = 1.0 / 900.0;
-    constexpr double CDU_V_OFFS_FIRST = 0.095;
+    constexpr double CDU_V_OFFS_FIRST_SM = 0.082;
+    constexpr double CDU_V_OFFS_FIRST_BIG = 0.095;
     constexpr double CDU_V_OFFS_SMALL_FIRST = 0.027;
     constexpr double CDU_V_OFFS_REG = 0.134; // * screen height
     constexpr double CDU_SMALL_TEXT_OFFS_X = 0.003;
@@ -122,7 +123,7 @@ namespace StratosphereAvionics
     constexpr geom::vect2_t DISPLAY_OFFS = {0.14, 0.068};
     constexpr geom::vect2_t DISPLAY_SZ = {0.9, 0.378};
     constexpr geom::vect2_t CDU_SMALL_TEXT_SZ = {0.7, 0.7};
-    constexpr geom::vect2_t CDU_BIG_TEXT_SZ = {0.9, 0.96};
+    constexpr geom::vect2_t CDU_BIG_TEXT_SZ = {0.84, 0.87};
 
     constexpr geom::vect2_t EXEC_LT_POS = {0.793, 0.582 * 0.964};
     constexpr geom::vect2_t EXEC_LT_SZ = {0.08 * 1.2 * 0.75, 

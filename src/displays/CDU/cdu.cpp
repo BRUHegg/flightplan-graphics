@@ -1799,6 +1799,8 @@ namespace StratosphereAvionics
         std::string dep = c_fpl->get_dep_icao();
         cdu_scr_data_t out = {};
         fill_char_state_buf(out);
+        for(size_t i = 9; i < 14; i++)
+            out.chr_sts[0][i] = CDU_B_WHITE;
 
         out.heading_small = get_small_heading();
         out.heading_big = "   " + dep + " DEPARTURES";
@@ -1839,6 +1841,8 @@ namespace StratosphereAvionics
         std::string arr = c_fpl->get_arr_icao();
         cdu_scr_data_t out = {};
         fill_char_state_buf(out);
+        for(size_t i = 9; i < 14; i++)
+            out.chr_sts[0][i] = CDU_B_WHITE;
 
         out.heading_small = get_small_heading();
         out.heading_big = "   " + arr + " ARRIVALS";
@@ -2288,9 +2292,9 @@ namespace StratosphereAvionics
     {
         geom::vect2_t offs_hdg_small = {0, disp_size.y * CDU_V_OFFS_SMALL_FIRST};
         geom::vect2_t pos_hdg_small = disp_pos + offs_hdg_small;
-        geom::vect2_t small_offs = {0, disp_size.y * CDU_V_OFFS_FIRST};
+        geom::vect2_t small_offs = {0, disp_size.y * CDU_V_OFFS_FIRST_SM};
         geom::vect2_t pos_small = disp_pos + small_offs;
-        geom::vect2_t big_offs = {0, disp_size.y * (CDU_BIG_TEXT_OFFS + CDU_V_OFFS_FIRST)};
+        geom::vect2_t big_offs = {0, disp_size.y * (CDU_BIG_TEXT_OFFS + CDU_V_OFFS_FIRST_BIG)};
         geom::vect2_t pos_big = disp_pos + big_offs;
 
         cdu_scr_data_t curr_screen = cdu_ptr->get_screen_data();
