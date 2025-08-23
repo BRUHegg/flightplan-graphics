@@ -32,6 +32,12 @@ namespace StratosphereAvionics
         {test::NDMode::MAP, 0.7},
         {test::NDMode::PLAN, 0.4}
     };
+    // Arc angles for TFC rings
+    const std::vector<std::pair<double, double>> ND_MAP_TFC_ARC_ANGLES = {{0, 0}, 
+        {1/M_1_PI,  2/M_1_PI},
+        {1/M_1_PI,  2/M_1_PI},
+        {1.2/M_1_PI,  1.8/M_1_PI}};
+    constexpr int N_MAP_TRK_DASH = 4;
     // Percentage of horisontal resolution that translates into runway width
     constexpr double DEFAULT_RWY_WIDTH = 0.015;
     // Percentage of horisontal resolution that translates into thikness of runway 
@@ -70,6 +76,8 @@ namespace StratosphereAvionics
     constexpr double MAP_HTRK_STG_TXT_LOFFS = 0.1;
     constexpr double MAP_HTRK_STG_TXT_VOFFS = 0.033;
     constexpr double MAP_HTRK_STG_FONT_SZ = 38;
+    constexpr double MAP_TRK_DASH_OFFS = 0.01;
+    constexpr double MAP_HDG_TRI_VOFFS = 0.718;
     // Route drawing
     constexpr geom::vect2_t FIX_NAME_OFFS = {0.02, 0.03};
     const std::vector<geom::vect3_t> ND_RTE_CLRS = {cairo_utils::WHITE, 
@@ -88,6 +96,8 @@ namespace StratosphereAvionics
     constexpr geom::vect2_t MAP_AC_TRI_SC = {2, 2};
     constexpr geom::vect2_t MAP_HTK_BOX_SC = {0.034, 0.073};
     constexpr geom::vect2_t MAP_HTK_TXT_POS = {0.5, 0.029};
+    constexpr geom::vect2_t MAP_HDG_TRI_SC = {1, 0.8};
+    constexpr geom::vect2_t MAP_RNG_OFFS = {-0.014, -0.012};
 
     constexpr geom::vect3_t ND_BCKGRND_CLR = cairo_utils::BLACK;
 
@@ -271,7 +281,7 @@ namespace StratosphereAvionics
 
         bool is_trk_up;
         test::NDMode cr_md;
-        bool is_ctr;
+        bool is_ctr, has_tfc;
 
         cairo_font_face_t* font_face;
 
@@ -307,7 +317,11 @@ namespace StratosphereAvionics
 
         void draw_htrk(cairo_t *cr);
 
-        void draw_htrk_line(cairo_t *cr, bool is_inn);
+        void draw_hdg_tri(cairo_t *cr);
+
+        void draw_trk_line(cairo_t *cr, bool is_inn);
+
+        void draw_tfc_arcs(cairo_t *cr);
 
         void draw_background(cairo_t *cr, bool draw_inner);
 
