@@ -250,6 +250,8 @@ namespace cairo_utils
         cairo_restore(cr);
     }
 
+    // Rotation relative to the center
+
     inline void draw_rotated_image(cairo_t* cr, cairo_surface_t *surf, geom::vect2_t pos, 
         geom::vect2_t scale, double rot_ang_rad)
     {
