@@ -364,6 +364,10 @@ namespace test
                 StratosphereAvionics::MAP_AC_TRI_NAME,
                 StratosphereAvionics::MAP_HDG_NAME,
                 StratosphereAvionics::HTRK_BOX_NAME,
+                StratosphereAvionics::ARPT_NML_POI_NAME,
+                StratosphereAvionics::ARPT_ALTN_POI_NAME,
+                StratosphereAvionics::VORDME_POI_NAME,
+                StratosphereAvionics::DME_POI_NAME,
                 
                 StratosphereAvionics::CDU_TEXTURE_NAME,
                 StratosphereAvionics::CDU_WHITE_TEXT_NAME,
@@ -413,6 +417,9 @@ namespace test
                 earth_nav_path+"earth_hold.dat", earth_nav_path+"CIFP", fpl_dir);
 
             nd_data = std::make_shared<StratosphereAvionics::NDData>(avncs->fpl_sys);
+            if(!nd_data->init()){
+                throw "Failed to allocate nd_data\n";
+            }
             nd_display = std::make_shared<StratosphereAvionics::NDDisplay>(
                 nd_data, tex_mngr, boeing_font_face, ND_POS, ND_SZ, 0);
             cdu_l = std::make_shared<StratosphereAvionics::CDU>(avncs->fpl_sys, 0);
