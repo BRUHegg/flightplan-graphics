@@ -12,6 +12,160 @@
 
 namespace StratosphereAvionics
 {
+    bool poi_data_t::init_ptr(labeled_point_with_dist_t** ptr){
+        labeled_point_with_dist_t* p_new = new 
+            labeled_point_with_dist_t[N_EFIS_TYPE_CACHE_SZ];
+        *ptr = p_new;
+        if(p_new == nullptr){
+            return false;
+        }
+        return true;
+    }
+
+    bool poi_data_t::init(){
+        bool ret = init_ptr(&arpts) && init_ptr(&waypts) && 
+            init_ptr(&vors_dmes) && init_ptr(&vordmes);
+        if(!ret){
+            destroy();
+        }
+        return ret;
+    }
+
+    void poi_data_t::destroy(){
+        delete[] arpts;
+        delete[] waypts;
+        delete[] vors_dmes;
+        delete[] vordmes;
+        n_arpts = 0;
+        n_waypts = 0;
+        n_vors_dmes = 0;
+        n_vordmes = 0;
+    }
+
+    bool labeled_point_with_dist_cmp_t::operator()(
+        const labeled_point_with_dist_t& pa, 
+        const labeled_point_with_dist_t& pb){
+        return pa.dist_ctr < pb.dist_ctr;
+    }
+
+    // map_poi_container_t definitions:
+    map_poi_container_t::map_poi_container_t(
+        std::shared_ptr<libnav::ArptDB> arpt_ptr, 
+        std::shared_ptr<libnav::NavaidDB> navaid_ptr){
+        arpt_db_ptr = arpt_ptr;
+        navaid_db_ptr = navaid_ptr;
+    }
+
+    void map_poi_container_t::set_add(
+        std::set<labeled_point_with_dist_t, 
+        labeled_point_with_dist_cmp_t>& st, 
+        labeled_point_with_dist_t& pt){
+        if(st.size() == N_EFIS_TYPE_CACHE_SZ && 
+            pt.dist_ctr < st.rbegin()->dist_ctr){
+            st.erase(*st.rbegin());
+        }
+        if(st.size() == N_EFIS_TYPE_CACHE_SZ){
+            return;
+        }
+        st.insert(pt);
+    }
+
+    void map_poi_container_t::set_to_array(
+        std::set<labeled_point_with_dist_t, 
+        labeled_point_with_dist_cmp_t>& st,
+        labeled_point_with_dist_t* arr, size_t* arr_sz){
+        *arr_sz = 0;
+        for(auto i: st){
+            arr[*arr_sz] = i;
+            *arr_sz = *arr_sz + 1;
+        }
+    }
+
+    void map_poi_container_t::project_array(labeled_point_with_dist_t* src, 
+            labeled_point_with_dist_t* dst, size_t sz, size_t* sz_tgt,
+            geo::point curr_pos, double rot_rad){
+        for(size_t i = 0; i < sz; i++){
+            geo::point src_pos = {src[i].point.pos.x, src[i].point.pos.y};
+            double dist = curr_pos.get_gc_dist_nm(src_pos);
+            double brng = curr_pos.get_gc_bearing_rad(src_pos)+rot_rad;
+            dst[i].point.pos = geom::get_projection(brng, dist);
+            dst[i].point.name = src[i].point.name;
+            dst[i].dist_ctr = dist;
+        }
+        *sz_tgt = sz;
+    }
+
+    void map_poi_container_t::fetch_arpts(geo::point curr_pos){
+        std::set<labeled_point_with_dist_t, 
+        labeled_point_with_dist_cmp_t> st;
+        for(auto i: arpt_db_ptr->get_arpt_db()){
+            double dist = curr_pos.get_gc_dist_nm(i.second.pos);
+            if(dist > ND_RANGES_NM.back()){
+                continue;
+            } else if(n_arpts == N_EFIS_TYPE_CACHE_SZ){
+                break;
+            }
+            labeled_point_with_dist_t curr = {{{
+                i.second.pos.lat_rad, i.second.pos.lon_rad}, i.first}, 
+                dist};
+            set_add(st, curr);
+        }
+        set_to_array(st, arpts, &n_arpts);
+    }
+
+    void map_poi_container_t::fetch_navaids(geo::point curr_pos){
+        std::set<labeled_point_with_dist_t, labeled_point_with_dist_cmp_t> st_wpt;
+        std::set<labeled_point_with_dist_t, labeled_point_with_dist_cmp_t> st_vd;
+        std::set<labeled_point_with_dist_t, labeled_point_with_dist_cmp_t> st_v_d;
+
+        for(auto i: navaid_db_ptr->get_db()){
+            for(auto j: i.second){
+                double dist = curr_pos.get_gc_dist_nm(j.pos);
+                if(dist > ND_RANGES_NM.back()){
+                    continue;
+                }
+                std::set<labeled_point_with_dist_t, 
+                    labeled_point_with_dist_cmp_t>* tgt_ptr = nullptr;
+
+                if(int(j.type) & int(libnav::NavaidType::WAYPOINT)){
+                    tgt_ptr = &st_wpt;
+                } else if(int(j.type) & (int(libnav::NavaidType::VOR_DME)+
+                    int(libnav::NavaidType::ILS_DME))){
+                    tgt_ptr = &st_vd;
+                } else if(int(j.type) & (int(libnav::NavaidType::VHF_NAVAID))) {
+                    tgt_ptr = &st_v_d;
+                }
+
+                if(tgt_ptr == nullptr){
+                    continue;
+                }
+                labeled_point_with_dist_t curr = {{{j.pos.lat_rad, 
+                    j.pos.lon_rad}, i.first}, dist};
+                set_add(*tgt_ptr, curr);
+            }
+        }
+        set_to_array(st_wpt, waypts, &n_waypts);
+        set_to_array(st_v_d, vordmes, &n_vordmes);
+        set_to_array(st_vd, vors_dmes, &n_vors_dmes);
+    }
+
+    void map_poi_container_t::fetch(geo::point curr_pos){
+        fetch_arpts(curr_pos);
+        fetch_navaids(curr_pos);
+    }
+
+    void map_poi_container_t::project(poi_data_t& tgt, 
+        geo::point curr_pos, double rot_add_rad){
+        project_array(arpts, tgt.arpts, n_arpts, 
+            &tgt.n_arpts, curr_pos, rot_add_rad);
+        project_array(waypts, tgt.waypts, n_waypts, 
+            &tgt.n_waypts, curr_pos, rot_add_rad);
+        project_array(vordmes, tgt.vordmes, n_vordmes,  
+            &tgt.n_vordmes, curr_pos, rot_add_rad);
+        project_array(vors_dmes, tgt.vors_dmes, n_vors_dmes, 
+            &tgt.n_vors_dmes, curr_pos, rot_add_rad);
+    }
+
     // leg_proj_t definitions:
 
     std::string leg_proj_t::get_draw_nm()
@@ -31,12 +185,20 @@ namespace StratosphereAvionics
 
     // map_data_t definitions:
 
-    void map_data_t::create()
+    bool map_data_t::create()
     {
         proj_legs = new leg_proj_t[N_PROJ_CACHE_SZ];
+        if(proj_legs == nullptr){
+            return false;
+        }
         line_joints = new geom::line_joint_t[N_LN_JOINT_CACHE_SZ];
+        if(line_joints == nullptr){
+            return false;
+        }
         n_act_proj_legs = 0;
         n_act_joints = 0;
+
+        return true;
     }
 
     void map_data_t::destroy()
@@ -51,27 +213,23 @@ namespace StratosphereAvionics
 
     // Public member functions:
 
-    NDData::NDData(std::shared_ptr<test::FPLSys> fpl_sys)
+    NDData::NDData(std::shared_ptr<test::FPLSys> fpl_sys) : 
+        m_poi_data(fpl_sys->arpt_db_ptr, fpl_sys->navaid_db_ptr)
     {
         m_fpl_sys_ptr = fpl_sys;
         m_fpl_vec = fpl_sys->fpl_vec;
 
-        trk_up = true;
+        m_trk_up = true;
 
         m_leg_data = std::vector<test::nd_leg_data_t*>(test::N_FPL_SYS_RTES);
         m_leg_data_sz = std::vector<size_t>(test::N_FPL_SYS_RTES, 0);
-        for(size_t i = 0; i < test::N_FPL_SYS_RTES; i++)
-            m_leg_data[i] = new test::nd_leg_data_t[N_LEG_PROJ_CACHE_SZ];
+        
         
         m_rte_draw_seq = std::vector<std::vector<int>>(N_ND_SDS, 
             std::vector<int>(test::N_FPL_SYS_RTES, V_RTE_NOT_DRAWN));
 
         m_mp_data = std::vector<map_data_t>(N_MP_DATA_SZ);
         m_act_leg_idx_sd = std::vector<int>(N_MP_DATA_SZ, 0);
-        for(size_t i = 0; i < N_MP_DATA_SZ; i++)
-        {
-            m_mp_data[i].create();
-        }
 
         cr_mds = std::vector<std::pair<test::NDMode, bool>>(N_ND_SDS, 
             {test::DFLT_ND_MODE, false});
@@ -87,17 +245,61 @@ namespace StratosphereAvionics
         m_has_dep_rwy = std::vector<bool>(test::N_FPL_SYS_RTES, false);
         m_has_arr_rwy = std::vector<bool>(test::N_FPL_SYS_RTES, false);
 
+        m_efis_sel = std::vector<efis_selection_t>(N_ND_SDS, 
+            efis_selection_t{});
+
+        m_idx_proj_act = false;
+        m_pois_projected[0] = {};
+        m_pois_projected[1] = {};
+
         m_act_leg_idx = std::vector<int>(test::N_FPL_SYS_RTES, -1);
+        m_ac_pos_last = {N_MAX_DIST_NM, N_MAX_DIST_NM};
+    }
+
+    bool NDData::init(){
+        for(size_t i = 0; i < test::N_FPL_SYS_RTES; i++) {
+            m_leg_data[i] = new test::nd_leg_data_t[N_LEG_PROJ_CACHE_SZ];
+            if(m_leg_data[i] == nullptr){
+                destroy();
+                return false;
+            }
+        }
+        for(size_t i = 0; i < N_MP_DATA_SZ; i++) {
+            if(!m_mp_data[i].create()){
+                destroy();
+                return false;
+            }
+        }
+        if(!m_poi_data.init() || 
+            !m_pois_projected[0].init() || !m_pois_projected[1].init()){
+            return false;
+        }
+        return true;
     }
 
     void NDData::set_th_up()
     {
-        trk_up = !trk_up;
+        m_trk_up = !m_trk_up;
     }
 
     bool NDData::get_th_up()
     {
-        return trk_up;
+        return m_trk_up;
+    }
+
+    void NDData::toggle_efis_arpt_sd(size_t sd_idx){
+        assert(sd_idx < N_ND_SDS);
+        m_efis_sel[sd_idx].arpt_on = !m_efis_sel[sd_idx].arpt_on;
+    }
+
+    void NDData::toggle_efis_sta_sd(size_t sd_idx){
+        assert(sd_idx < N_ND_SDS);
+        m_efis_sel[sd_idx].sta_on = !m_efis_sel[sd_idx].sta_on;
+    }
+
+    efis_selection_t NDData::get_efis_sts_sd(size_t sd_idx){
+        assert(sd_idx < N_ND_SDS);
+        return m_efis_sel[sd_idx];
     }
 
     void NDData::set_mode(size_t sd_idx, test::NDMode md, bool set_ctr)
@@ -192,6 +394,46 @@ namespace StratosphereAvionics
         return ND_RANGES_NM[m_rng_idx[sd_idx]];
     }
 
+    // POI functions
+
+    size_t NDData::get_num_poi_arpts(){
+        return m_poi_data.n_arpts;
+    }
+
+    size_t NDData::get_num_poi_waypts(){
+        return m_poi_data.n_waypts;
+    }
+
+    size_t NDData::get_num_poi_vordmes(){
+        return m_poi_data.n_vordmes;
+    }
+
+    size_t NDData::get_num_poi_vhf_not_vordmes(){
+        return m_poi_data.n_vors_dmes;
+    }
+
+    // Get ith POI
+
+    labeled_point_with_dist_t NDData::get_arpt(size_t i){
+        assert(i < m_pois_projected[m_idx_proj_act].n_arpts);
+        return m_pois_projected[m_idx_proj_act].arpts[i];
+    }
+
+    labeled_point_with_dist_t NDData::get_waypt(size_t i){
+        assert(i < m_pois_projected[m_idx_proj_act].n_waypts);
+        return m_pois_projected[m_idx_proj_act].waypts[i];
+    }
+
+    labeled_point_with_dist_t NDData::get_vordme(size_t i){
+        assert(i < m_pois_projected[m_idx_proj_act].n_vordmes);
+        return m_pois_projected[m_idx_proj_act].vordmes[i];
+    }
+
+    labeled_point_with_dist_t NDData::get_vhf_not_vordme(size_t i){
+        assert(i < m_pois_projected[m_idx_proj_act].n_vors_dmes);
+        return m_pois_projected[m_idx_proj_act].vors_dmes[i];
+    }
+
     void NDData::update()
     {
         m_hdg_data = m_fpl_sys_ptr->get_hdg_info();
@@ -203,14 +445,26 @@ namespace StratosphereAvionics
         }
         for(size_t i = 0; i < test::N_FPL_SYS_RTES; i++)
             update_fpl(i);
+        geo::point curr_pos = m_fpl_sys_ptr->get_ac_pos();
+        double abs_diff = abs(curr_pos.lat_rad-m_ac_pos_last.lat_rad)+
+            abs(curr_pos.lon_rad-m_ac_pos_last.lon_rad);
+        if(abs_diff > EFIS_REFRESH_ABSD){
+            m_poi_data.fetch(curr_pos);
+        }
+        m_poi_data.project(m_pois_projected[!m_idx_proj_act], curr_pos, get_cr_rot());
+        m_idx_proj_act = !m_idx_proj_act;
+        m_ac_pos_last = curr_pos;
     }
 
-    NDData::~NDData()
+    void NDData::destroy()
     {
         for(size_t i = 0; i < test::N_FPL_SYS_RTES; i++)
             delete[] m_leg_data[i];
         for(size_t i = 0; i < N_MP_DATA_SZ; i++)
             m_mp_data[i].destroy();
+        m_pois_projected[0].destroy();
+        m_pois_projected[1].destroy();
+        m_poi_data.destroy();
     }
 
     // Private member functions:
@@ -232,7 +486,7 @@ namespace StratosphereAvionics
 
     double NDData::get_cr_rot() const
     {
-        if(trk_up)
+        if(m_trk_up)
             return -(m_hdg_data.brng_tru_rad+m_hdg_data.magvar_rad);
         return -(m_hdg_data.brng_tru_rad+m_hdg_data.magvar_rad+m_hdg_data.slip_rad);
     }
@@ -531,8 +785,9 @@ namespace StratosphereAvionics
         side_idx = sd_idx;
 
         is_trk_up = nd_data->get_th_up();
-        is_ctr = 0;
-        has_tfc = 0;
+        is_ctr = false;
+        has_tfc = false;
+        efis_sel = {};
         rng = nd_data->get_range(side_idx);
     }
 
@@ -546,6 +801,7 @@ namespace StratosphereAvionics
         cairo_utils::draw_rect(cr, scr_pos, size, ND_BCKGRND_CLR);
 
         draw_background(cr, true);
+        draw_efis_filters(cr);
         draw_all_fplns(cr);
         draw_airplane(cr);
 
@@ -564,6 +820,7 @@ namespace StratosphereAvionics
         std::pair<test::NDMode, bool> md_dt = nd_data->get_mode(side_idx);
         cr_md = md_dt.first;
         is_ctr = md_dt.second;
+        efis_sel = nd_data->get_efis_sts_sd(side_idx);
     }
 
     void NDDisplay::update_map_params()
@@ -1046,5 +1303,68 @@ namespace StratosphereAvionics
             cairo_utils::draw_right_text(cr, font_face, rng_half_str,
                                         pos_2_up+offs, cairo_utils::WHITE, ND_WPT_FONT_SZ);
         }  
+    }
+
+    void NDDisplay::draw_airports(cairo_t *cr){
+        cairo_surface_t *surf_norm = tex_mngr->data[ARPT_NML_POI_NAME];
+        cairo_surface_t *surf_altn = tex_mngr->data[ARPT_ALTN_POI_NAME];
+        for(size_t i = 0; i < nd_data->get_num_poi_arpts(); i++){
+            labeled_point_with_dist_t cr_point = nd_data->get_arpt(i);
+            if(cr_point.dist_ctr > curr_rng){
+                break;
+            }
+            if(i < N_EFIS_MAP_ALTN_APTS){
+                draw_labeled_point(cr, surf_altn, cr_point.point, EFIS_ARPT_SC);
+            } else {
+                draw_labeled_point(cr, surf_norm, cr_point.point, EFIS_ARPT_SC);
+            }
+        }
+    }
+
+    void NDDisplay::draw_vordmes(cairo_t *cr){
+        cairo_surface_t *tgt_surf = tex_mngr->data[VORDME_POI_NAME];
+        for(size_t i = 0; i < nd_data->get_num_poi_vordmes(); i++){
+            labeled_point_with_dist_t cr_point = nd_data->get_vordme(i);
+            if(cr_point.dist_ctr > curr_rng){
+                break;
+            }
+            draw_labeled_point(cr, tgt_surf, cr_point.point, EFIS_VHF_SC);
+        }
+    }
+
+    void NDDisplay::draw_vors_dmes(cairo_t *cr){
+        cairo_surface_t *tgt_surf = tex_mngr->data[DME_POI_NAME];
+        for(size_t i = 0; i < nd_data->get_num_poi_vhf_not_vordmes(); i++){
+            labeled_point_with_dist_t cr_point = nd_data->get_vhf_not_vordme(i);
+            if(cr_point.dist_ctr > curr_rng){
+                break;
+            }
+            draw_labeled_point(cr, tgt_surf, cr_point.point, EFIS_VHF_SC);
+        }
+    }
+
+    void NDDisplay::draw_efis_filters(cairo_t *cr){
+        if(cr_md == test::NDMode::MAP){
+            if(efis_sel.arpt_on){
+                draw_airports(cr);
+            }
+            if(efis_sel.sta_on){
+                draw_vordmes(cr);
+                draw_vors_dmes(cr);
+            }
+        }
+    }
+
+    void NDDisplay::draw_labeled_point(cairo_t *cr, cairo_surface_t *img, 
+        labeled_point_t& src_point, double img_scale){
+        geom::vect2_t pos_local = get_screen_coords(src_point.pos);
+        geom::vect2_t scale_fact_vec = size.scmul(img_scale).scdiv(WPT_SCALE_FACT);
+        geom::vect2_t img_sz = cairo_utils::get_surf_sz(img) * scale_fact_vec;
+        geom::vect2_t pos_text = pos_local+img_sz.scmul(0.5);
+        double sc_fact_txt = size.x / WPT_SCALE_FACT;
+        cairo_utils::draw_image(cr, img, pos_local, 
+            scale_fact_vec, true);
+        cairo_utils::draw_left_text(cr, font_face, src_point.name, pos_text, 
+            cairo_utils::ND_CYAN, EFIS_POI_NAME_FNT_SZ * sc_fact_txt);
     }
 } // namespace StratosphereAvionics

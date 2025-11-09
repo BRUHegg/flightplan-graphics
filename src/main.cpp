@@ -49,6 +49,14 @@ gboolean keypress_handler(GtkWidget *widget, GdkEventKey *event, gpointer data) 
     {
         cmdint->nd_data->set_mode(0, test::NDMode::PLAN);
     }
+    else if(event->keyval == GDK_KEY_a || event->keyval == GDK_KEY_A)
+    {
+        cmdint->nd_data->toggle_efis_arpt_sd(0);
+    }
+    else if(event->keyval == GDK_KEY_s || event->keyval == GDK_KEY_S)
+    {
+        cmdint->nd_data->toggle_efis_sta_sd(0);
+    }
     else if(event->keyval == GDK_KEY_z || event->keyval == GDK_KEY_Z)
     {
         cmdint->nd_data->set_th_up();

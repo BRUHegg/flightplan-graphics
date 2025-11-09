@@ -18,6 +18,13 @@
 
 namespace StratosphereAvionics
 {
+    enum class PoiType{
+        AIRPORT,
+        WAYPOINT,
+        VOR_ILS_DME,
+        VHF_NOT_VORDME
+    };
+
     constexpr size_t N_LEG_PROJ_CACHE_SZ = 200;
     constexpr size_t N_LN_JOINT_CACHE_SZ = N_LEG_PROJ_CACHE_SZ - 1;
     constexpr size_t N_PROJ_CACHE_SZ = 202;
@@ -25,7 +32,9 @@ namespace StratosphereAvionics
     constexpr size_t ARR_RWY_PROJ_IDX = N_PROJ_CACHE_SZ-1;
     constexpr size_t N_ND_SDS = test::N_INTFCS; // Essentially this is how many NDs we can have
     constexpr size_t N_MP_DATA_SZ = N_ND_SDS*test::N_FPL_SYS_RTES;
-    constexpr double N_MAX_DIST_NM = 600;
+    constexpr size_t N_EFIS_TYPE_CACHE_SZ = 150; // Number of fetched POIs per type
+    constexpr size_t N_EFIS_MAP_ALTN_APTS = 4;
+    constexpr double N_MAX_DIST_NM = 640;
     constexpr double ND_DEFAULT_RNG_NM = 10;
     // Percentage of resolution that translates into full range:
     static std::unordered_map<test::NDMode, double, util::enum_class_hash_t> ND_RNG_FULL_RES_COEFF = {
@@ -78,6 +87,11 @@ namespace StratosphereAvionics
     constexpr double MAP_HTRK_STG_FONT_SZ = 38;
     constexpr double MAP_TRK_DASH_OFFS = 0.01;
     constexpr double MAP_HDG_TRI_VOFFS = 0.718;
+    // EFIS filters:
+    constexpr double EFIS_REFRESH_ABSD = 0.012; // Corresponds to a distance of about 20 nm
+    constexpr double EFIS_POI_NAME_FNT_SZ = ND_WPT_FONT_SZ;
+    constexpr double EFIS_ARPT_SC = 0.3;
+    constexpr double EFIS_VHF_SC = EFIS_ARPT_SC*4.0/3.0;
     // Route drawing
     constexpr geom::vect2_t FIX_NAME_OFFS = {0.02, 0.03};
     const std::vector<geom::vect3_t> ND_RTE_CLRS = {cairo_utils::WHITE, 
@@ -116,6 +130,10 @@ namespace StratosphereAvionics
     const std::string MAP_HDG_NAME = "map_hdg";
     const std::string MAP_AC_TRI_NAME  = "map_ac_ico";
     const std::string HTRK_BOX_NAME = "hdg_trk_box";
+    const std::string ARPT_NML_POI_NAME = "normal_arpt_sign";
+    const std::string ARPT_ALTN_POI_NAME = "altn_arpt_sign";
+    const std::string DME_POI_NAME = "dme";
+    const std::string VORDME_POI_NAME = "vordme";
 
     const std::vector<double> ND_RANGES_NM = {10, 20, 40, 80, 160, 320, 640};
     // Only the supported modes are in ND_MDS
@@ -126,7 +144,71 @@ namespace StratosphereAvionics
 
     struct nd_util_idx_t
     {
-        size_t sd_idx, dt_idx;
+        size_t sd_idx = 0;
+        size_t dt_idx = 0;
+    };
+
+    struct labeled_point_t{
+        geom::vect2_t pos{};
+        std::string name = "";
+    };
+
+    struct labeled_point_with_dist_t{
+        labeled_point_t point;
+        double dist_ctr = 0;
+    };
+
+    struct labeled_point_with_dist_cmp_t{
+        bool operator()(const labeled_point_with_dist_t& pa, 
+            const labeled_point_with_dist_t& pb);
+    };
+    
+
+    struct poi_data_t{
+        size_t n_arpts = 0;
+        size_t n_waypts = 0;
+        size_t n_vors_dmes = 0;
+        size_t n_vordmes = 0;
+        labeled_point_with_dist_t* arpts = nullptr;
+        labeled_point_with_dist_t* waypts = nullptr;
+        labeled_point_with_dist_t* vors_dmes = nullptr;
+        labeled_point_with_dist_t* vordmes = nullptr;
+
+        bool init_ptr(labeled_point_with_dist_t** ptr);
+
+        bool init();        
+
+        void destroy();
+    };
+
+    struct map_poi_container_t: poi_data_t{
+
+        std::shared_ptr<libnav::ArptDB> arpt_db_ptr;
+        std::shared_ptr<libnav::NavaidDB> navaid_db_ptr;
+
+        map_poi_container_t(std::shared_ptr<libnav::ArptDB> arpt_ptr, 
+            std::shared_ptr<libnav::NavaidDB> navaid_ptr);
+
+        void set_add(std::set<labeled_point_with_dist_t, 
+            labeled_point_with_dist_cmp_t>& st, 
+            labeled_point_with_dist_t& pt);
+
+        void set_to_array(
+            std::set<labeled_point_with_dist_t, 
+            labeled_point_with_dist_cmp_t>& st,
+            labeled_point_with_dist_t* arr, size_t* arr_sz);
+
+        void project_array(labeled_point_with_dist_t* src, 
+            labeled_point_with_dist_t* dst, size_t sz, size_t* sz_tgt, 
+            geo::point curr_pos, double rot_rad);
+
+        void fetch_arpts(geo::point curr_pos);
+
+        void fetch_navaids(geo::point curr_pos);
+
+        void fetch(geo::point curr_pos);
+
+        void project(poi_data_t& tgt, geo::point curr_pos, double rot_add_rad=0.0);
     };
 
     struct leg_proj_t
@@ -150,9 +232,14 @@ namespace StratosphereAvionics
         size_t n_act_joints;
 
 
-        void create();
+        bool create();
 
         void destroy();
+    };
+
+    struct efis_selection_t{
+        bool arpt_on = false;
+        bool sta_on = false;
     };
 
 
@@ -160,6 +247,8 @@ namespace StratosphereAvionics
     {
     public:
         NDData(std::shared_ptr<test::FPLSys> fpl_sys);
+
+        bool init();
 
         /*
             Function: set_th_up
@@ -177,6 +266,12 @@ namespace StratosphereAvionics
         */
 
         bool get_th_up();
+
+        void toggle_efis_arpt_sd(size_t sd_idx);
+
+        void toggle_efis_sta_sd(size_t sd_idx);
+
+        efis_selection_t get_efis_sts_sd(size_t sd_idx);
 
         void set_mode(size_t sd_idx, test::NDMode md, bool set_ctr=false);
 
@@ -206,15 +301,37 @@ namespace StratosphereAvionics
 
         double get_range(size_t sd_idx);
 
+        // POI functions
+
+        size_t get_num_poi_arpts();
+
+        size_t get_num_poi_waypts();
+
+        size_t get_num_poi_vordmes();
+
+        size_t get_num_poi_vhf_not_vordmes();
+
+        labeled_point_with_dist_t get_arpt(size_t i);
+
+        labeled_point_with_dist_t get_waypt(size_t i);
+
+        labeled_point_with_dist_t get_vordme(size_t i);
+
+        labeled_point_with_dist_t get_vhf_not_vordme(size_t i);
+
         void update();
 
-        ~NDData();
+        void destroy();
 
     private:
         std::vector<std::shared_ptr<test::FplnInt>> m_fpl_vec;
         std::shared_ptr<test::FPLSys> m_fpl_sys_ptr;
 
-        bool trk_up;
+        bool m_idx_proj_act;
+        poi_data_t m_pois_projected[2];
+        map_poi_container_t m_poi_data;
+
+        bool m_trk_up;
 
         // Of size N_FPL_SYS_RTES
         std::vector<test::nd_leg_data_t*> m_leg_data;
@@ -237,8 +354,10 @@ namespace StratosphereAvionics
         std::vector<bool> m_ac_pos_ok;
         std::vector<size_t> m_rng_idx;
         std::vector<geo::point> m_ctr;
+        std::vector<efis_selection_t> m_efis_sel; 
 
         test::hdg_info_t m_hdg_data;
+        geo::point m_ac_pos_last;
 
 
         static bool bound_check(double x1, double x2, double rng);
@@ -282,6 +401,7 @@ namespace StratosphereAvionics
         bool is_trk_up;
         test::NDMode cr_md;
         bool is_ctr, has_tfc;
+        efis_selection_t efis_sel;
 
         cairo_font_face_t* font_face;
 
@@ -330,5 +450,16 @@ namespace StratosphereAvionics
         void draw_spd_info(cairo_t *cr);
 
         void draw_range(cairo_t *cr);
+
+        void draw_airports(cairo_t *cr);
+
+        void draw_vordmes(cairo_t *cr);
+
+        void draw_vors_dmes(cairo_t *cr);
+
+        void draw_efis_filters(cairo_t *cr);
+
+        void draw_labeled_point(cairo_t *cr, cairo_surface_t *img, 
+            labeled_point_t& src_point, double img_scale);
     };
 } // namespace StratosphereAvionics
