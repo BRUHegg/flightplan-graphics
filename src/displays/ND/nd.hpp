@@ -1,464 +1,347 @@
 /*
-	This project is licensed under
-	Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International Public License (CC BY-NC-SA 4.0).
+        This project is licensed under
+        Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International
+   Public License (CC BY-NC-SA 4.0).
 
-	A SUMMARY OF THIS LICENSE CAN BE FOUND HERE: https://creativecommons.org/licenses/by-nc-sa/4.0/
+        A SUMMARY OF THIS LICENSE CAN BE FOUND HERE:
+   https://creativecommons.org/licenses/by-nc-sa/4.0/
 
-	This source file contains declarations of classes, functions, etc 
-	used in the ND implementation. Author: discord/bruh4096#4512
+        This source file contains declarations of classes, functions, etc
+        used in the ND implementation. Author: discord/bruh4096#4512
 */
 
-#include <fpln/fpln_sys.hpp>
-#include <libnav/str_utils.hpp>
 #include <common/cairo_utils.hpp>
+#include <fpln/fpln_sys.hpp>
 #include <geom.hpp>
-#include <util.hpp>
+#include <libnav/str_utils.hpp>
 #include <memory>
+#include <util.hpp>
+
+namespace StratosphereAvionics {
+enum class PoiType { AIRPORT, WAYPOINT, VOR_ILS_DME, VHF_NOT_VORDME };
+
+// Texture names(for use with texture manager)
+const std::string WPT_INACT_NAME = "wpt_inact";
+const std::string WPT_ACT_NAME = "wpt_act";
+const std::string AIRPLANE_NAME = "airplane";
+const std::string PLN_BACKGND_INNER_NAME = "pln_back_inner";
+const std::string PLN_BACKGND_OUTER_NAME = "pln_back_outer";
+const std::string MAP_BACKGND_NAME = "map_back";
+const std::string MAP_HDG_NAME = "map_hdg";
+const std::string MAP_AC_TRI_NAME = "map_ac_ico";
+const std::string HTRK_BOX_NAME = "hdg_trk_box";
+const std::string ARPT_NML_POI_NAME = "normal_arpt_sign";
+const std::string ARPT_ALTN_POI_NAME = "altn_arpt_sign";
+const std::string DME_POI_NAME = "dme";
+const std::string VORDME_POI_NAME = "vordme";
+
+struct nd_util_idx_t {
+  std::size_t sd_idx = 0;
+  std::size_t dt_idx = 0;
+};
+
+struct labeled_point_t {
+  geom::vect2_t pos{};
+  std::string name = "";
+};
+
+struct labeled_point_with_dist_t {
+  labeled_point_t point;
+  double dist_ctr = 0;
+};
+
+struct labeled_point_with_dist_cmp_t {
+  bool operator()(const labeled_point_with_dist_t& pa,
+                  const labeled_point_with_dist_t& pb) const noexcept;
+};
 
+struct poi_data_t {
+  std::size_t n_arpts = 0;
+  std::size_t n_waypts = 0;
+  std::size_t n_vors_dmes = 0;
+  std::size_t n_vordmes = 0;
+  labeled_point_with_dist_t* arpts = nullptr;
+  labeled_point_with_dist_t* waypts = nullptr;
+  labeled_point_with_dist_t* vors_dmes = nullptr;
+  labeled_point_with_dist_t* vordmes = nullptr;
 
-namespace StratosphereAvionics
-{
-    enum class PoiType{
-        AIRPORT,
-        WAYPOINT,
-        VOR_ILS_DME,
-        VHF_NOT_VORDME
-    };
-
-    constexpr size_t N_LEG_PROJ_CACHE_SZ = 200;
-    constexpr size_t N_LN_JOINT_CACHE_SZ = N_LEG_PROJ_CACHE_SZ - 1;
-    constexpr size_t N_PROJ_CACHE_SZ = 202;
-    constexpr size_t DEP_RWY_PROJ_IDX = N_PROJ_CACHE_SZ-2;
-    constexpr size_t ARR_RWY_PROJ_IDX = N_PROJ_CACHE_SZ-1;
-    constexpr size_t N_ND_SDS = test::N_INTFCS; // Essentially this is how many NDs we can have
-    constexpr size_t N_MP_DATA_SZ = N_ND_SDS*test::N_FPL_SYS_RTES;
-    constexpr size_t N_EFIS_TYPE_CACHE_SZ = 150; // Number of fetched POIs per type
-    constexpr size_t N_EFIS_MAP_ALTN_APTS = 4;
-    constexpr double N_MAX_DIST_NM = 640;
-    constexpr double ND_DEFAULT_RNG_NM = 10;
-    // Percentage of resolution that translates into full range:
-    static std::unordered_map<test::NDMode, double, util::enum_class_hash_t> ND_RNG_FULL_RES_COEFF = {
-        {test::NDMode::MAP, 0.7},
-        {test::NDMode::PLAN, 0.4}
-    };
-    // Arc angles for TFC rings
-    const std::vector<std::pair<double, double>> ND_MAP_TFC_ARC_ANGLES = {{0, 0}, 
-        {1/M_1_PI,  2/M_1_PI},
-        {1/M_1_PI,  2/M_1_PI},
-        {1.2/M_1_PI,  1.8/M_1_PI}};
-    constexpr int N_MAP_TRK_DASH = 4;
-    // Percentage of horisontal resolution that translates into runway width
-    constexpr double DEFAULT_RWY_WIDTH = 0.015;
-    // Percentage of horisontal resolution that translates into thikness of runway 
-    // side line
-    constexpr double RWY_SIDE_THICK = 0.0025;
-    // Length of extended runway center line in nautical miles(one direction)
-    constexpr double N_RWY_EXT_CTR_LINE_NM = 16;
-    // For extended centerline dashes:
-    const double RWY_EXT_CTR_LINE_DASH[] = {9.0, 9.0};
-    constexpr int N_RWY_DASHES  = sizeof(RWY_EXT_CTR_LINE_DASH) / sizeof(RWY_EXT_CTR_LINE_DASH[0]);
-    // For flightplan line dashes:
-    const double FPLN_LN_DASH[] = {9.0, 9.0};
-    constexpr int N_FPLN_DASHES  = sizeof(FPLN_LN_DASH) / sizeof(FPLN_LN_DASH[0]);
-    constexpr int V_RTE_NOT_DRAWN = -1;
-
-
-    constexpr double ND_WPT_FONT_SZ = 23;
-    constexpr double ND_ACT_INFO_MAIN_FONT_SZ = 21;
-    constexpr double ND_ACT_INFO_DIST_FONT_SZ = 19;
-    constexpr double ND_SPD_BIG_FONT_SZ = 26;
-    constexpr double ND_SPD_SMALL_FONT_SZ = 21;
-    constexpr double GS_THRESH_BIG_KTS = 30;
-    constexpr double TAS_DISPL_THRESH_KTS = 100;
-    // Inverse of percentage of resolution that contributes to the scaling factor of waypoint image
-    constexpr double WPT_SCALE_FACT = 900;
-    // Percentage of horizontal resolution that translates into radius of pseudo waypoint label
-    constexpr double PSEUDO_WPT_RADIUS_RAT = 0.007;
-    constexpr double PSEUDO_WPT_THICK_RAT = 0.0025;
-    // Percentage of horisontal resolution that translates into magenta line width
-    constexpr double ND_FPL_LINE_THICK = 0.0042;
-    constexpr double ND_PRJ_CTR_V_OFFS_PLAN = 0.01; // Offset from the display center
-    constexpr double ND_PRJ_CTR_V_OFFS_MAP = 0.296; // Offset from the display center
-    constexpr double MAP_TRK_LN_LN_INN = 0.706;
-    constexpr double MAP_TRK_LN_LN_OUT = 0.025;
-    constexpr double MAP_HTRK_FONT_SZ = 51;
-    constexpr double MAP_HTRK_STG_TXT_LOFFS = 0.1;
-    constexpr double MAP_HTRK_STG_TXT_VOFFS = 0.033;
-    constexpr double MAP_HTRK_STG_FONT_SZ = 38;
-    constexpr double MAP_TRK_DASH_OFFS = 0.01;
-    constexpr double MAP_HDG_TRI_VOFFS = 0.718;
-    // EFIS filters:
-    constexpr double EFIS_REFRESH_ABSD = 0.012; // Corresponds to a distance of about 20 nm
-    constexpr double EFIS_POI_NAME_FNT_SZ = ND_WPT_FONT_SZ;
-    constexpr double EFIS_ARPT_SC = 0.3;
-    constexpr double EFIS_VHF_SC = EFIS_ARPT_SC*4.0/3.0;
-    // Route drawing
-    constexpr geom::vect2_t FIX_NAME_OFFS = {0.02, 0.03};
-    const std::vector<geom::vect3_t> ND_RTE_CLRS = {cairo_utils::WHITE, 
-        cairo_utils::MAGENTA, cairo_utils::ND_CYAN};
-    // Active leg
-    constexpr geom::vect2_t ACT_LEG_NAME_OFFS = {0.911, 0.03};
-    constexpr geom::vect2_t ACT_LEG_TIME_OFFS = {0.911, 0.05};
-    constexpr geom::vect2_t ACT_LEG_DIST_OFFS = {0.911, 0.07};
-    constexpr geom::vect2_t ACT_LEG_NM_OFFS = {0.96, 0.07};
-    // Speed
-    constexpr geom::vect2_t GS_OFFS = {0.061, 0.034};
-    constexpr geom::vect2_t GS_TEXT_OFFS = {0.003, 0.034};
-    constexpr geom::vect2_t TAS_OFFS = {0.15, 0.034};
-    constexpr geom::vect2_t TAS_TEXT_OFFS = {0.079, 0.034};
-    // General:
-    constexpr geom::vect2_t MAP_AC_TRI_SC = {2, 2};
-    constexpr geom::vect2_t MAP_HTK_BOX_SC = {0.034, 0.073};
-    constexpr geom::vect2_t MAP_HTK_TXT_POS = {0.5, 0.029};
-    constexpr geom::vect2_t MAP_HDG_TRI_SC = {1, 0.8};
-    constexpr geom::vect2_t MAP_RNG_OFFS = {-0.014, -0.012};
-
-    constexpr geom::vect3_t ND_BCKGRND_CLR = cairo_utils::BLACK;
-
-    // Names for the UI logic
-    const std::string ND_TRKUP = "TRK";
-    const std::string ND_HDGUP = "HDG";
-    const std::string ND_HTRK_MAG = "MAG";
-    const std::string ND_HTRK_TRU = "TRU";
-    // Texture names(for use with texture manager)
-    const std::string WPT_INACT_NAME = "wpt_inact";
-    const std::string WPT_ACT_NAME = "wpt_act";
-    const std::string AIRPLANE_NAME = "airplane";
-    const std::string PLN_BACKGND_INNER_NAME = "pln_back_inner";
-    const std::string PLN_BACKGND_OUTER_NAME = "pln_back_outer";
-    const std::string MAP_BACKGND_NAME = "map_back";
-    const std::string MAP_HDG_NAME = "map_hdg";
-    const std::string MAP_AC_TRI_NAME  = "map_ac_ico";
-    const std::string HTRK_BOX_NAME = "hdg_trk_box";
-    const std::string ARPT_NML_POI_NAME = "normal_arpt_sign";
-    const std::string ARPT_ALTN_POI_NAME = "altn_arpt_sign";
-    const std::string DME_POI_NAME = "dme";
-    const std::string VORDME_POI_NAME = "vordme";
-
-    const std::vector<double> ND_RANGES_NM = {10, 20, 40, 80, 160, 320, 640};
-    // Only the supported modes are in ND_MDS
-    const std::vector<test::NDMode> ND_MDS = {test::NDMode::MAP, test::NDMode::PLAN};
-    constexpr double RNG_DEC_1_NM = 2.5;
-    constexpr double RNG_DEC_2_NM = 1.25;
-
-
-    struct nd_util_idx_t {
-        std::size_t sd_idx = 0;
-        std::size_t dt_idx = 0;
-    };
-
-    struct labeled_point_t {
-        geom::vect2_t pos{};
-        std::string name = "";
-    };
-
-    struct labeled_point_with_dist_t {
-        labeled_point_t point;
-        double dist_ctr = 0;
-    };
-
-    struct labeled_point_with_dist_cmp_t {
-        bool operator()(const labeled_point_with_dist_t& pa, 
-            const labeled_point_with_dist_t& pb) const noexcept;
-    };
-    
-
-    struct poi_data_t {
-        std::size_t n_arpts = 0;
-        std::size_t n_waypts = 0;
-        std::size_t n_vors_dmes = 0;
-        std::size_t n_vordmes = 0;
-        labeled_point_with_dist_t* arpts = nullptr;
-        labeled_point_with_dist_t* waypts = nullptr;
-        labeled_point_with_dist_t* vors_dmes = nullptr;
-        labeled_point_with_dist_t* vordmes = nullptr;
+  bool init_ptr(labeled_point_with_dist_t** ptr);
 
-        bool init_ptr(labeled_point_with_dist_t** ptr);
+  bool init();
 
-        bool init();        
+  void destroy();
+};
 
-        void destroy();
-    };
+struct map_poi_container_t : poi_data_t {
+  std::shared_ptr<libnav::ArptDB> arpt_db_ptr;
+  std::shared_ptr<libnav::NavaidDB> navaid_db_ptr;
 
-    struct map_poi_container_t: poi_data_t {
+  map_poi_container_t(std::shared_ptr<libnav::ArptDB> arpt_ptr,
+                      std::shared_ptr<libnav::NavaidDB> navaid_ptr);
 
-        std::shared_ptr<libnav::ArptDB> arpt_db_ptr;
-        std::shared_ptr<libnav::NavaidDB> navaid_db_ptr;
+  void set_add(
+      std::set<labeled_point_with_dist_t, labeled_point_with_dist_cmp_t>& st,
+      labeled_point_with_dist_t& pt);
 
-        map_poi_container_t(std::shared_ptr<libnav::ArptDB> arpt_ptr, 
-            std::shared_ptr<libnav::NavaidDB> navaid_ptr);
+  void set_to_array(
+      std::set<labeled_point_with_dist_t, labeled_point_with_dist_cmp_t>& st,
+      labeled_point_with_dist_t* arr, size_t* arr_sz);
 
-        void set_add(std::set<labeled_point_with_dist_t, 
-            labeled_point_with_dist_cmp_t>& st, 
-            labeled_point_with_dist_t& pt);
+  void project_array(labeled_point_with_dist_t* src,
+                     labeled_point_with_dist_t* dst, size_t sz, size_t* sz_tgt,
+                     geo::point curr_pos, double rot_rad);
 
-        void set_to_array(
-            std::set<labeled_point_with_dist_t, 
-            labeled_point_with_dist_cmp_t>& st,
-            labeled_point_with_dist_t* arr, size_t* arr_sz);
+  void fetch_arpts(geo::point curr_pos);
 
-        void project_array(labeled_point_with_dist_t* src, 
-            labeled_point_with_dist_t* dst, size_t sz, size_t* sz_tgt, 
-            geo::point curr_pos, double rot_rad);
+  void fetch_navaids(geo::point curr_pos);
 
-        void fetch_arpts(geo::point curr_pos);
+  void fetch(geo::point curr_pos);
 
-        void fetch_navaids(geo::point curr_pos);
+  void project(poi_data_t& tgt, geo::point curr_pos, double rot_add_rad = 0.0);
+};
 
-        void fetch(geo::point curr_pos);
+struct leg_proj_t {
+  geom::vect2_t start, end, arc_ctr, end_wpt;
+  bool is_arc, is_finite, is_rwy, has_path;
+  double turn_rad_nm;
+  std::string end_nm;
+  geom::line_joint_t* joint;
 
-        void project(poi_data_t& tgt, geo::point curr_pos, double rot_add_rad=0.0);
-    };
+  std::string get_draw_nm();
+};
 
-    struct leg_proj_t
-    {
-        geom::vect2_t start, end, arc_ctr, end_wpt;
-        bool is_arc, is_finite, is_rwy, has_path;
-        double turn_rad_nm;
-        std::string end_nm;
-        geom::line_joint_t *joint;
+struct map_data_t {
+  leg_proj_t* proj_legs;
+  geom::line_joint_t* line_joints;
 
+  size_t n_act_proj_legs;
+  size_t n_act_joints;
 
-        std::string get_draw_nm();
-    };
+  bool create();
 
-    struct map_data_t
-    {
-        leg_proj_t *proj_legs;
-        geom::line_joint_t *line_joints;
+  void destroy();
+};
 
-        size_t n_act_proj_legs;
-        size_t n_act_joints;
+struct efis_selection_t {
+  bool arpt_on = false;
+  bool sta_on = false;
+};
 
+class NDData {
+ public:
+  NDData(std::shared_ptr<test::FPLSys> fpl_sys);
 
-        bool create();
+  bool init();
 
-        void destroy();
-    };
+  /*
+      Function: set_th_up
+      @desc:
+      changes current track/heading up status. I.e. if we're heading up,
+      change to track up and vice versa.
+  */
 
-    struct efis_selection_t{
-        bool arpt_on = false;
-        bool sta_on = false;
-    };
+  void set_th_up();
 
+  /*
+      Function: set_th_up
+      @return:
+      true if track up.
+  */
 
-    class NDData
-    {
-    public:
-        NDData(std::shared_ptr<test::FPLSys> fpl_sys);
+  bool get_th_up();
 
-        bool init();
+  void toggle_efis_arpt_sd(size_t sd_idx);
 
-        /*
-            Function: set_th_up
-            @desc:
-            changes current track/heading up status. I.e. if we're heading up, 
-            change to track up and vice versa.
-        */
+  void toggle_efis_sta_sd(size_t sd_idx);
 
-        void set_th_up();
+  efis_selection_t get_efis_sts_sd(size_t sd_idx);
 
-        /*
-            Function: set_th_up
-            @return:
-            true if track up.
-        */
+  void set_mode(size_t sd_idx, test::NDMode md, bool set_ctr = false);
 
-        bool get_th_up();
+  std::pair<test::NDMode, bool> get_mode(size_t sd_idx) const;
 
-        void toggle_efis_arpt_sd(size_t sd_idx);
+  std::vector<int> get_rte_draw_seq(size_t sd_idx);
 
-        void toggle_efis_sta_sd(size_t sd_idx);
+  size_t get_proj_legs(leg_proj_t** out, size_t sd_idx, size_t dt_idx);
 
-        efis_selection_t get_efis_sts_sd(size_t sd_idx);
+  int get_act_leg_idx(size_t sd_idx);
 
-        void set_mode(size_t sd_idx, test::NDMode md, bool set_ctr=false);
+  bool get_ac_pos(geom::vect2_t* out, size_t sd_idx);
 
-        std::pair<test::NDMode, bool> get_mode(size_t sd_idx) const;
+  double get_hdg_trk() const;
 
-        std::vector<int> get_rte_draw_seq(size_t sd_idx);
+  test::hdg_info_t get_hdg_data();
 
-        size_t get_proj_legs(leg_proj_t **out, size_t sd_idx, size_t dt_idx);
+  test::spd_info_t get_spd_data();
 
-        int get_act_leg_idx(size_t sd_idx);
+  test::act_leg_info_t get_act_leg_info();
 
-        bool get_ac_pos(geom::vect2_t *out, size_t sd_idx);
+  bool has_dep_rwy(size_t idx);
 
-        double get_hdg_trk() const;
+  bool has_arr_rwy(size_t idx);
 
-        test::hdg_info_t get_hdg_data();
+  void switch_range(bool down, size_t sd_idx);
 
-        test::spd_info_t get_spd_data();
+  double get_range(size_t sd_idx);
 
-        test::act_leg_info_t get_act_leg_info();
+  // POI functions
 
-        bool has_dep_rwy(size_t idx);
+  size_t get_num_poi_arpts();
 
-        bool has_arr_rwy(size_t idx);
+  size_t get_num_poi_waypts();
 
-        void switch_range(bool down, size_t sd_idx);
+  size_t get_num_poi_vordmes();
 
-        double get_range(size_t sd_idx);
+  size_t get_num_poi_vhf_not_vordmes();
 
-        // POI functions
+  labeled_point_with_dist_t get_arpt(size_t i);
 
-        size_t get_num_poi_arpts();
+  labeled_point_with_dist_t get_waypt(size_t i);
 
-        size_t get_num_poi_waypts();
+  labeled_point_with_dist_t get_vordme(size_t i);
 
-        size_t get_num_poi_vordmes();
+  labeled_point_with_dist_t get_vhf_not_vordme(size_t i);
 
-        size_t get_num_poi_vhf_not_vordmes();
+  void update();
 
-        labeled_point_with_dist_t get_arpt(size_t i);
+  void destroy();
 
-        labeled_point_with_dist_t get_waypt(size_t i);
+ private:
+  std::vector<std::shared_ptr<test::FplnInt>> fpl_vec_;
+  std::shared_ptr<test::FPLSys> fpl_sys_ptr_;
 
-        labeled_point_with_dist_t get_vordme(size_t i);
+  bool idx_proj_act_ = false;
+  poi_data_t pois_projected_[2];
+  map_poi_container_t poi_data_;
 
-        labeled_point_with_dist_t get_vhf_not_vordme(size_t i);
+  bool trk_up_ = true;
 
-        void update();
+  // Of size N_FPL_SYS_RTES
+  std::vector<test::nd_leg_data_t*> leg_data_;
+  std::vector<size_t> leg_data_sz_;
 
-        void destroy();
+  std::vector<double> fpl_id_last_;
+  std::vector<bool> has_dep_rwy_, has_arr_rwy_;
+  std::vector<int> act_leg_idx_;
+  // -1 if route is not to be drawn, index otherwise.
+  // Routes are ordered by color. Refer to ND_RTE_CLRS.
+  std::vector<std::vector<int>> rte_draw_seq_;
 
-    private:
-        std::vector<std::shared_ptr<test::FplnInt>> m_fpl_vec;
-        std::shared_ptr<test::FPLSys> m_fpl_sys_ptr;
+  // 2*number of routes
+  std::vector<map_data_t> mp_data_;
 
-        bool m_idx_proj_act;
-        poi_data_t m_pois_projected[2];
-        map_poi_container_t m_poi_data;
+  std::vector<int> act_leg_idx_sd_;
+  // Stored 1 per fo, 1 per cap
+  std::vector<std::pair<test::NDMode, bool>> curr_modes_;
+  std::vector<geom::vect2_t> ac_pos_projected_;
+  std::vector<bool> ac_pos_ok_;
+  std::vector<size_t> range_index_;
+  std::vector<geo::point> map_center_;
+  std::vector<efis_selection_t> efis_sel_;
 
-        bool m_trk_up;
+  test::hdg_info_t heading_data_;
+  geo::point ac_pos_last_;
 
-        // Of size N_FPL_SYS_RTES
-        std::vector<test::nd_leg_data_t*> m_leg_data;
-        std::vector<size_t> m_leg_data_sz;
+  static bool bound_check(double x1, double x2, double rng);
 
-        std::vector<double> m_fpl_id_last;
-        std::vector<bool> m_has_dep_rwy, m_has_arr_rwy;
-        std::vector<int> m_act_leg_idx;
-        // -1 if route is not to be drawn, index otherwise.
-        // Routes are ordered by color. Refer to ND_RTE_CLRS.
-        std::vector<std::vector<int>> m_rte_draw_seq; 
+  static nd_util_idx_t get_util_idx(size_t gn_idx);
 
-        // 2*number of routes
-        std::vector<map_data_t> m_mp_data;
-       
-        std::vector<int> m_act_leg_idx_sd;
-        // Stored 1 per fo, 1 per cap
-        std::vector<std::pair<test::NDMode, bool>> cr_mds;
-        std::vector<geom::vect2_t> m_ac_pos_proj;
-        std::vector<bool> m_ac_pos_ok;
-        std::vector<size_t> m_rng_idx;
-        std::vector<geo::point> m_ctr;
-        std::vector<efis_selection_t> m_efis_sel; 
+  double get_cr_rot() const;
 
-        test::hdg_info_t m_hdg_data;
-        geo::point m_ac_pos_last;
+  std::pair<geo::point, double> get_proj_params(size_t sd_idx) const;
 
+  bool in_view(geom::vect2_t start, geom::vect2_t end, size_t sd_idx);
 
-        static bool bound_check(double x1, double x2, double rng);
+  void update_rte_draw_seq();
 
-        static nd_util_idx_t get_util_idx(size_t gn_idx);
+  void update_ctr(size_t sd_idx);
 
-        double get_cr_rot() const;
+  bool project_ac_pos(size_t sd_idx);
 
-        std::pair<geo::point, double> get_proj_params(size_t sd_idx) const;
+  void project_legs(size_t gn_idx);
 
-        bool in_view(geom::vect2_t start, geom::vect2_t end, size_t sd_idx);
+  void project_rwys(size_t gn_idx);
 
-        void update_rte_draw_seq();
+  void fetch_legs(size_t dt_idx);
 
-        void update_ctr(size_t sd_idx);
+  void update_fpl(size_t dt_idx);
+};
 
-        bool project_ac_pos(size_t sd_idx);
-
-        void project_legs(size_t gn_idx);
-
-        void project_rwys(size_t gn_idx);
-
-        void fetch_legs(size_t dt_idx);
-
-        void update_fpl(size_t dt_idx);
-    };
-
-    class NDDisplay
-    {
-    public:
-        NDDisplay(std::shared_ptr<NDData> data, 
+class NDDisplay {
+ public:
+  NDDisplay(std::shared_ptr<NDData> data,
             std::shared_ptr<cairo_utils::texture_manager_t> mngr,
-            cairo_font_face_t *ff, geom::vect2_t pos, geom::vect2_t sz, size_t sd_idx);
+            cairo_font_face_t* ff, geom::vect2_t pos, geom::vect2_t sz,
+            size_t sd_idx);
 
-        void draw(cairo_t *cr);
+  void draw(cairo_t* cr);
 
-    private:
-        std::shared_ptr<NDData> nd_data;
-        std::shared_ptr<cairo_utils::texture_manager_t> tex_mngr;
+ private:
+  std::shared_ptr<NDData> nd_data;
+  std::shared_ptr<cairo_utils::texture_manager_t> tex_mngr;
 
-        bool is_trk_up;
-        test::NDMode cr_md;
-        bool is_ctr, has_tfc;
-        efis_selection_t efis_sel;
+  bool is_trk_up;
+  test::NDMode cr_md;
+  bool is_ctr, has_tfc;
+  efis_selection_t efis_sel;
 
-        cairo_font_face_t* font_face;
+  cairo_font_face_t* font_face;
 
-        geom::vect2_t scr_pos;
-        geom::vect2_t size;
-        geom::vect2_t map_ctr, scale_factor;
-        test::hdg_info_t hdg_data;
-        double rng, curr_rng;
+  geom::vect2_t scr_pos;
+  geom::vect2_t size;
+  geom::vect2_t map_ctr, scale_factor;
+  test::hdg_info_t hdg_data;
+  double rng, curr_rng;
 
-        size_t side_idx;
+  size_t side_idx;
 
+  void update_mode();
 
-        void update_mode();
+  void update_map_params();
 
-        void update_map_params();
+  geom::vect2_t get_screen_coords(geom::vect2_t src);
 
-        geom::vect2_t get_screen_coords(geom::vect2_t src);
+  void draw_line_joint(cairo_t* cr, geom::line_joint_t lj,
+                       geom::vect3_t ln_clr);
 
-        void draw_line_joint(cairo_t *cr, geom::line_joint_t lj, geom::vect3_t ln_clr);
+  void draw_flight_plan(cairo_t* cr, bool draw_labels, geom::vect3_t ln_clr,
+                        size_t idx = 0);
 
-        void draw_flight_plan(cairo_t *cr, bool draw_labels, geom::vect3_t ln_clr, 
-            size_t idx=0);
+  void draw_ext_rwy_ctr_line(cairo_t* cr, leg_proj_t rnw_proj);
 
-        void draw_ext_rwy_ctr_line(cairo_t *cr, leg_proj_t rnw_proj);
+  void draw_runway(cairo_t* cr, leg_proj_t rnw_proj);
 
-        void draw_runway(cairo_t *cr, leg_proj_t rnw_proj);
+  void draw_runways(cairo_t* cr, size_t idx = 0);
 
-        void draw_runways(cairo_t *cr, size_t idx=0);
+  void draw_all_fplns(cairo_t* cr);
 
-        void draw_all_fplns(cairo_t *cr);
+  void draw_airplane(cairo_t* cr);
 
-        void draw_airplane(cairo_t *cr);
+  void draw_htrk(cairo_t* cr);
 
-        void draw_htrk(cairo_t *cr);
+  void draw_hdg_tri(cairo_t* cr);
 
-        void draw_hdg_tri(cairo_t *cr);
+  void draw_trk_line(cairo_t* cr, bool is_inn);
 
-        void draw_trk_line(cairo_t *cr, bool is_inn);
+  void draw_tfc_arcs(cairo_t* cr);
 
-        void draw_tfc_arcs(cairo_t *cr);
+  void draw_background(cairo_t* cr, bool draw_inner);
 
-        void draw_background(cairo_t *cr, bool draw_inner);
+  void draw_act_leg_info(cairo_t* cr);
 
-        void draw_act_leg_info(cairo_t *cr);
+  void draw_spd_info(cairo_t* cr);
 
-        void draw_spd_info(cairo_t *cr);
+  void draw_range(cairo_t* cr);
 
-        void draw_range(cairo_t *cr);
+  void draw_airports(cairo_t* cr);
 
-        void draw_airports(cairo_t *cr);
+  void draw_vordmes(cairo_t* cr);
 
-        void draw_vordmes(cairo_t *cr);
+  void draw_vors_dmes(cairo_t* cr);
 
-        void draw_vors_dmes(cairo_t *cr);
+  void draw_efis_filters(cairo_t* cr);
 
-        void draw_efis_filters(cairo_t *cr);
-
-        void draw_labeled_point(cairo_t *cr, cairo_surface_t *img, 
-            labeled_point_t& src_point, double img_scale);
-    };
-} // namespace StratosphereAvionics
+  void draw_labeled_point(cairo_t* cr, cairo_surface_t* img,
+                          labeled_point_t& src_point, double img_scale);
+};
+}  // namespace StratosphereAvionics

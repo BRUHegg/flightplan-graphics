@@ -1,460 +1,387 @@
 /*
-	This project is licensed under
-	Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International Public License (CC BY-NC-SA 4.0).
+        This project is licensed under
+        Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International
+   Public License (CC BY-NC-SA 4.0).
 
-	A SUMMARY OF THIS LICENSE CAN BE FOUND HERE: https://creativecommons.org/licenses/by-nc-sa/4.0/
+        A SUMMARY OF THIS LICENSE CAN BE FOUND HERE:
+   https://creativecommons.org/licenses/by-nc-sa/4.0/
 
-	Author: discord/bruh4096#4512
+        Author: discord/bruh4096#4512
 
-	This file contains declarations of member functions for flightplan interface class. 
-    This class acts as a layer ontop of the flightplan class. Its job is to fetch data
-    from appropriate navigation data bases and store it in the flightplan correctly.
+        This file contains declarations of member functions for flightplan
+   interface class. This class acts as a layer ontop of the flightplan class.
+   Its job is to fetch data from appropriate navigation data bases and store it
+   in the flightplan correctly.
 */
-
 
 #pragma once
 
-#include "flightplan.hpp"
-#include <geom.hpp>
-#include <libnav/awy_db.hpp>
-#include <libnav/str_utils.hpp>
-#include <libnav/common.hpp>
 #include <assert.h>
+
+#include <geom.hpp>
+#include <iostream>
+#include <libnav/awy_db.hpp>
+#include <libnav/common.hpp>
+#include <libnav/str_utils.hpp>
 #include <set>
 
-#include <iostream>
-
-namespace test
-{
-    enum ProcType
-    {
-        PROC_TYPE_SID = 0,
-        PROC_TYPE_STAR = 1,
-        PROC_TYPE_APPCH = 2
-    };
-    
-
-    constexpr size_t N_PROC_DB_SZ = 5;
-    constexpr size_t N_ARR_DB_OFFSET = 2;
-    constexpr size_t N_DFMS_ENRT_WORDS = 6;
-    constexpr double DEFAULT_VS_FPM = 2000;
-    constexpr double DEFAULT_GS_KTS = 250;
-    constexpr double CLB_RATE_FT_PER_NM = 500;
-    constexpr double TURN_RADIUS_NM = 1; // Untill there is a VNAV
-    constexpr double ASSUMED_RNP_PROC_NM = 1;
-    constexpr double ASSUMED_RNP_ENRT_NM = 3;
-    constexpr double CF_STRAIGHT_DEV_RAD = (5 * geo::DEG_TO_RAD);
-    const std::string MISSED_APPR_SEG_NM = "MISSED APPRCH";
-    const std::string INTC_LEG_NM = "(INTC)";
-    // X-Plane .fms format stuff
-    constexpr char DFMS_COL_SEP = ' ';
-    constexpr uint8_t N_DFMS_OUT_PREC = 6;
-    const std::string DFMS_PADDING = "I\n1100 Version\n";
-    const std::string DFMS_RWY_PREFIX = "RW";
-    // .fms row headers:
-    const std::string DFMS_AIRAC_CYCLE_NM = "CYCLE";
-    const std::string DFMS_DEP_NM = "ADEP";
-    const std::string DFMS_DEP_RWY_NM = "DEPRWY";
-    const std::string DFMS_SID_NM = "SID";
-    const std::string DFMS_SID_TRANS_NM = "SIDTRANS";
-    const std::string DFMS_ARR_NM = "ADES";
-    const std::string DFMS_ARR_RWY_NM = "DESRWY";
-    const std::string DFMS_STAR_NM = "STAR";
-    const std::string DFMS_STAR_TRANS_NM = "STARTRANS";
-    const std::string DFMS_N_ENRT_NM = "NUMENR";
-
-    const std::string DFMS_DIR_SEG_NM = "DRCT";
-
-    const std::string DFMS_FILE_POSTFIX = ".fms";
+#include "flightplan.hpp"
 
-    const std::set<std::string> NOT_FOLLOWED_BY_DF = {"AF", "CI", "PI", "RF", "VI"};
-    const std::set<std::string> AFTER_INTC = {"AF", "CF", "FA", "FC", "FD", "FM", "IF"};
-    // The following set contains legs that allow to be offset by a turn(onto 
-    /// the current leg)
-    const std::set<std::string> TURN_OFFS_LEGS = {"DF", "CI", "CA", "CD", 
-        "CR", "VA", "VI", "VR", "VD"};
-    const std::set<std::string> LEGS_CALC = {"DF", "TF", "CF", "VA", "CA", "FA", "VI", 
-        "CI", "FD", "CD", "VD"};
-    //const std::map<std::string, std::set<std::string>> ILLEGAL_NEXT_LEG = {
-    //    {"AF", {"DF", "IF", "PI"}},
-    //    {"CA", {"AF", "HA", "HF", "HM", "PI", "RF", "TF"}},
-    //    {"CD", {"HA", "HF", "HM", "PI", "RF", "TF"}},
-    //    {"CF", {"IF"}},
-    //    {"CI", {"CA", "CD", "CD", "CR", "DF", "HA", "HF", "HM", "PI", "RF", 
-    //    "TF", "VA", "VD", "VI", "VM", "VR"}},
-    //    {}
-    //};
+namespace test {
+enum ProcType { PROC_TYPE_SID = 0, PROC_TYPE_STAR = 1, PROC_TYPE_APPCH = 2 };
 
+struct dfms_arr_data_t {
+  std::string star, star_trans, arr_rwy, arr_icao;
+};
 
-    struct dfms_arr_data_t
-    {
-        std::string star, star_trans, arr_rwy, arr_icao;
-    };
+struct spd_cstr_t {
+  int magnitude;
+  libnav::SpeedMode mode;
+};
 
-    struct spd_cstr_t
-    {
-        int nm;
-        libnav::SpeedMode md;
-    };
+struct alt_cstr_t {
+  int magnitude;
+  libnav::AltMode mode;
+};
 
-    struct alt_cstr_t
-    {
-        int nm;
-        libnav::AltMode md;
-    };
+class FplnInt : public FlightPlan {
+ public:
+  FplnInt(std::shared_ptr<libnav::ArptDB> apt_db,
+          std::shared_ptr<libnav::NavaidDB> nav_db,
+          std::shared_ptr<libnav::AwyDB> aw_db, std::string cifp_path);
 
-    /*
-        General info:
-        turns:
-        positive - right turn
-        negative - left turn
-    */
+  // Functions for copying data from 1 flightplan to another:
 
-    bool is_ang_greater(double ang1_rad, double ang2_rad);  // true if ang1 > ang2
+  void copy_from_other(FplnInt& other);
 
-    double get_turn_rad(double ang1, geo::point p1, double ang2, geo::point p2);
+  // Import from .fms file:
 
-    double get_turn_by_dir(double curr_brng_rad, double tgt_brng_rad, libnav::TurnDir t_dir);
+  libnav::DbErr load_from_fms(std::string& file_nm, bool set_arpts = true);
 
-    double get_cf_big_turn_isect(leg_seg_t curr, leg_t next, double m_var, geo::point *out);
+  // Export to .fms file:
 
-    std::string get_appr_rwy(std::string& appr);
+  void save_to_fms(std::string& file_nm, bool save_sid_star = true);
 
-    std::string get_dfms_rwy(std::string& rwy_nm);
+  std::string get_co_rte_nm();
 
-    geo::point get_xa_end_point(geo::point prev, float brng_deg, float va_alt_ft, 
-        double clb_ft_nm=CLB_RATE_FT_PER_NM);
+  // Airport functions:
 
-    geo::point get_dme_end_point(geo::point start, double true_brng_rad, 
-        geo::point st, double dist_nm);
+  libnav::DbErr set_dep(std::string icao);
 
-    libnav::waypoint_t get_ca_va_wpt(geo::point pos, int n_ft);
+  std::string get_dep_icao();
 
-    libnav::waypoint_t get_xd_wpt(geo::point pos, std::string main_nm, int dme_nm);
+  libnav::DbErr set_arr(std::string icao);
 
-    double get_rnp(leg_list_node_t *leg);
+  std::string get_arr_icao();
 
+  // Runway functions:
 
-    class FplnInt: public FlightPlan
-    {
-    public:
-        FplnInt(std::shared_ptr<libnav::ArptDB> apt_db, 
-            std::shared_ptr<libnav::NavaidDB> nav_db, std::shared_ptr<libnav::AwyDB> aw_db, 
-            std::string cifp_path);
+  std::vector<std::string> get_dep_rwys(bool filter_rwy = false,
+                                        bool filter_sid = false);
 
-        // Functions for copying data from 1 flightplan to another:
+  std::vector<std::string> get_arr_rwys(bool filter_rwy = false,
+                                        bool filter_star = false,
+                                        bool is_arr = true);
 
-        void copy_from_other(FplnInt& other);
+  bool set_dep_rwy(std::string& rwy);
 
-        // Import from .fms file:
+  std::string get_dep_rwy();
 
-        libnav::DbErr load_from_fms(std::string& file_nm, bool set_arpts=true);
+  bool get_dep_rwy_data(libnav::runway_entry_t* out);
 
-        // Export to .fms file:
+  bool set_arr_rwy(std::string& rwy);
 
-        void save_to_fms(std::string& file_nm, bool save_sid_star=true);
+  std::string get_arr_rwy();
 
-        std::string get_co_rte_nm();
+  bool get_arr_rwy_data(libnav::runway_entry_t* out);
 
-        // Airport functions:
+  // Airport procedure functions:
 
-        libnav::DbErr set_dep(std::string icao);
+  std::string get_curr_proc(ProcType tp, bool trans = false);
 
-        std::string get_dep_icao();
+  std::vector<std::string> get_arpt_proc(ProcType tp, bool is_arr = false,
+                                         bool filter_rwy = false,
+                                         bool filter_proc = false);
 
-        libnav::DbErr set_arr(std::string icao);
+  std::vector<std::string> get_arpt_proc_trans(ProcType tp, bool is_rwy = false,
+                                               bool is_arr = false,
+                                               bool incl_none = true);
 
-        std::string get_arr_icao();
+  bool set_arpt_proc(ProcType tp, std::string proc_nm, bool is_arr = false);
 
-        // Runway functions:
+  bool set_arpt_proc_trans(ProcType tp, std::string trans, bool is_arr = false);
 
-        std::vector<std::string> get_dep_rwys(bool filter_rwy=false, bool filter_sid=false);
+  // Enroute:
 
-        std::vector<std::string> get_arr_rwys(bool filter_rwy=false, 
-            bool filter_star=false, bool is_arr=true);
+  bool add_enrt_seg(timed_ptr_t<seg_list_node_t> next, std::string name);
 
-        bool set_dep_rwy(std::string& rwy);
+  // End MUST be an airway id
 
-        std::string get_dep_rwy();
+  bool awy_insert_str(timed_ptr_t<seg_list_node_t> next, std::string end_id);
 
-        bool get_dep_rwy_data(libnav::runway_entry_t *out);
+  bool awy_insert(timed_ptr_t<seg_list_node_t> next, libnav::waypoint_t end);
 
-        bool set_arr_rwy(std::string& rwy);
+  bool delete_via(timed_ptr_t<seg_list_node_t> next);
 
-        std::string get_arr_rwy();
+  bool delete_seg_end(timed_ptr_t<seg_list_node_t> next);
 
-        bool get_arr_rwy_data(libnav::runway_entry_t *out);
+  // Leg list interface functions:
 
-        // Airport procedure functions:
+  bool dir_from_to(timed_ptr_t<leg_list_node_t> from,
+                   timed_ptr_t<leg_list_node_t> to);
 
-        std::string get_curr_proc(ProcType tp, bool trans=false);
+  void add_direct(libnav::waypoint_t wpt, timed_ptr_t<leg_list_node_t> next);
 
-        std::vector<std::string> get_arpt_proc(ProcType tp, bool is_arr=false, 
-            bool filter_rwy=false, bool filter_proc=false);
+  bool delete_leg(timed_ptr_t<leg_list_node_t> next);
 
-        std::vector<std::string> get_arpt_proc_trans(ProcType tp, bool is_rwy=false, 
-            bool is_arr=false, bool incl_none=true);
+  void set_spd_cstr(timed_ptr_t<leg_list_node_t> node, spd_cstr_t cst);
 
-        bool set_arpt_proc(ProcType tp, std::string proc_nm, bool is_arr=false);
+  // This one only sets alt1 for now.
 
-        bool set_arpt_proc_trans(ProcType tp, std::string trans, bool is_arr=false);
+  void set_alt_cstr(timed_ptr_t<leg_list_node_t> node, alt_cstr_t cst);
 
-        // Enroute:
+  // Calculation function
 
-        bool add_enrt_seg(timed_ptr_t<seg_list_node_t> next, std::string name);
+  void update(double hdg_trk_diff);
 
-        // End MUST be an airway id
+ private:
+  std::string co_rte_nm;
+  std::string arr_rwy;
+  bool appr_is_rwy;
 
-        bool awy_insert_str(timed_ptr_t<seg_list_node_t> next, std::string end_id);
-        
-        bool awy_insert(timed_ptr_t<seg_list_node_t> next, libnav::waypoint_t end);
+  std::vector<libnav::str_umap_t> proc_db;
+  std::shared_ptr<libnav::AwyDB> awy_db;
+  std::shared_ptr<libnav::NavaidDB> navaid_db;
 
-        bool delete_via(timed_ptr_t<seg_list_node_t> next);
+  libnav::arinc_rwy_db_t dep_rnw, arr_rnw;
+  bool has_dep_rnw_data, has_arr_rnw_data;
+  libnav::runway_entry_t dep_rnw_data, arr_rnw_data;
 
-        bool delete_seg_end(timed_ptr_t<seg_list_node_t> next);
+  double fpl_id_calc;
 
-        // Leg list interface functions:
+  bool airac_mismatch;
 
-        bool dir_from_to(timed_ptr_t<leg_list_node_t> from, 
-            timed_ptr_t<leg_list_node_t> to);
+  // Static member functions:
 
-        void add_direct(libnav::waypoint_t wpt, timed_ptr_t<leg_list_node_t> next);
+  static size_t get_proc_db_idx(ProcType tp, bool is_arr = false);
 
-        bool delete_leg(timed_ptr_t<leg_list_node_t> next);
+  static fpl_segment_types get_proc_tp(ProcType tp);
 
-        void set_spd_cstr(timed_ptr_t<leg_list_node_t> node, spd_cstr_t cst);
+  static fpl_segment_types get_trans_tp(ProcType tp);
 
-        // This one only sets alt1 for now.
+  static std::vector<std::string> get_proc(libnav::str_umap_t& db,
+                                           std::string rw = "");
 
-        void set_alt_cstr(timed_ptr_t<leg_list_node_t> node, alt_cstr_t cst);
+  static std::vector<std::string> get_apprs(libnav::str_umap_t& proc_db,
+                                            libnav::str_umap_t& appr_db,
+                                            std::string proc,
+                                            bool filter = false);
 
-        // Calculation function
+  static std::vector<std::string> get_proc_trans(std::string proc,
+                                                 libnav::str_umap_t& db,
+                                                 libnav::arinc_rwy_db_t& rwy_db,
+                                                 bool is_rwy = false,
+                                                 bool incl_none = true);
 
-        void update(double hdg_trk_diff);
+  static std::string get_dfms_enrt_leg(leg_list_node_t* lg,
+                                       bool force_dir = false);
 
-    private:
-        std::string co_rte_nm;
-        std::string arr_rwy;
-        bool appr_is_rwy;
+  // Non-static member functions:
 
-        std::vector<libnav::str_umap_t> proc_db;
-        std::shared_ptr<libnav::AwyDB> awy_db;
-        std::shared_ptr<libnav::NavaidDB> navaid_db;
+  bool is_apt_valid(libnav::Airport* ptr) const;
 
-        libnav::arinc_rwy_db_t dep_rnw, arr_rnw;
-        bool has_dep_rnw_data, has_arr_rnw_data;
-        libnav::runway_entry_t dep_rnw_data, arr_rnw_data;
+  void update_act_leg();
 
-        double fpl_id_calc;
+  // Auxiliury functions for import from .fms:
 
-        bool airac_mismatch;
+  /*
+      Function: process_dfms_term_line
+      Description:
+      Processes a single line of .fms file describing airports/procedures
+      @param l_split: reference to the target split line
+      @return error code
+  */
 
+  libnav::DbErr process_dfms_proc_line(std::vector<std::string>& l_split,
+                                       bool set_arpts,
+                                       dfms_arr_data_t* arr_data);
 
-        // Static member functions:
+  libnav::DbErr set_dfms_arr_data(dfms_arr_data_t* arr_data, bool set_arpt);
 
-        static size_t get_proc_db_idx(ProcType tp, bool is_arr=false);
+  bool get_dfms_wpt(std::vector<std::string>& l_split, libnav::waypoint_t* out);
 
-        static fpl_segment_types get_proc_tp(ProcType tp);
+  // Auxiliury functions for export to .fms:
 
-        static fpl_segment_types get_trans_tp(ProcType tp);
+  std::string get_dfms_arpt_leg(bool is_arr = false);
 
-        static std::vector<std::string> get_proc(libnav::str_umap_t& db, std::string rw="");
+  size_t get_dfms_enrt_legs(std::vector<std::string>* out);
 
-        static std::vector<std::string> get_apprs(libnav::str_umap_t& proc_db, 
-            libnav::str_umap_t& appr_db, std::string proc, bool filter=false);
+  // The main .fms import function:
 
-        static std::vector<std::string> get_proc_trans(std::string proc, libnav::str_umap_t& db, 
-            libnav::arinc_rwy_db_t& rwy_db, bool is_rwy=false, bool incl_none=true);
+  libnav::DbErr load_fms_fpln(std::string& file_nm, bool set_arpts = true);
 
-        static std::string get_dfms_enrt_leg(leg_list_node_t* lg, bool force_dir=false);
+  // Other auxiliury functions:
 
-        // Non-static member functions:
+  /*
+      Function: adjust_list_pointers
+      Description:
+      Adjusts pointers inside leg_data_list and seg_list after copying from
+     another flightplan.
 
-        bool is_apt_valid(libnav::Airport *ptr) const;
+      @param other: reference to other flight plan object
+  */
 
-        void update_act_leg();
+  void adjust_list_pointers(FplnInt& other);
 
-        // Auxiliury functions for import from .fms:
+  void copy_act_leg(FplnInt& other);
 
-        /*
-            Function: process_dfms_term_line
-            Description:
-            Processes a single line of .fms file describing airports/procedures
-            @param l_split: reference to the target split line
-            @return error code
-        */
+  void update_apt_dbs(bool arr = false);
 
-        libnav::DbErr process_dfms_proc_line(std::vector<std::string>& l_split, 
-            bool set_arpts, dfms_arr_data_t* arr_data);
+  libnav::arinc_rwy_data_t get_rwy_data(std::string nm, bool is_arr = false);
 
-        libnav::DbErr set_dfms_arr_data(dfms_arr_data_t* arr_data, bool set_arpt);
+  std::string get_curr_proc_imp(ProcType tp, bool trans = false);
 
-        bool get_dfms_wpt(std::vector<std::string>& l_split, libnav::waypoint_t* out);
+  bool add_fpl_seg(libnav::arinc_leg_seq_t& legs, fpl_segment_types seg_tp,
+                   std::string ref_nm, std::string seg_nm = "",
+                   seg_list_node_t* next = nullptr, bool set_ref = true);
 
-        // Auxiliury functions for export to .fms:
+  /*
+      Function: get_awy_tf_leg
+      Description:
+      Makes a TF leg using a waypoint id taken from airway data base.
+      @param wpt_id: id of the waypoint taken from airway data base. MUST be a
+     valid id
+      @return: arinc424 TF leg
+  */
 
-        std::string get_dfms_arpt_leg(bool is_arr=false);
-        
-        size_t get_dfms_enrt_legs(std::vector<std::string>* out);
+  leg_t get_awy_tf_leg(libnav::awy_point_t awy_pt);
 
-        // The main .fms import function:
-        
-        libnav::DbErr load_fms_fpln(std::string& file_nm, bool set_arpts=true);
+  void add_awy_seg(std::string awy, seg_list_node_t* next,
+                   std::vector<libnav::awy_point_t>& awy_pts);
 
-        // Other auxiliury functions:
+  bool set_sid_star(std::string proc_nm, bool is_star = false,
+                    bool reset_rwy = true);
 
-        /*
-            Function: adjust_list_pointers
-            Description:
-            Adjusts pointers inside leg_data_list and seg_list after copying from another
-            flightplan.
+  bool set_appch_legs(std::string appch, std::string& arr_rwy,
+                      libnav::arinc_leg_seq_t legs, std::string appch_seg = "");
 
-            @param other: reference to other flight plan object
-        */
+  bool set_appch(std::string appch);
 
-        void adjust_list_pointers(FplnInt& other);
+  bool add_trans_legs(ProcType tp, std::string trans,
+                      libnav::arinc_leg_seq_t& pr_legs,
+                      libnav::arinc_leg_seq_t& tr_legs);
 
-        void copy_act_leg(FplnInt& other);
+  bool set_proc_trans(ProcType tp, std::string trans, bool is_arr = false);
 
-        void update_apt_dbs(bool arr=false);
+  // Calculation functions:
 
-        libnav::arinc_rwy_data_t get_rwy_data(std::string nm, bool is_arr=false);
+  double get_leg_mag_var_deg(leg_list_node_t* leg);
 
-        std::string get_curr_proc_imp(ProcType tp, bool trans=false);
+  double get_leg_turn_rad(leg_list_node_t* curr);
 
-        bool add_fpl_seg(libnav::arinc_leg_seq_t& legs, fpl_segment_types seg_tp, std::string ref_nm,
-            std::string seg_nm="", seg_list_node_t *next=nullptr, bool set_ref=true);
+  static bool get_df_start(leg_seg_t curr_seg, leg_t next, geo::point* out);
 
-        /*
-            Function: get_awy_tf_leg
-            Description:
-            Makes a TF leg using a waypoint id taken from airway data base.
-            @param wpt_id: id of the waypoint taken from airway data base. MUST be a valid id
-            @return: arinc424 TF leg
-        */
+  /*
+      Function: get_to_leg_start
+      Description:
+      Calculates start of a leg that can be offset by a turn(see TURN_OFFS_LEGS)
+      @param curr_seg: current segment
+      @param next: next arinc424 leg
+      @param out: pointer to where the output should be stored
+  */
 
-        leg_t get_awy_tf_leg(libnav::awy_point_t awy_pt);
+  static void get_to_leg_start(leg_seg_t curr_seg, leg_t next,
+                               double mag_var_deg, double hdg_trk_diff,
+                               geo::point* out);
 
-        void add_awy_seg(std::string awy, seg_list_node_t *next, 
-            std::vector<libnav::awy_point_t>& awy_pts);
+  static bool get_cf_leg_start(leg_seg_t curr_seg, leg_t curr_leg, leg_t next,
+                               double mag_var_deg, geo::point* out,
+                               bool* to_inh, double* turn_radius_out);
 
-        bool set_sid_star(std::string proc_nm, bool is_star=false, bool reset_rwy=true);
+  /*
+      Function: get_leg_start
+      Description:
+      Calculates start of next leg.
+      @param curr_seg: current segment
+      @param curr_leg: current arinc424 leg
+      @param next: next arinc424 leg
+      @param out: pointer to where the output should be stored
+      @param to_inh: set to true when turn offset is inhibited
+      (90 degree and more turns). Otherwise not set
+      @param turn_radius_nm: where to output turn radius if required
+  */
 
-        bool set_appch_legs(std::string appch, std::string& arr_rwy, 
-            libnav::arinc_leg_seq_t legs, std::string appch_seg="");
+  bool get_leg_start(leg_seg_t curr_seg, leg_t curr_leg, leg_t next,
+                     double mag_var_deg, double hdg_trk_diff, geo::point* out,
+                     bool* to_inh, double* turn_radius_nm);
 
-        bool set_appch(std::string appch);
+  static void set_xi_leg(leg_list_node_t* leg);
 
-        bool add_trans_legs(ProcType tp, std::string trans, 
-            libnav::arinc_leg_seq_t& pr_legs, libnav::arinc_leg_seq_t& tr_legs);
+  /*
+      Function: set_turn_offset
+      Description:
+      Offsets the end of previous leg so that a turn without overshoot is
+     possible.
+      @param leg: pointer to a node of leg list
+      @param prev_leg: non-bypassed leg before leg. THIS IS IMPORTANT:
+      IT MUST NOT BE BYPASSED.
+  */
 
-        bool set_proc_trans(ProcType tp, std::string trans, bool is_arr=false);
+  static void set_turn_offset(leg_list_node_t* leg, leg_list_node_t* prev_leg);
 
-        // Calculation functions:
+  // The following functions are used to calculate ends of arinc424 legs.
 
-        double get_leg_mag_var_deg(leg_list_node_t *leg);
+  /*
+      Function: calculate_alt_leg
+      Description:
+      Calculates end of CA or VA leg
+      @param leg: pointer to a node of leg list
+      @param hdg_trk_diff: difference between heading and track in radians
+  */
 
-        double get_leg_turn_rad(leg_list_node_t *curr);
+  void calculate_alt_leg(leg_list_node_t* leg, double hdg_trk_diff,
+                         double curr_alt_ft);
 
-        static bool get_df_start(leg_seg_t curr_seg, leg_t next, geo::point *out);
+  /*
+      Function: calculate_alt_leg
+      Description:
+      Calculates end of CI or VI leg
+      @param leg: pointer to a node of leg list
+      @param hdg_trk_diff: difference between heading and track in radians
+  */
 
-        /*
-            Function: get_to_leg_start
-            Description:
-            Calculates start of a leg that can be offset by a turn(see TURN_OFFS_LEGS)
-            @param curr_seg: current segment
-            @param next: next arinc424 leg
-            @param out: pointer to where the output should be stored
-        */
+  void calculate_intc_leg(leg_list_node_t* leg, double hdg_trk_diff);
 
-        static void get_to_leg_start(leg_seg_t curr_seg, leg_t next, 
-            double mag_var_deg, double hdg_trk_diff, geo::point *out);
+  void calculate_fc_leg(leg_list_node_t* leg);
 
-        static bool get_cf_leg_start(leg_seg_t curr_seg, leg_t curr_leg, leg_t next, 
-            double mag_var_deg, geo::point *out, bool *to_inh, double *turn_radius_out);
+  /*
+      Function: calculate_dme_leg
+      Description:
+      Calculates end of CD, FD or VD leg
+      @param leg: pointer to a node of leg list
+      @param hdg_trk_diff: difference between heading and track in radians
+  */
 
-        /*
-            Function: get_leg_start
-            Description:
-            Calculates start of next leg.
-            @param curr_seg: current segment
-            @param curr_leg: current arinc424 leg
-            @param next: next arinc424 leg
-            @param out: pointer to where the output should be stored
-            @param to_inh: set to true when turn offset is inhibited
-            (90 degree and more turns). Otherwise not set
-            @param turn_radius_nm: where to output turn radius if required
-        */
+  void calculate_dme_leg(leg_list_node_t* leg, double hdg_trk_diff);
 
-        bool get_leg_start(leg_seg_t curr_seg, leg_t curr_leg, leg_t next, 
-            double mag_var_deg, double hdg_trk_diff, geo::point *out, 
-            bool *to_inh, double *turn_radius_nm);
+  /*
+      Function: calculate_alt_leg
+      Description:
+      Calculates end of CF/TF/DF leg
+      @param leg: pointer to a node of leg list
+  */
 
-        static void set_xi_leg(leg_list_node_t *leg);
+  void calculate_crs_trk_dir_leg(leg_list_node_t* leg);
 
-        /*
-            Function: set_turn_offset
-            Description:
-            Offsets the end of previous leg so that a turn without overshoot is possible.
-            @param leg: pointer to a node of leg list
-            @param prev_leg: non-bypassed leg before leg. THIS IS IMPORTANT: 
-            IT MUST NOT BE BYPASSED.
-        */
+  /*
+      Function: calculate_leg
+      Description:
+      Handles all supported leg types.
+      @param leg: pointer to a node of leg list
+      @param hdg_trk_diff: difference between heading and track in radians
+  */
 
-        static void set_turn_offset(leg_list_node_t *leg, leg_list_node_t *prev_leg);
-
-        // The following functions are used to calculate ends of arinc424 legs.
-
-        /*
-            Function: calculate_alt_leg
-            Description:
-            Calculates end of CA or VA leg
-            @param leg: pointer to a node of leg list
-            @param hdg_trk_diff: difference between heading and track in radians
-        */
-
-        void calculate_alt_leg(leg_list_node_t *leg, double hdg_trk_diff, 
-            double curr_alt_ft);
-
-        /*
-            Function: calculate_alt_leg
-            Description:
-            Calculates end of CI or VI leg
-            @param leg: pointer to a node of leg list
-            @param hdg_trk_diff: difference between heading and track in radians
-        */
-
-        void calculate_intc_leg(leg_list_node_t *leg, double hdg_trk_diff);
-
-        void calculate_fc_leg(leg_list_node_t *leg);
-
-        /*
-            Function: calculate_dme_leg
-            Description:
-            Calculates end of CD, FD or VD leg
-            @param leg: pointer to a node of leg list
-            @param hdg_trk_diff: difference between heading and track in radians
-        */
-
-        void calculate_dme_leg(leg_list_node_t *leg, double hdg_trk_diff);
-
-        /*
-            Function: calculate_alt_leg
-            Description:
-            Calculates end of CF/TF/DF leg
-            @param leg: pointer to a node of leg list
-        */
-
-        void calculate_crs_trk_dir_leg(leg_list_node_t *leg);
-
-        /*
-            Function: calculate_leg
-            Description:
-            Handles all supported leg types.
-            @param leg: pointer to a node of leg list
-            @param hdg_trk_diff: difference between heading and track in radians
-        */
-
-        void calculate_leg(leg_list_node_t *leg, double hdg_trk_diff, double curr_alt_ft);
-    };
-} // namespace test
+  void calculate_leg(leg_list_node_t* leg, double hdg_trk_diff,
+                     double curr_alt_ft);
+};
+}  // namespace test
