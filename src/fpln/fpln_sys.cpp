@@ -12,6 +12,9 @@
 
 #include "fpln_sys.hpp"
 
+#include <cassert>
+#include <optional>
+
 namespace test
 {
     // FPLSys member function definitions:
@@ -40,15 +43,15 @@ namespace test
         ac_lat_deg = AC_LAT_DEF;
         ac_lon_deg = AC_LON_DEF;
 
-        arpt_db_ptr = arpt_db;
-        navaid_db_ptr = navaid_db;
-        awy_db_ptr = awy_db;
+        arpt_db_ptr_ = arpt_db;
+        navaid_db_ptr_ = navaid_db;
+        awy_db_ptr_ = awy_db;
 
         for(size_t i = 0; i < N_FPL_SYS_RTES; i++)
         {
-            std::shared_ptr<FplnInt> tmp = std::make_shared<FplnInt>(arpt_db_ptr, 
-                navaid_db_ptr, awy_db_ptr, cifp_dir_path);
-            fpl_vec.push_back(tmp);
+            std::shared_ptr<FplnInt> tmp = std::make_shared<FplnInt>(arpt_db_ptr_, 
+                navaid_db_ptr_, awy_db_ptr_, cifp_dir_path);
+            fpl_vec_.push_back(tmp);
         }
 
         leg_sel_cdu_l = {0, 0};
@@ -82,6 +85,76 @@ namespace test
         cdu_sel_fpl = std::vector<size_t>(N_INTFCS);
 
         update_pos();
+    }
+
+    std::size_t FPLSys::get_cmd_fpl_idx() const noexcept {
+        return cmd_fpl_idx;
+    }
+
+    std::size_t FPLSys::get_cnt_flplns() const noexcept {
+        return fpl_vec_.size();
+    }
+
+    std::shared_ptr<FplnInt> FPLSys::get_fpln_ptr(
+        std::size_t fpln_idx) const noexcept {
+        assert(fpln_idx < fpl_vec_.size());
+        return fpl_vec_[fpln_idx];
+    }
+
+    std::shared_ptr<libnav::AwyDB> FPLSys::get_awy_db_ptr() const noexcept {
+        return awy_db_ptr_;
+    }
+
+    std::shared_ptr<libnav::ArptDB> FPLSys::get_arpt_db_ptr() const noexcept {
+        return arpt_db_ptr_;
+    }
+
+    std::shared_ptr<libnav::NavaidDB> FPLSys::get_navaid_db_ptr() const noexcept {
+        return navaid_db_ptr_;
+    }
+
+    std::string FPLSys::get_fpln_dir() const noexcept {
+        return fpl_dir;
+    }
+
+    bool FPLSys::has_env_var(const std::string& var_name) const noexcept {
+        if(env_vars.count(var_name)) {
+            return true;
+        }
+        return false;
+    }
+
+    bool FPLSys::set_env_var(const std::string& var_name, 
+        const std::string& val) noexcept {
+        auto it = env_vars.find(var_name);
+        if(it != env_vars.end()) {
+            it->second = val;
+            return true;
+        }
+        return false;
+    }
+
+    std::optional<std::string> FPLSys::get_env_var(
+        const std::string& var_name) const noexcept {
+        auto it = env_vars.find(var_name);
+        if(it != env_vars.end()) {
+            return it->second;
+        }
+        return std::nullopt;
+    }
+
+    std::pair<std::size_t, double> FPLSys::get_sel_leg(bool rt) const noexcept {
+        if(rt) {
+            return leg_sel_cdu_r;
+        }
+        return leg_sel_cdu_l;
+    }
+
+    void FPLSys::set_sel_leg(std::pair<std::size_t, double> val, bool rt) noexcept {
+        if(rt) {
+            leg_sel_cdu_r = val;
+        }
+        leg_sel_cdu_l = val;
     }
 
     bool FPLSys::get_exec()
@@ -328,7 +401,7 @@ namespace test
     {
         assert(idx && idx < N_FPL_SYS_RTES);
 
-        if(!fpl_vec[idx]->can_activate())
+        if(!fpl_vec_[idx]->can_activate())
             return;
         act_rte_idx = idx;
     }
@@ -347,8 +420,8 @@ namespace test
     {
         if(act_rte_idx != N_FPL_SYS_RTES && !m_exec_st)
         {
-            double id1 = fpl_vec[RTE1_IDX]->get_id();
-            double id2 = fpl_vec[RTE2_IDX]->get_id();
+            double id1 = fpl_vec_[RTE1_IDX]->get_id();
+            double id2 = fpl_vec_[RTE2_IDX]->get_id();
             if(id1 != copy_ids[0] || id2 != copy_ids[1])
                 return RTECopySts::READY;
             return RTECopySts::COMPLETE;
@@ -363,10 +436,10 @@ namespace test
             size_t tgt_idx = RTE2_IDX;
             if(act_rte_idx == RTE2_IDX)
                 tgt_idx = RTE1_IDX;
-            fpl_vec[tgt_idx]->copy_from_other(*fpl_vec[act_rte_idx]);
+            fpl_vec_[tgt_idx]->copy_from_other(*fpl_vec_[act_rte_idx]);
 
-            double id1 = fpl_vec[RTE1_IDX]->get_id();
-            double id2 = fpl_vec[RTE2_IDX]->get_id();
+            double id1 = fpl_vec_[RTE1_IDX]->get_id();
+            double id2 = fpl_vec_[RTE2_IDX]->get_id();
             copy_ids[0] = id1;
             copy_ids[1] = id2;
         }
@@ -376,9 +449,9 @@ namespace test
     {
         if(m_exec_st)
         {
-            fpl_vec[0]->copy_from_other(*fpl_vec[act_rte_idx]);
+            fpl_vec_[0]->copy_from_other(*fpl_vec_[act_rte_idx]);
             m_exec_st = false;
-            act_id = fpl_vec[act_rte_idx]->get_id();
+            act_id = fpl_vec_[act_rte_idx]->get_id();
         }
     }
 
@@ -392,8 +465,8 @@ namespace test
                 act_rte_idx = N_FPL_SYS_RTES;
                 return;
             }
-            fpl_vec[act_rte_idx]->copy_from_other(*fpl_vec[0]);
-            act_id = fpl_vec[act_rte_idx]->get_id();
+            fpl_vec_[act_rte_idx]->copy_from_other(*fpl_vec_[0]);
+            act_id = fpl_vec_[act_rte_idx]->get_id();
         }
     }
 
@@ -403,27 +476,27 @@ namespace test
 
         for(size_t i = 0; i < N_FPL_SYS_RTES; i++)
         {
-            bool cr_is_act = fpl_vec[i]->is_active();
+            bool cr_is_act = fpl_vec_[i]->is_active();
             if(!m_exec_st)
             {
                  if((i == act_rte_idx || i == 0) && !cr_is_act)
-                    fpl_vec[i]->activate();
+                    fpl_vec_[i]->activate();
                 else if((i != act_rte_idx && i) && cr_is_act)
-                    fpl_vec[i]->deactivate();
+                    fpl_vec_[i]->deactivate();
             }
-            fpl_vec[i]->update(ac_slip_deg * geo::DEG_TO_RAD);
+            fpl_vec_[i]->update(ac_slip_deg * geo::DEG_TO_RAD);
             update_lists(i);
 
             update_flt_nbr(i);
         }
 
         if(act_rte_idx < N_FPL_SYS_RTES && 
-            act_id != fpl_vec[act_rte_idx]->get_id())
+            act_id != fpl_vec_[act_rte_idx]->get_id())
         {
             m_exec_st = true;
         }
 
-        if(act_rte_idx < N_FPL_SYS_RTES && !fpl_vec[act_rte_idx]->can_activate() && !m_exec_st)
+        if(act_rte_idx < N_FPL_SYS_RTES && !fpl_vec_[act_rte_idx]->can_activate() && !m_exec_st)
         {
             act_rte_idx = N_FPL_SYS_RTES;
             act_id = -1;
@@ -436,8 +509,8 @@ namespace test
     {
         assert(idx < N_FPL_SYS_RTES);
 
-        size_t sz = fpl_vec[idx]->get_seg_list_sz();
-        fpl_datas[idx].seg_list_id = fpl_vec[idx]->get_sl_seg(0, sz, 
+        size_t sz = fpl_vec_[idx]->get_seg_list_sz();
+        fpl_datas[idx].seg_list_id = fpl_vec_[idx]->get_sl_seg(0, sz, 
             &fpl_datas[idx].seg_list);
     }
 
@@ -445,8 +518,8 @@ namespace test
     {
         assert(idx < N_FPL_SYS_RTES);
 
-        size_t sz = fpl_vec[idx]->get_leg_list_sz();
-        fpl_datas[idx].leg_list_id = fpl_vec[idx]->get_ll_seg(0, sz, 
+        size_t sz = fpl_vec_[idx]->get_leg_list_sz();
+        fpl_datas[idx].leg_list_id = fpl_vec_[idx]->get_ll_seg(0, sz, 
             &fpl_datas[idx].leg_list, &fpl_datas[idx].act_leg_idx);
 
         if (fpl_datas[idx].cap_ctr_idx >= fpl_datas[idx].leg_list.size() && 
@@ -466,7 +539,7 @@ namespace test
     {
         assert(idx < N_FPL_SYS_RTES);
 
-        double fpl_id_curr = fpl_vec[idx]->get_id();
+        double fpl_id_curr = fpl_vec_[idx]->get_id();
         if (fpl_id_curr != fpl_datas[idx].fpl_id_last)
         {
             update_seg_list(idx);
@@ -481,7 +554,7 @@ namespace test
         if(idx == RTE1_IDX || idx == RTE2_IDX)
         {
             size_t fnb_idx = idx == RTE2_IDX;
-            std::string c_icao = fpl_vec[idx]->get_dep_icao();
+            std::string c_icao = fpl_vec_[idx]->get_dep_icao();
             if(c_icao != fnb_dep_icao[fnb_idx])
             {
                 fnb_dep_icao[fnb_idx] = c_icao;
@@ -506,6 +579,6 @@ namespace test
         ac_gs_kts = strutils::strtod(env_vars[AC_GS_KTS_VAR]);
         ac_tas_kts = strutils::strtod(env_vars[AC_TAS_KTS_VAR]);
 
-        cmd_fpl_idx = std::min(size_t(strutils::strtod(env_vars[FPL_SEL])), N_FPL_SYS_RTES);
+        cmd_fpl_idx = std::min(std::size_t(strutils::strtod(env_vars[FPL_SEL])), N_FPL_SYS_RTES);
     }
 }

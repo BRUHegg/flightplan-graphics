@@ -63,11 +63,16 @@ namespace test
     struct leg_seg_t
     {
         // is_to_inhibited - true if turn offset is inhibited
-        bool is_arc, is_finite, is_rwy, is_bypassed, is_to_inhibited, has_disc;
+        bool is_arc = false;
+        bool is_finite = false;
+        bool is_rwy = false;
+        bool is_bypassed = false;
+        bool is_to_inhibited = false;
+        bool has_disc = false;
         geo::point start, end;
-        double turn_rad_nm, true_trk_deg;
+        double turn_rad_nm = 0.0, true_trk_deg = 0.0;
 
-        bool has_calc_wpt;
+        bool has_calc_wpt = false;
         libnav::waypoint_t calc_wpt;
 
 
@@ -84,20 +89,20 @@ namespace test
 
     struct fpl_seg_t
     {
-        bool is_direct;
-        bool is_discon;
-        std::string name;
-        fpl_segment_types seg_type;
+        bool is_direct = false;
+        bool is_discon = false;
+        std::string name = "";
+        fpl_segment_types seg_type = fpl_segment_types::FPL_SEG_NONE;
 
-        struct_util::list_node_t<leg_list_data_t> *end;
+        struct_util::list_node_t<leg_list_data_t>* end = nullptr;
     };
 
     struct leg_list_data_t
     {
         leg_t leg;
-        bool is_discon;
+        bool is_discon = false;
         leg_seg_t misc_data;
-        struct_util::list_node_t<fpl_seg_t> *seg;
+        struct_util::list_node_t<fpl_seg_t>* seg = nullptr;
     };
 
     struct fpl_ref_t
@@ -121,11 +126,11 @@ namespace test
     };
     
     
-    static const struct struct_util::list_node_t<leg_list_data_t> EmptyNode = 
-        {nullptr, nullptr, {}};
-    static const struct struct_util::list_node_t<fpl_seg_t> EmptySeg = 
-        {nullptr, nullptr, {}};
-    static const struct fpl_ref_t EmptyRef = {"", nullptr};
+    static const struct_util::list_node_t<leg_list_data_t> EmptyNode{
+        nullptr, nullptr, leg_list_data_t{}};
+    static const struct_util::list_node_t<fpl_seg_t> EmptySeg{
+        nullptr, nullptr, fpl_seg_t{}};
+    static const fpl_ref_t EmptyRef = {"", nullptr};
 
 
     typedef struct_util::list_node_t<leg_list_data_t> leg_list_node_t;

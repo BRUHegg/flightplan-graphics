@@ -20,10 +20,10 @@ namespace StratosphereAvionics
         fpl_sys = fs;
         sel_fpl_idx = test::RTE1_IDX;
         act_fpl_idx = test::N_FPL_SYS_RTES;
-        fpln = fs->fpl_vec[sel_fpl_idx];
-        m_rte1_ptr = fs->fpl_vec[test::RTE1_IDX];
-        m_rte2_ptr = fs->fpl_vec[test::RTE2_IDX];
-        m_act_ptr = fs->fpl_vec[test::ACT_RTE_IDX];
+        fpln = fs->get_fpln_ptr(sel_fpl_idx);
+        m_rte1_ptr = fs->get_fpln_ptr(test::RTE1_IDX);
+        m_rte2_ptr = fs->get_fpln_ptr(test::RTE2_IDX);
+        m_act_ptr = fs->get_fpln_ptr(test::ACT_RTE_IDX);
 
         curr_page = CDUPage::RTE;
         curr_subpg = 1;
@@ -63,7 +63,7 @@ namespace StratosphereAvionics
     {
         seg_list = fpl_sys->get_seg_list(&n_seg_list_sz, sel_fpl_idx);
         leg_list = fpl_sys->get_leg_list(&n_leg_list_sz, sel_fpl_idx);
-        fpln = fpl_sys->fpl_vec[sel_fpl_idx];
+        fpln = fpl_sys->get_fpln_ptr(sel_fpl_idx);
         act_fpl_idx = fpl_sys->get_act_idx();
 
         if (sel_des)
@@ -502,7 +502,7 @@ namespace StratosphereAvionics
                 return {};
             }
             std::vector<libnav::waypoint_entry_t> wpt_entr;
-            size_t n_found = fpl_sys->navaid_db_ptr->get_wpt_data(name, &wpt_entr);
+            size_t n_found = fpl_sys->get_navaid_db_ptr()->get_wpt_data(name, &wpt_entr);
 
             if (n_found == 0)
             {
@@ -592,9 +592,11 @@ namespace StratosphereAvionics
 
         if (dep_nm != "" && arr_nm != "")
         {
-            std::string file_nm = fpl_sys->fpl_dir + dep_nm + arr_nm;
+            std::string file_nm = fpl_sys->get_fpln_dir() + dep_nm + arr_nm;
             libnav::DbErr err = fpln->load_from_fms(file_nm, false);
-            UNUSED(err);
+            if(err != libnav::DbErr::SUCCESS) {
+                return INVALID_RTE_UPLINK_MSG;
+            }
         }
 
         return "";
@@ -607,7 +609,7 @@ namespace StratosphereAvionics
 
         if (dep_nm != "" && arr_nm != "")
         {
-            std::string out_nm = fpl_sys->fpl_dir + dep_nm + arr_nm;
+            std::string out_nm = fpl_sys->get_fpln_dir() + dep_nm + arr_nm;
             fpln->save_to_fms(out_nm);
         }
 
@@ -1021,7 +1023,7 @@ namespace StratosphereAvionics
         if (rte2)
             v_idx = test::RTE2_IDX;
 
-        std::shared_ptr<test::FplnInt> cr_fpln = fpl_sys->fpl_vec[v_idx];
+        std::shared_ptr<test::FplnInt> cr_fpln = fpl_sys->get_fpln_ptr(v_idx);
 
         std::string dep = cr_fpln->get_dep_icao();
         std::string arr = cr_fpln->get_arr_icao();
@@ -1238,8 +1240,8 @@ namespace StratosphereAvionics
 
     std::string CDU::handle_dep_arr(int event_key)
     {
-        std::shared_ptr<test::FplnInt> rte1 = fpl_sys->fpl_vec[test::RTE1_IDX];
-        std::shared_ptr<test::FplnInt> rte2 = fpl_sys->fpl_vec[test::RTE1_IDX];
+        std::shared_ptr<test::FplnInt> rte1 = fpl_sys->get_fpln_ptr(test::RTE1_IDX);
+        std::shared_ptr<test::FplnInt> rte2 = rte1;
         std::string dep1 = rte1->get_dep_icao();
         std::string arr1 = rte1->get_arr_icao();
         std::string dep2 = rte2->get_dep_icao();

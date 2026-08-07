@@ -142,33 +142,32 @@ namespace StratosphereAvionics
     constexpr double RNG_DEC_2_NM = 1.25;
 
 
-    struct nd_util_idx_t
-    {
-        size_t sd_idx = 0;
-        size_t dt_idx = 0;
+    struct nd_util_idx_t {
+        std::size_t sd_idx = 0;
+        std::size_t dt_idx = 0;
     };
 
-    struct labeled_point_t{
+    struct labeled_point_t {
         geom::vect2_t pos{};
         std::string name = "";
     };
 
-    struct labeled_point_with_dist_t{
+    struct labeled_point_with_dist_t {
         labeled_point_t point;
         double dist_ctr = 0;
     };
 
-    struct labeled_point_with_dist_cmp_t{
+    struct labeled_point_with_dist_cmp_t {
         bool operator()(const labeled_point_with_dist_t& pa, 
-            const labeled_point_with_dist_t& pb);
+            const labeled_point_with_dist_t& pb) const noexcept;
     };
     
 
-    struct poi_data_t{
-        size_t n_arpts = 0;
-        size_t n_waypts = 0;
-        size_t n_vors_dmes = 0;
-        size_t n_vordmes = 0;
+    struct poi_data_t {
+        std::size_t n_arpts = 0;
+        std::size_t n_waypts = 0;
+        std::size_t n_vors_dmes = 0;
+        std::size_t n_vordmes = 0;
         labeled_point_with_dist_t* arpts = nullptr;
         labeled_point_with_dist_t* waypts = nullptr;
         labeled_point_with_dist_t* vors_dmes = nullptr;
@@ -181,7 +180,7 @@ namespace StratosphereAvionics
         void destroy();
     };
 
-    struct map_poi_container_t: poi_data_t{
+    struct map_poi_container_t: poi_data_t {
 
         std::shared_ptr<libnav::ArptDB> arpt_db_ptr;
         std::shared_ptr<libnav::NavaidDB> navaid_db_ptr;

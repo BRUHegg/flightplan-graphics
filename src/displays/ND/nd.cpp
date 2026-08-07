@@ -44,7 +44,7 @@ namespace StratosphereAvionics
 
     bool labeled_point_with_dist_cmp_t::operator()(
         const labeled_point_with_dist_t& pa, 
-        const labeled_point_with_dist_t& pb){
+        const labeled_point_with_dist_t& pb) const noexcept{
         return pa.dist_ctr < pb.dist_ctr;
     }
 
@@ -214,10 +214,12 @@ namespace StratosphereAvionics
     // Public member functions:
 
     NDData::NDData(std::shared_ptr<test::FPLSys> fpl_sys) : 
-        m_poi_data(fpl_sys->arpt_db_ptr, fpl_sys->navaid_db_ptr)
+        m_poi_data(fpl_sys->get_arpt_db_ptr(), fpl_sys->get_navaid_db_ptr())
     {
         m_fpl_sys_ptr = fpl_sys;
-        m_fpl_vec = fpl_sys->fpl_vec;
+        for(std::size_t i = 0; i < fpl_sys->get_cnt_flplns(); ++i) {
+            m_fpl_vec.push_back(fpl_sys->get_fpln_ptr(i));
+        }
 
         m_trk_up = true;
 

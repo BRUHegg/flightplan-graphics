@@ -133,6 +133,7 @@ namespace StratosphereAvionics
     const std::string INVALID_ENTRY_MSG = "INVALID ENTRY";
     const std::string NOT_IN_DB_MSG = "NOT IN DATA BASE";
     const std::string INVALID_DELETE_MSG = "INVALID DELETE";
+    const std::string INVALID_RTE_UPLINK_MSG = "INVALID ROUTE UPLINK";
     const std::string DELETE_MSG = "DELETE";
     const std::string CDU_TEXTURE_NAME = "cdu";
     const std::string CDU_WHITE_TEXT_NAME = "cdu_big_white";

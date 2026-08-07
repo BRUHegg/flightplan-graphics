@@ -14,6 +14,14 @@
 #include "fpln_sys.hpp"
 #include <libnav/str_utils.hpp>
 
+#define UNUSED(x) (void)(x)
+
+namespace {
+
+bool glob_rwy_filter = false;
+bool glob_proc_filter = false;
+bool glob_trans_filter = false;
+} // namespace
 
 namespace test
 {
@@ -62,7 +70,7 @@ namespace test
             return;
         }
 
-        fpl_sys->env_vars[in[0]] = in[1];
+        fpl_sys->set_env_var(in[0], in[1]);
     }
 
     inline void print(FPLSys* fpl_sys, std::vector<std::string>& in)
@@ -73,9 +81,10 @@ namespace test
             return;
         }
 
-        if(fpl_sys->env_vars.find(in[0]) != fpl_sys->env_vars.end())
+        auto val = fpl_sys->get_env_var(in[0]);
+        if(val)
         {
-            std::cout << fpl_sys->env_vars[in[0]] << "\n";
+            std::cout << *val << "\n";
         }
         else
         {
@@ -103,15 +112,16 @@ namespace test
             return;
         }
 
-        size_t c_idx = fpl_sys->cmd_fpl_idx;
+        size_t c_idx = fpl_sys->get_cmd_fpl_idx();
 
-        std::string dep_nm = fpl_sys->fpl_vec[c_idx]->get_dep_icao();
-        std::string arr_nm = fpl_sys->fpl_vec[c_idx]->get_arr_icao();
+        std::shared_ptr<FplnInt> curr_fpln = fpl_sys->get_fpln_ptr(c_idx);
+        std::string dep_nm = curr_fpln->get_dep_icao();
+        std::string arr_nm = curr_fpln->get_arr_icao();
 
         if(dep_nm != "" && arr_nm != "")
         {
-            std::string file_nm = fpl_sys->fpl_dir+dep_nm+arr_nm;
-            libnav::DbErr err = fpl_sys->fpl_vec[c_idx]->load_from_fms(file_nm, false);
+            std::string file_nm = fpl_sys->get_fpln_dir()+dep_nm+arr_nm;
+            libnav::DbErr err = curr_fpln->load_from_fms(file_nm, false);
 
             if(err != libnav::DbErr::SUCCESS && err != libnav::DbErr::PARTIAL_LOAD)
             {
@@ -128,20 +138,22 @@ namespace test
             return;
         }
 
-        size_t c_idx = fpl_sys->cmd_fpl_idx;
+        size_t c_idx = fpl_sys->get_cmd_fpl_idx();
 
-        std::string dep_nm = fpl_sys->fpl_vec[c_idx]->get_dep_icao();
-        std::string arr_nm = fpl_sys->fpl_vec[c_idx]->get_arr_icao();
+        std::shared_ptr<FplnInt> curr_fpln = fpl_sys->get_fpln_ptr(c_idx);
+        std::string dep_nm = curr_fpln->get_dep_icao();
+        std::string arr_nm = curr_fpln->get_arr_icao();
 
         if(dep_nm != "" && arr_nm != "")
         {
-            std::string out_nm = fpl_sys->fpl_dir+dep_nm+arr_nm;
-            fpl_sys->fpl_vec[c_idx]->save_to_fms(out_nm);
+            std::string out_nm = fpl_sys->get_fpln_dir()+dep_nm+arr_nm;
+            curr_fpln->save_to_fms(out_nm);
         }
     }
 
     inline void set_filter(FPLSys* fpl_sys, std::vector<std::string>& in)
     {
+        UNUSED(fpl_sys);
         if(in.size() != 1)
         {
             std::cout << "Command expects 1 argument: {filter type(0 - runway, 1 - procedure, 2 - transition)}\n";
@@ -151,15 +163,15 @@ namespace test
         int flt_type = strutils::stoi_with_strip(in[0]);
         if(flt_type == 0)
         {
-            fpl_sys->flt_rwy = !(fpl_sys->flt_rwy);
+            glob_rwy_filter = !(glob_rwy_filter);
         }
         else if(flt_type == 1)
         {
-            fpl_sys->flt_proc = !(fpl_sys->flt_proc);
+            glob_rwy_filter = !(glob_rwy_filter);
         }
         else if(flt_type == 2)
         {
-            fpl_sys->flt_trans = !(fpl_sys->flt_trans);
+            glob_trans_filter = !(glob_trans_filter);
         }
         else
         {
@@ -175,12 +187,13 @@ namespace test
             return;
         }
 
-        size_t c_idx = fpl_sys->cmd_fpl_idx;
+        size_t c_idx = fpl_sys->get_cmd_fpl_idx();
+        std::shared_ptr<FplnInt> curr_fpln = fpl_sys->get_fpln_ptr(c_idx);
 
-        std::cout << "Departure: " << fpl_sys->fpl_vec[c_idx]->get_dep_icao() << "\n";
-        std::cout << "Arrival: " << fpl_sys->fpl_vec[c_idx]->get_arr_icao() << "\n";
-        std::cout << "Departure runway: " << fpl_sys->fpl_vec[c_idx]->get_dep_rwy() << "\n";
-        std::cout << "Arrival runway: " << fpl_sys->fpl_vec[c_idx]->get_arr_rwy() << "\n";
+        std::cout << "Departure: " << curr_fpln->get_dep_icao() << "\n";
+        std::cout << "Arrival: " << curr_fpln->get_arr_icao() << "\n";
+        std::cout << "Departure runway: " << curr_fpln->get_dep_rwy() << "\n";
+        std::cout << "Arrival runway: " << curr_fpln->get_arr_rwy() << "\n";
     }
 
     inline void set_fpl_dep(FPLSys* fpl_sys, std::vector<std::string>& in)
@@ -191,9 +204,10 @@ namespace test
             return;
         }
 
-        size_t c_idx = fpl_sys->cmd_fpl_idx;
+        size_t c_idx = fpl_sys->get_cmd_fpl_idx();
+        std::shared_ptr<FplnInt> curr_fpln = fpl_sys->get_fpln_ptr(c_idx);
 
-        libnav::DbErr err = fpl_sys->fpl_vec[c_idx]->set_dep(in[0]);
+        libnav::DbErr err = curr_fpln->set_dep(in[0]);
         if(err != libnav::DbErr::SUCCESS && err != libnav::DbErr::PARTIAL_LOAD)
         {
             std::cout << "Invalid entry\n";
@@ -212,8 +226,8 @@ namespace test
             return;
         }
 
-        size_t c_idx = fpl_sys->cmd_fpl_idx;
-        std::shared_ptr<FplnInt> curr_fpl = fpl_sys->fpl_vec[c_idx];
+        size_t c_idx = fpl_sys->get_cmd_fpl_idx();
+        std::shared_ptr<FplnInt> curr_fpl = fpl_sys->get_fpln_ptr(c_idx);
 
         libnav::DbErr err = curr_fpl->set_arr(in[0]);
         if(err != libnav::DbErr::SUCCESS && err != libnav::DbErr::PARTIAL_LOAD)
@@ -234,8 +248,8 @@ namespace test
             return;
         }
 
-        size_t c_idx = fpl_sys->cmd_fpl_idx;
-        std::shared_ptr<FplnInt> curr_fpl = fpl_sys->fpl_vec[c_idx];
+        size_t c_idx = fpl_sys->get_cmd_fpl_idx();
+        std::shared_ptr<FplnInt> curr_fpl = fpl_sys->get_fpln_ptr(c_idx);
 
         bool rwy_set = curr_fpl->set_dep_rwy(in[0]);
 
@@ -253,8 +267,8 @@ namespace test
             return;
         }
 
-        size_t c_idx = fpl_sys->cmd_fpl_idx;
-        std::shared_ptr<FplnInt> curr_fpl = fpl_sys->fpl_vec[c_idx];
+        size_t c_idx = fpl_sys->get_cmd_fpl_idx();
+        std::shared_ptr<FplnInt> curr_fpl = fpl_sys->get_fpln_ptr(c_idx);
 
         bool rwy_set = curr_fpl->set_arr_rwy(in[0]);
 
@@ -272,10 +286,11 @@ namespace test
             return;
         }
 
-        size_t c_idx = fpl_sys->cmd_fpl_idx;
-        std::shared_ptr<FplnInt> curr_fpl = fpl_sys->fpl_vec[c_idx];
+        size_t c_idx = fpl_sys->get_cmd_fpl_idx();
+        std::shared_ptr<FplnInt> curr_fpl = fpl_sys->get_fpln_ptr(c_idx);
 
-        std::vector<std::string> rwys = curr_fpl->get_dep_rwys(fpl_sys->flt_rwy, fpl_sys->flt_proc);
+        std::vector<std::string> rwys = curr_fpl->get_dep_rwys(
+            glob_rwy_filter, glob_proc_filter);
         for(auto i: rwys)
         {
             std::cout << i << "\n";
@@ -290,8 +305,8 @@ namespace test
             return;
         }
 
-        size_t c_idx = fpl_sys->cmd_fpl_idx;
-        std::shared_ptr<FplnInt> curr_fpl = fpl_sys->fpl_vec[c_idx];
+        size_t c_idx = fpl_sys->get_cmd_fpl_idx();
+        std::shared_ptr<FplnInt> curr_fpl = fpl_sys->get_fpln_ptr(c_idx);
 
         std::vector<std::string> rwys = curr_fpl->get_arr_rwys();
         for(auto i: rwys)
@@ -317,8 +332,8 @@ namespace test
             return;
         }
 
-        size_t c_idx = fpl_sys->cmd_fpl_idx;
-        std::shared_ptr<FplnInt> curr_fpl = fpl_sys->fpl_vec[c_idx];
+        size_t c_idx = fpl_sys->get_cmd_fpl_idx();
+        std::shared_ptr<FplnInt> curr_fpl = fpl_sys->get_fpln_ptr(c_idx);
 
         bool is_arr = in[1] != "DEP";
         bool is_trans = in[2] == "TRANS";
@@ -329,7 +344,7 @@ namespace test
             if(!is_trans)
             {
                 procs = curr_fpl->get_arpt_proc(ProcType(tmp), is_arr, 
-                    fpl_sys->flt_rwy, fpl_sys->flt_proc);
+                    glob_rwy_filter, glob_proc_filter);
             }
             else
             {
@@ -352,8 +367,8 @@ namespace test
             return;
         }
 
-        size_t c_idx = fpl_sys->cmd_fpl_idx;
-        std::shared_ptr<FplnInt> curr_fpl = fpl_sys->fpl_vec[c_idx];
+        size_t c_idx = fpl_sys->get_cmd_fpl_idx();
+        std::shared_ptr<FplnInt> curr_fpl = fpl_sys->get_fpln_ptr(c_idx);
 
         int tmp = strutils::stoi_with_strip(in[0]);
 
@@ -389,7 +404,7 @@ namespace test
             return;
         }
 
-        size_t c_idx = fpl_sys->cmd_fpl_idx;
+        size_t c_idx = fpl_sys->get_cmd_fpl_idx();
 
         bool show_dist_trk = in[0] == "2";
 
@@ -447,9 +462,9 @@ namespace test
             return;
         }
 
-        size_t c_idx = fpl_sys->cmd_fpl_idx;
+        size_t c_idx = fpl_sys->get_cmd_fpl_idx();
         fpln_info_t f_inf = fpl_sys->get_fpl_info(c_idx);
-        std::shared_ptr<FplnInt> curr_fpl = fpl_sys->fpl_vec[c_idx];
+        std::shared_ptr<FplnInt> curr_fpl = fpl_sys->get_fpln_ptr(c_idx);
 
         size_t idx = size_t(strutils::stoi_with_strip(in[0]));
         size_t n_segs;
@@ -477,9 +492,9 @@ namespace test
             return;
         }
 
-        size_t c_idx = fpl_sys->cmd_fpl_idx;
+        size_t c_idx = fpl_sys->get_cmd_fpl_idx();
         fpln_info_t f_inf = fpl_sys->get_fpl_info(c_idx);
-        std::shared_ptr<FplnInt> curr_fpl = fpl_sys->fpl_vec[c_idx];
+        std::shared_ptr<FplnInt> curr_fpl = fpl_sys->get_fpln_ptr(c_idx);
 
         size_t idx = size_t(strutils::stoi_with_strip(in[0]));
         size_t n_segs;
@@ -507,12 +522,12 @@ namespace test
             return;
         }
 
-        size_t c_idx = fpl_sys->cmd_fpl_idx;
+        size_t c_idx = fpl_sys->get_cmd_fpl_idx();
         fpln_info_t f_inf = fpl_sys->get_fpl_info(c_idx);
-        std::shared_ptr<FplnInt> curr_fpl = fpl_sys->fpl_vec[c_idx];
+        std::shared_ptr<FplnInt> curr_fpl = fpl_sys->get_fpln_ptr(c_idx);
 
         std::vector<libnav::waypoint_entry_t> wpt_entr;
-        size_t n_found = fpl_sys->navaid_db_ptr->get_wpt_data(in[1], &wpt_entr);
+        size_t n_found = fpl_sys->get_navaid_db_ptr()->get_wpt_data(in[1], &wpt_entr);
 
         libnav::waypoint_entry_t tgt;
 
@@ -552,9 +567,9 @@ namespace test
             return;
         }
 
-        size_t c_idx = fpl_sys->cmd_fpl_idx;
+        size_t c_idx = fpl_sys->get_cmd_fpl_idx();
         fpln_info_t f_inf = fpl_sys->get_fpl_info(c_idx);
-        std::shared_ptr<FplnInt> curr_fpl = fpl_sys->fpl_vec[c_idx];
+        std::shared_ptr<FplnInt> curr_fpl = fpl_sys->get_fpln_ptr(c_idx);
 
         size_t idx = size_t(strutils::stoi_with_strip(in[0]));
         size_t n_segs;
@@ -582,14 +597,15 @@ namespace test
             return;
         }
 
-        size_t c_idx = fpl_sys->cmd_fpl_idx;
+        size_t c_idx = fpl_sys->get_cmd_fpl_idx();
         fpln_info_t f_inf = fpl_sys->get_fpl_info(c_idx);
+        std::shared_ptr<FplnInt> curr_fpl = fpl_sys->get_fpln_ptr(c_idx);
         
         if(in[2] == "R")
             return;
 
-        size_t idx = size_t(strutils::stoi_with_strip(in[0]))+1;
-        size_t n_legs;
+        std::size_t idx = std::size_t(strutils::stoi_with_strip(in[0]))+1;
+        std::size_t n_legs;
         auto legs = fpl_sys->get_leg_list(&n_legs, c_idx);
 
         if(idx >= n_legs)
@@ -598,28 +614,22 @@ namespace test
             return;
         }
 
-        std::pair<size_t, double> *ptr;
-
-        if(in[1] == "L")
-        {
-            ptr = &fpl_sys->leg_sel_cdu_l;
-        }
-        else if(in[1] == "R")
-        {
-            ptr = &fpl_sys->leg_sel_cdu_r;
-        }
-        else
-        {
+        bool is_rt = false;
+        if(in[1] == "R") {
+            is_rt = true;
+        } else if(in[1] != "L") {
             std::cout << "Invalid second parameter\n";
             return;
         }
+        std::pair<std::size_t, double> sel_leg = fpl_sys->get_sel_leg(is_rt);
 
-        if(f_inf.leg_list_id != ptr->second)
+        if(f_inf.leg_list_id != sel_leg.second)
         {
             if(in.size() == 4)
             {
                 std::vector<libnav::waypoint_entry_t> wpt_entr;
-                size_t n_found = fpl_sys->navaid_db_ptr->get_wpt_data(in[3], &wpt_entr);
+                size_t n_found = fpl_sys->get_navaid_db_ptr()->get_wpt_data(
+                    in[3], &wpt_entr);
 
                 libnav::waypoint_entry_t tgt;
 
@@ -632,7 +642,7 @@ namespace test
                     tgt = select_desired(in[3], wpt_entr);
                 }
 
-                fpl_sys->fpl_vec[c_idx]->add_direct({in[3], tgt}, {legs[idx].ptr, 
+                curr_fpl->add_direct({in[3], tgt}, {legs[idx].ptr, 
                     f_inf.leg_list_id});
             }
             else if(idx < n_legs-1)
@@ -640,15 +650,16 @@ namespace test
                 leg_list_node_t *leg_ptr = legs[idx].ptr;
                 if(!leg_ptr->data.is_discon)
                 {
-                    ptr->first = idx;
-                    ptr->second = f_inf.leg_list_id;
+                    sel_leg.first = idx;
+                    sel_leg.second = f_inf.leg_list_id;
+                    fpl_sys->set_sel_leg(sel_leg, is_rt);
                 }
             }
         }
         else if(idx < n_legs-1)
         {
             size_t from = idx;
-            size_t to = ptr->first;
+            size_t to = sel_leg.first;
             if(to != from)
             {
                 if(from > to)
@@ -662,9 +673,10 @@ namespace test
                     from--;
                 }
 
-                fpl_sys->fpl_vec[c_idx]->dir_from_to({legs[from].ptr, ptr->second}, 
-                    {legs[to].ptr, ptr->second});
-                ptr->second = -1;
+                curr_fpl->dir_from_to({legs[from].ptr, sel_leg.second}, 
+                    {legs[to].ptr, sel_leg.second});
+                sel_leg.second = -1;
+                fpl_sys->set_sel_leg(sel_leg, is_rt);
             }
         }
     }
@@ -677,7 +689,8 @@ namespace test
             return;
         }
 
-        size_t c_idx = fpl_sys->cmd_fpl_idx;
+        size_t c_idx = fpl_sys->get_cmd_fpl_idx();
+        std::shared_ptr<FplnInt> curr_fpl = fpl_sys->get_fpln_ptr(c_idx);
         fpln_info_t f_inf = fpl_sys->get_fpl_info(c_idx);
 
         size_t idx = size_t(strutils::stoi_with_strip(in[0]))+1;
@@ -690,7 +703,7 @@ namespace test
             return;
         }
 
-        bool ret = fpl_sys->fpl_vec[c_idx]->delete_leg({legs[idx].ptr, 
+        bool ret = curr_fpl->delete_leg({legs[idx].ptr, 
             f_inf.leg_list_id});
 
         if(!ret)
@@ -707,7 +720,7 @@ namespace test
             return;
         }
 
-        size_t c_idx = fpl_sys->cmd_fpl_idx;
+        size_t c_idx = fpl_sys->get_cmd_fpl_idx();
 
         size_t n_segs;
         auto segs = fpl_sys->get_seg_list(&n_segs, c_idx);
@@ -734,9 +747,9 @@ namespace test
             return;
         }
 
-        size_t c_idx = fpl_sys->cmd_fpl_idx;
-
-        fpl_sys->fpl_vec[c_idx]->print_refs();
+        size_t c_idx = fpl_sys->get_cmd_fpl_idx();
+        std::shared_ptr<FplnInt> curr_fpl = fpl_sys->get_fpln_ptr(c_idx);
+        curr_fpl->print_refs();
     }
 
     inline void help(FPLSys *fpl_sys, std::vector<std::string>& in);

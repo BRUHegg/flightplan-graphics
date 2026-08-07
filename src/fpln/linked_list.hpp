@@ -26,10 +26,14 @@ namespace struct_util
     template <class T>
     struct list_node_t
     {
-        list_node_t *prev, *next;
+        list_node_t* prev = nullptr;
+        list_node_t* next = nullptr;
         T data;
 
         list_node_t() = default;
+
+        list_node_t(list_node_t* pr, list_node_t* nx, const T& d) :
+            prev{pr}, next{nx}, data{d} {}
     };
 
     template <class T>

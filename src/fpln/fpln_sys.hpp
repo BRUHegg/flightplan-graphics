@@ -12,9 +12,13 @@
 
 #pragma once
 
-#include "flightpln_int.hpp"
-#include <mutex>
 #include <iostream>
+#include <mutex>
+#include <optional>
+#include <string>
+#include <unordered_map>
+
+#include "flightpln_int.hpp"
 
 #define UNUSED(x) (void)(x)
 
@@ -48,7 +52,7 @@ namespace test
     const std::string FPL_SEL = "fpl_sel";
 
     
-    // FplSys stores 3 routes in fpl_vec
+    // FplSys stores 3 routes in fpl_vec_
     // Index 0 is for active route, 1 for RTE1 and 2 for RTE2
     constexpr size_t N_FPL_SYS_RTES = 3;
     constexpr size_t ACT_RTE_IDX = 0;
@@ -111,41 +115,36 @@ namespace test
     class FPLSys
     {
     public:
-        // These are used by commands
-        // Position:
-        double ac_lat_deg;
-        double ac_lon_deg;
-        double ac_brng_deg;
-        double ac_slip_deg;
-        double ac_magvar_deg;
-        // Speed
-        double ac_gs_kts;
-        double ac_tas_kts;
-        
-        size_t cmd_fpl_idx;
-
-        bool flt_rwy, flt_proc, flt_trans;
-
-        std::shared_ptr<libnav::ArptDB> arpt_db_ptr;
-        std::shared_ptr<libnav::NavaidDB> navaid_db_ptr;
-
-        std::shared_ptr<libnav::AwyDB> awy_db_ptr;
-
-        std::vector<std::shared_ptr<FplnInt>> fpl_vec;
-
-        std::pair<size_t, double> leg_sel_cdu_l;
-        std::pair<size_t, double> leg_sel_cdu_r;
-
-        std::unordered_map<std::string, std::string> env_vars;
-
-        std::string cifp_dir_path;
-        std::string fpl_dir;
-
-
         FPLSys(std::shared_ptr<libnav::ArptDB> arpt_db, 
             std::shared_ptr<libnav::NavaidDB> navaid_db, 
             std::shared_ptr<libnav::AwyDB> awy_db, std::string cifp_path, 
             std::string fpl_path);
+
+        std::size_t get_cmd_fpl_idx() const noexcept;
+
+        std::size_t get_cnt_flplns() const noexcept;
+
+        std::shared_ptr<FplnInt> get_fpln_ptr(
+            std::size_t fpln_idx) const noexcept;
+
+        std::shared_ptr<libnav::AwyDB> get_awy_db_ptr() const noexcept;
+
+        std::shared_ptr<libnav::ArptDB> get_arpt_db_ptr() const noexcept;
+
+        std::shared_ptr<libnav::NavaidDB> get_navaid_db_ptr() const noexcept;
+
+        std::string get_fpln_dir() const noexcept;
+
+        bool has_env_var(const std::string& var_name) const noexcept;
+
+        bool set_env_var(const std::string& var_name, const std::string& val) noexcept;
+
+        std::optional<std::string> get_env_var(
+            const std::string& var_name) const noexcept;
+
+        std::pair<std::size_t, double> get_sel_leg(bool rt) const noexcept;
+
+        void set_sel_leg(std::pair<std::size_t, double> val, bool rt) noexcept;
 
         bool get_exec();
 
@@ -198,18 +197,48 @@ namespace test
         void update();
 
     private:
+        // These are used by commands
+        // Position:
+        double ac_lat_deg;
+        double ac_lon_deg;
+        double ac_brng_deg;
+        double ac_slip_deg;
+        double ac_magvar_deg;
+        // Speed
+        double ac_gs_kts;
+        double ac_tas_kts;
+        
+        std::size_t cmd_fpl_idx;
+
+        bool flt_rwy, flt_proc, flt_trans;
+
+        std::shared_ptr<libnav::ArptDB> arpt_db_ptr_;
+        std::shared_ptr<libnav::NavaidDB> navaid_db_ptr_;
+
+        std::shared_ptr<libnav::AwyDB> awy_db_ptr_;
+
+        std::vector<std::shared_ptr<FplnInt>> fpl_vec_;
+
+        std::pair<std::size_t, double> leg_sel_cdu_l;
+        std::pair<std::size_t, double> leg_sel_cdu_r;
+
+        std::unordered_map<std::string, std::string> env_vars;
+
+        std::string cifp_dir_path;
+        std::string fpl_dir;
+
         std::mutex intnl_mtx;
     
         std::vector<fpln_data_t> fpl_datas;
 
-        size_t act_rte_idx;
+        std::size_t act_rte_idx;
         double act_id;
         std::vector<double> copy_ids;
-        std::vector<size_t> cdu_rte_idx;
+        std::vector<std::size_t> cdu_rte_idx;
         std::string flt_nbr;
         std::vector<std::string> fnb_dep_icao;  // Departure icaos used to reset flight number
         std::vector<NDMode> nd_modes;
-        std::vector<size_t> cdu_sel_fpl;
+        std::vector<std::size_t> cdu_sel_fpl;
 
         bool m_exec_st;
 
