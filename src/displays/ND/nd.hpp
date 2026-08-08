@@ -12,11 +12,17 @@
 
 #pragma once
 
+#include <cstddef>
+
+#include <memory>
+#include <vector>
+#include <string>
+#include <shared_mutex>
+
 #include <common/cairo_utils.hpp>
 #include <fpln/fpln_sys.hpp>
 #include <util/geom.hpp>
 #include <libnav/str_utils.hpp>
-#include <memory>
 #include <util/util.hpp>
 
 namespace StratosphereAvionics {
@@ -209,6 +215,8 @@ class NDData {
   void destroy();
 
  private:
+  std::shared_mutex main_mutex_;
+
   std::vector<std::shared_ptr<test::FplnInt>> fpl_vec_;
   std::shared_ptr<test::FPLSys> fpl_sys_ptr_;
 

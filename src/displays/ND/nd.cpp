@@ -12,6 +12,14 @@
 
 #include "nd.hpp"
 
+#include <cassert>
+#include <cstddef>
+
+#include <mutex>
+#include <shared_mutex>
+#include <unordered_map>
+#include <vector>
+
 namespace {
 
 constexpr size_t N_LEG_PROJ_CACHE_SZ = 200;
@@ -358,6 +366,7 @@ NDData::NDData(std::shared_ptr<test::FPLSys> fpl_sys)
 }
 
 bool NDData::init() {
+  std::unique_lock lk(main_mutex_);
   for (size_t i = 0; i < test::N_FPL_SYS_RTES; i++) {
     leg_data_[i] = new test::nd_leg_data_t[N_LEG_PROJ_CACHE_SZ];
     if (leg_data_[i] == nullptr) {
@@ -378,27 +387,37 @@ bool NDData::init() {
   return true;
 }
 
-void NDData::set_th_up() { trk_up_ = !trk_up_; }
+void NDData::set_th_up() { 
+  std::unique_lock lk(main_mutex_);
+  trk_up_ = !trk_up_; 
+}
 
-bool NDData::get_th_up() { return trk_up_; }
+bool NDData::get_th_up() { 
+  std::shared_lock lk(main_mutex_);
+  return trk_up_; 
+}
 
 void NDData::toggle_efis_arpt_sd(size_t sd_idx) {
   assert(sd_idx < N_ND_SDS);
+  std::unique_lock lk(main_mutex_);
   efis_sel_[sd_idx].arpt_on = !efis_sel_[sd_idx].arpt_on;
 }
 
 void NDData::toggle_efis_sta_sd(size_t sd_idx) {
   assert(sd_idx < N_ND_SDS);
+  std::unique_lock lk(main_mutex_);
   efis_sel_[sd_idx].sta_on = !efis_sel_[sd_idx].sta_on;
 }
 
 efis_selection_t NDData::get_efis_sts_sd(size_t sd_idx) {
   assert(sd_idx < N_ND_SDS);
+  std::shared_lock lk(main_mutex_);
   return efis_sel_[sd_idx];
 }
 
 void NDData::set_mode(size_t sd_idx, test::NDMode md, bool set_ctr) {
   assert(sd_idx < N_ND_SDS);
+  std::unique_lock lk(main_mutex_);
   curr_modes_[sd_idx].first = md;
   if (md == test::NDMode::PLAN)
     curr_modes_[sd_idx].second = false;
@@ -409,45 +428,67 @@ void NDData::set_mode(size_t sd_idx, test::NDMode md, bool set_ctr) {
 
 std::pair<test::NDMode, bool> NDData::get_mode(size_t sd_idx) const {
   assert(sd_idx < N_ND_SDS);
+  std::shared_lock lk(main_mutex_);
   return curr_modes_[sd_idx];
 }
 
 std::vector<int> NDData::get_rte_draw_seq(size_t sd_idx) {
   assert(sd_idx < N_ND_SDS);
+  std::shared_lock lk(main_mutex_);
   return rte_draw_seq_[sd_idx];
 }
 
 size_t NDData::get_proj_legs(leg_proj_t** out, size_t sd_idx, size_t dt_idx) {
+  std::shared_lock lk(main_mutex_);
   *out = mp_data_[sd_idx + dt_idx * N_ND_SDS].proj_legs;
   return mp_data_[sd_idx + dt_idx * N_ND_SDS].n_act_proj_legs;
 }
 
-int NDData::get_act_leg_idx(size_t sd_idx) { return act_leg_idx_sd_[sd_idx]; }
+int NDData::get_act_leg_idx(size_t sd_idx) { 
+  std::shared_lock lk(main_mutex_);
+  return act_leg_idx_sd_[sd_idx]; 
+}
 
 bool NDData::get_ac_pos(geom::vect2_t* out, size_t sd_idx) {
+  std::shared_lock lk(main_mutex_);
   if (!ac_pos_ok_[sd_idx]) return false;
 
   *out = ac_pos_projected_[sd_idx];
   return true;
 }
 
-double NDData::get_hdg_trk() const { return get_cr_rot(); }
+double NDData::get_hdg_trk() const { 
+  std::shared_lock lk(main_mutex_);
+  return get_cr_rot(); 
+}
 
-test::hdg_info_t NDData::get_hdg_data() { return heading_data_; }
+test::hdg_info_t NDData::get_hdg_data() { 
+  std::shared_lock lk(main_mutex_);
+  return heading_data_; 
+}
 
 test::spd_info_t NDData::get_spd_data() {
+  std::shared_lock lk(main_mutex_);
   return fpl_sys_ptr_->get_spd_info();
 }
 
 test::act_leg_info_t NDData::get_act_leg_info() {
+  std::shared_lock lk(main_mutex_);
   return fpl_sys_ptr_->get_act_leg_info();
 }
 
-bool NDData::has_dep_rwy(size_t idx) { return has_dep_rwy_[idx]; }
+bool NDData::has_dep_rwy(size_t idx) { 
+  std::shared_lock lk(main_mutex_);
+  return has_dep_rwy_[idx]; 
+}
 
-bool NDData::has_arr_rwy(size_t idx) { return has_arr_rwy_[idx]; }
+bool NDData::has_arr_rwy(size_t idx) { 
+  std::shared_lock lk(main_mutex_);
+  return has_arr_rwy_[idx]; 
+}
 
 void NDData::switch_range(bool down, size_t sd_idx) {
+  std::unique_lock lk(main_mutex_);
   if (down) {
     if (range_index_[sd_idx]) range_index_[sd_idx]--;
   } else {
@@ -456,42 +497,60 @@ void NDData::switch_range(bool down, size_t sd_idx) {
 }
 
 double NDData::get_range(size_t sd_idx) {
+  std::shared_lock lk(main_mutex_);
   return ND_RANGES_NM[range_index_[sd_idx]];
 }
 
 // POI functions
 
-size_t NDData::get_num_poi_arpts() { return poi_data_.n_arpts; }
+size_t NDData::get_num_poi_arpts() { 
+  std::shared_lock lk(main_mutex_);
+  return poi_data_.n_arpts; 
+}
 
-size_t NDData::get_num_poi_waypts() { return poi_data_.n_waypts; }
+size_t NDData::get_num_poi_waypts() { 
+  std::shared_lock lk(main_mutex_);
+  return poi_data_.n_waypts; 
+}
 
-size_t NDData::get_num_poi_vordmes() { return poi_data_.n_vordmes; }
+size_t NDData::get_num_poi_vordmes() { 
+  std::shared_lock lk(main_mutex_);
+  return poi_data_.n_vordmes; 
+}
 
-size_t NDData::get_num_poi_vhf_not_vordmes() { return poi_data_.n_vors_dmes; }
+size_t NDData::get_num_poi_vhf_not_vordmes() { 
+  std::shared_lock lk(main_mutex_);
+  return poi_data_.n_vors_dmes; 
+}
 
 // Get ith POI
 
 labeled_point_with_dist_t NDData::get_arpt(size_t i) {
+  std::shared_lock lk(main_mutex_);
   assert(i < pois_projected_[idx_proj_act_].n_arpts);
   return pois_projected_[idx_proj_act_].arpts[i];
 }
 
 labeled_point_with_dist_t NDData::get_waypt(size_t i) {
+  std::shared_lock lk(main_mutex_);
   assert(i < pois_projected_[idx_proj_act_].n_waypts);
   return pois_projected_[idx_proj_act_].waypts[i];
 }
 
 labeled_point_with_dist_t NDData::get_vordme(size_t i) {
+  std::shared_lock lk(main_mutex_);
   assert(i < pois_projected_[idx_proj_act_].n_vordmes);
   return pois_projected_[idx_proj_act_].vordmes[i];
 }
 
 labeled_point_with_dist_t NDData::get_vhf_not_vordme(size_t i) {
+  std::shared_lock lk(main_mutex_);
   assert(i < pois_projected_[idx_proj_act_].n_vors_dmes);
   return pois_projected_[idx_proj_act_].vors_dmes[i];
 }
 
 void NDData::update() {
+  std::unique_lock lk(main_mutex_);
   heading_data_ = fpl_sys_ptr_->get_hdg_info();
   update_rte_draw_seq();
   for (size_t i = 0; i < N_ND_SDS; i++) {
@@ -511,6 +570,7 @@ void NDData::update() {
 }
 
 void NDData::destroy() {
+  std::unique_lock lk(main_mutex_);
   for (size_t i = 0; i < test::N_FPL_SYS_RTES; i++) delete[] leg_data_[i];
   for (size_t i = 0; i < N_MP_DATA_SZ; i++) mp_data_[i].destroy();
   pois_projected_[0].destroy();
