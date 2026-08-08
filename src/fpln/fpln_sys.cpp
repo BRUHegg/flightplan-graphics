@@ -15,7 +15,16 @@
 #include "fpln_sys.hpp"
 
 #include <cassert>
+#include <cstdint>
+
 #include <optional>
+
+#include "environment.hpp"
+
+namespace {
+
+
+} // namespace
 
 namespace test {
 // FPLSys member function definitions:
@@ -24,28 +33,16 @@ namespace test {
 
 FPLSys::FPLSys(std::shared_ptr<libnav::ArptDB> arpt_db,
                std::shared_ptr<libnav::NavaidDB> navaid_db,
-               std::shared_ptr<libnav::AwyDB> awy_db, std::string cifp_path,
-               std::string fpl_path) {
-  // Initialize reserved variables:
-  assert(RSV_VARS.size() == RSV_VAR_VAL.size());
-
-  for (size_t i = 0; i < RSV_VARS.size(); i++) {
-    env_vars[RSV_VARS[i]] = strutils::double_to_str(RSV_VAR_VAL[i], 9);
-  }
-
-  flt_rwy = false;
-  flt_proc = false;
-  flt_trans = false;
+               std::shared_ptr<libnav::AwyDB> awy_db, 
+               std::shared_ptr<fms_environment::EnvDataRefMap> env_map,
+               std::string cifp_path,
+               std::string fpl_path) : arpt_db_ptr_{arpt_db}, 
+               navaid_db_ptr_{navaid_db}, awy_db_ptr_{awy_db},
+               env_map_ptr_{env_map}, cifp_dir_path{cifp_path},
+               fpl_dir{fpl_path} {
 
   cifp_dir_path = cifp_path;
   fpl_dir = fpl_path;
-
-  ac_lat_deg = AC_LAT_DEF;
-  ac_lon_deg = AC_LON_DEF;
-
-  arpt_db_ptr_ = arpt_db;
-  navaid_db_ptr_ = navaid_db;
-  awy_db_ptr_ = awy_db;
 
   for (size_t i = 0; i < N_FPL_SYS_RTES; i++) {
     std::shared_ptr<FplnInt> tmp = std::make_shared<FplnInt>(
@@ -82,7 +79,11 @@ FPLSys::FPLSys(std::shared_ptr<libnav::ArptDB> arpt_db,
   nd_modes = std::vector<NDMode>(N_INTFCS, DFLT_ND_MODE);
   cdu_sel_fpl = std::vector<size_t>(N_INTFCS);
 
-  update_pos();
+  cmd_fpl_idx = 1;
+
+  double_values_ = position_.get_val_pointers();
+
+  update_hot_env_vars();
 }
 
 std::size_t FPLSys::get_cmd_fpl_idx() const noexcept { return cmd_fpl_idx; }
@@ -108,32 +109,6 @@ std::shared_ptr<libnav::NavaidDB> FPLSys::get_navaid_db_ptr() const noexcept {
 }
 
 std::string FPLSys::get_fpln_dir() const noexcept { return fpl_dir; }
-
-bool FPLSys::has_env_var(const std::string& var_name) const noexcept {
-  if (env_vars.count(var_name)) {
-    return true;
-  }
-  return false;
-}
-
-bool FPLSys::set_env_var(const std::string& var_name,
-                         const std::string& val) noexcept {
-  auto it = env_vars.find(var_name);
-  if (it != env_vars.end()) {
-    it->second = val;
-    return true;
-  }
-  return false;
-}
-
-std::optional<std::string> FPLSys::get_env_var(
-    const std::string& var_name) const noexcept {
-  auto it = env_vars.find(var_name);
-  if (it != env_vars.end()) {
-    return it->second;
-  }
-  return std::nullopt;
-}
 
 std::pair<std::size_t, double> FPLSys::get_sel_leg(bool rt) const noexcept {
   if (rt) {
@@ -246,21 +221,22 @@ bool FPLSys::get_ctr(geo::point* out, size_t sd_idx) {
 }
 
 geo::point FPLSys::get_ac_pos() {
-  return {ac_lat_deg * geo::DEG_TO_RAD, ac_lon_deg * geo::DEG_TO_RAD};
+  return {position_.ac_lat_deg * geo::DEG_TO_RAD, 
+    position_.ac_lon_deg * geo::DEG_TO_RAD};
 }
 
 hdg_info_t FPLSys::get_hdg_info() {
   hdg_info_t out = {};
-  out.brng_tru_rad = ac_brng_deg * geo::DEG_TO_RAD;
-  out.slip_rad = ac_slip_deg * geo::DEG_TO_RAD;
-  out.magvar_rad = ac_magvar_deg * geo::DEG_TO_RAD;
+  out.brng_tru_rad = position_.ac_brng_deg * geo::DEG_TO_RAD;
+  out.slip_rad = position_.ac_slip_deg * geo::DEG_TO_RAD;
+  out.magvar_rad = position_.ac_magvar_deg * geo::DEG_TO_RAD;
   return out;
 }
 
 spd_info_t FPLSys::get_spd_info() {
   spd_info_t out = {};
-  out.gs_kts = ac_gs_kts;
-  out.tas_kts = ac_tas_kts;
+  out.gs_kts = position_.ac_gs_kts;
+  out.tas_kts = position_.ac_tas_kts;
 
   return out;
 }
@@ -275,8 +251,8 @@ act_leg_info_t FPLSys::get_act_leg_info(size_t idx) {
   if (fpl_datas[idx].act_leg_idx != -1) {
     leg_seg_t act_seg =
         fpl_datas[idx].leg_list[fpl_datas[idx].act_leg_idx].data.misc_data;
-    geo::point curr_pos = {ac_lat_deg * geo::DEG_TO_RAD,
-                           ac_lon_deg * geo::DEG_TO_RAD};
+    geo::point curr_pos = {position_.ac_lat_deg * geo::DEG_TO_RAD,
+                           position_.ac_lon_deg * geo::DEG_TO_RAD};
 
     out.name = act_seg.calc_wpt.id;
     out.dist_sz = DIST_FONT_SZ_DD;
@@ -405,7 +381,7 @@ void FPLSys::erase() {
 }
 
 void FPLSys::update() {
-  update_pos();
+  update_hot_env_vars();
 
   for (size_t i = 0; i < N_FPL_SYS_RTES; i++) {
     bool cr_is_act = fpl_vec_[i]->is_active();
@@ -415,7 +391,7 @@ void FPLSys::update() {
       else if ((i != act_rte_idx && i) && cr_is_act)
         fpl_vec_[i]->deactivate();
     }
-    fpl_vec_[i]->update(ac_slip_deg * geo::DEG_TO_RAD);
+    fpl_vec_[i]->update(position_.ac_slip_deg * geo::DEG_TO_RAD);
     update_lists(i);
 
     update_flt_nbr(i);
@@ -434,6 +410,19 @@ void FPLSys::update() {
 }
 
 // Private member functions:
+
+std::unordered_map<FPLSys::pos_data_t::str_type, double*> 
+  FPLSys::pos_data_t::get_val_pointers() {
+  std::unordered_map<FPLSys::pos_data_t::str_type, double*> res;
+  res[fms_environment::AC_LAT_DEG_VAR] = &ac_lat_deg;
+  res[fms_environment::AC_LON_DEG_VAR] = &ac_lon_deg;
+  res[fms_environment::AC_BRNG_TRU_DEG_VAR] = &ac_brng_deg;
+  res[fms_environment::AC_SLIP_DEG_VAR] = &ac_slip_deg;
+  res[fms_environment::AC_MAGVAR_DEG_VAR] = &ac_magvar_deg;
+  res[fms_environment::AC_GS_KTS_VAR] = &ac_gs_kts;
+  res[fms_environment::AC_TAS_KTS_VAR] = &ac_tas_kts;
+  return res;
+}
 
 void FPLSys::update_seg_list(size_t idx) {
   assert(idx < N_FPL_SYS_RTES);
@@ -484,7 +473,14 @@ void FPLSys::update_flt_nbr(size_t idx) {
   }
 }
 
-void FPLSys::update_pos() {
+void FPLSys::update_hot_env_vars() {
+  for(auto [name, ptr]: double_values_) {
+    auto resp = env_map_ptr_->Get<double>(name);
+    if(resp) {
+      *ptr = *resp;
+    }
+  }
+  /*
   for (size_t i = 0; i < RSV_VARS.size(); i++) {
     if (!strutils::is_numeric(env_vars[RSV_VARS[i]])) return;
   }
@@ -498,6 +494,6 @@ void FPLSys::update_pos() {
   ac_tas_kts = strutils::strtod(env_vars[AC_TAS_KTS_VAR]);
 
   cmd_fpl_idx = std::min(std::size_t(strutils::strtod(env_vars[FPL_SEL])),
-                         N_FPL_SYS_RTES);
+                         N_FPL_SYS_RTES);*/
 }
 }  // namespace test

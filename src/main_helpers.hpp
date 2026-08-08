@@ -19,6 +19,7 @@
 #include <memory>
 #include <string>
 
+#include <fpln/environment.hpp>
 #include "displays/CDU/cdu.hpp"
 #include "displays/ND/nd.hpp"
 #include "fpln/fpl_cmds.hpp"
@@ -56,6 +57,7 @@ class Avionics {
   std::shared_ptr<libnav::HoldDB> hold_db;
 
   std::shared_ptr<FPLSys> fpl_sys;
+  std::shared_ptr<fms_environment::EnvDataRefMap> env_map_ptr_;
 
   std::string cifp_dir_path;
 
@@ -101,7 +103,12 @@ class Avionics {
       std::cout << "Unable to load hold database\n";
     }
 
+    env_map_ptr_ = 
+      std::make_shared<fms_environment::EnvDataRefMap>(
+        fms_environment::kBaseVariables);
+
     fpl_sys = std::make_shared<FPLSys>(arpt_db_ptr, navaid_db_ptr, awy_db,
+                                      env_map_ptr_,
                                        cifp_dir_path, fpl_path);
   }
 
@@ -109,6 +116,7 @@ class Avionics {
 
   ~Avionics() {
     fpl_sys.reset();
+    env_map_ptr_.reset();
     hold_db.reset();
     awy_db.reset();
     navaid_db_ptr.reset();
@@ -151,8 +159,9 @@ class CMDInterface {
           std::vector<std::string>(line_split.begin() + 1, line_split.end());
 
       if (test::cmd_map.find(cmd_name) != test::cmd_map.end()) {
-        test::FPLSys* ptr = avncs->fpl_sys.get();
-        test::cmd_map[cmd_name](ptr, args);
+        command_res_t cmd_resources{.fpl_sys=avncs->fpl_sys, .env_map=avncs->env_map_ptr_};
+
+        test::cmd_map[cmd_name](cmd_resources, args);
       } else {
         std::cout << "Invalid command name\n";
       }

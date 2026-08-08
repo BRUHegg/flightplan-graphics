@@ -16,6 +16,7 @@
 
 #include <libnav/str_utils.hpp>
 
+#include "environment.hpp"
 #include "fpln_sys.hpp"
 
 #define UNUSED(x) (void)(x)
@@ -30,7 +31,12 @@ bool glob_trans_filter = false;
 namespace test {
 // Command definitions:
 
-typedef void (*cmd)(FPLSys*, std::vector<std::string>&);
+struct command_res_t {
+  std::shared_ptr<FPLSys> fpl_sys;
+  std::shared_ptr<fms_environment::EnvDataRefMap> env_map;
+};
+
+typedef void (*cmd)(command_res_t, std::vector<std::string>&);
 
 inline libnav::waypoint_entry_t select_desired(
     std::string& name, std::vector<libnav::waypoint_entry_t>& wpts) {
@@ -59,22 +65,22 @@ inline libnav::waypoint_entry_t select_desired(
   }
 }
 
-inline void set_var(FPLSys* fpl_sys, std::vector<std::string>& in) {
+inline void set_var(command_res_t cmd_resources, std::vector<std::string>& in) {
   if (in.size() != 2) {
     std::cout << "Command expects 2 arguments: <variable name>, <value>\n";
     return;
   }
 
-  fpl_sys->set_env_var(in[0], in[1]);
+  cmd_resources.env_map->SetFromString(in[0], in[1]);
 }
 
-inline void print(FPLSys* fpl_sys, std::vector<std::string>& in) {
+inline void print(command_res_t cmd_resources, std::vector<std::string>& in) {
   if (in.size() != 1) {
     std::cout << "Command expects 1 argument: <variable name>\n";
     return;
   }
 
-  auto val = fpl_sys->get_env_var(in[0]);
+  auto val = cmd_resources.env_map->GetString(in[0]);
   if (val) {
     std::cout << *val << "\n";
   } else {
@@ -82,8 +88,8 @@ inline void print(FPLSys* fpl_sys, std::vector<std::string>& in) {
   }
 }
 
-inline void quit(FPLSys* fpl_sys, std::vector<std::string>& in) {
-  UNUSED(fpl_sys);
+inline void quit(command_res_t cmd_resources, std::vector<std::string>& in) {
+  UNUSED(cmd_resources);
 
   if (in.size()) {
     std::cout << "Too many arguments provided\n";
@@ -92,20 +98,20 @@ inline void quit(FPLSys* fpl_sys, std::vector<std::string>& in) {
   std::exit(0);
 }
 
-inline void load_fpln(FPLSys* fpl_sys, std::vector<std::string>& in) {
+inline void load_fpln(command_res_t cmd_resources, std::vector<std::string>& in) {
   if (in.size()) {
     std::cout << "Command expects 0 arguments\n";
     return;
   }
 
-  size_t c_idx = fpl_sys->get_cmd_fpl_idx();
+  size_t c_idx = cmd_resources.fpl_sys->get_cmd_fpl_idx();
 
-  std::shared_ptr<FplnInt> curr_fpln = fpl_sys->get_fpln_ptr(c_idx);
+  std::shared_ptr<FplnInt> curr_fpln = cmd_resources.fpl_sys->get_fpln_ptr(c_idx);
   std::string dep_nm = curr_fpln->get_dep_icao();
   std::string arr_nm = curr_fpln->get_arr_icao();
 
   if (dep_nm != "" && arr_nm != "") {
-    std::string file_nm = fpl_sys->get_fpln_dir() + dep_nm + arr_nm;
+    std::string file_nm = cmd_resources.fpl_sys->get_fpln_dir() + dep_nm + arr_nm;
     libnav::DbErr err = curr_fpln->load_from_fms(file_nm, false);
 
     if (err != libnav::DbErr::SUCCESS && err != libnav::DbErr::PARTIAL_LOAD) {
@@ -114,26 +120,26 @@ inline void load_fpln(FPLSys* fpl_sys, std::vector<std::string>& in) {
   }
 }
 
-inline void save_fpln(FPLSys* fpl_sys, std::vector<std::string>& in) {
+inline void save_fpln(command_res_t cmd_resources, std::vector<std::string>& in) {
   if (in.size()) {
     std::cout << "Command expects 0 arguments\n";
     return;
   }
 
-  size_t c_idx = fpl_sys->get_cmd_fpl_idx();
+  size_t c_idx = cmd_resources.fpl_sys->get_cmd_fpl_idx();
 
-  std::shared_ptr<FplnInt> curr_fpln = fpl_sys->get_fpln_ptr(c_idx);
+  std::shared_ptr<FplnInt> curr_fpln = cmd_resources.fpl_sys->get_fpln_ptr(c_idx);
   std::string dep_nm = curr_fpln->get_dep_icao();
   std::string arr_nm = curr_fpln->get_arr_icao();
 
   if (dep_nm != "" && arr_nm != "") {
-    std::string out_nm = fpl_sys->get_fpln_dir() + dep_nm + arr_nm;
+    std::string out_nm = cmd_resources.fpl_sys->get_fpln_dir() + dep_nm + arr_nm;
     curr_fpln->save_to_fms(out_nm);
   }
 }
 
-inline void set_filter(FPLSys* fpl_sys, std::vector<std::string>& in) {
-  UNUSED(fpl_sys);
+inline void set_filter(command_res_t cmd_resources, std::vector<std::string>& in) {
+  UNUSED(cmd_resources);
   if (in.size() != 1) {
     std::cout << "Command expects 1 argument: {filter type(0 - runway, 1 - "
                  "procedure, 2 - transition)}\n";
@@ -152,14 +158,14 @@ inline void set_filter(FPLSys* fpl_sys, std::vector<std::string>& in) {
   }
 }
 
-inline void fplinfo(FPLSys* fpl_sys, std::vector<std::string>& in) {
+inline void fplinfo(command_res_t cmd_resources, std::vector<std::string>& in) {
   if (in.size()) {
     std::cout << "Too many arguments provided\n";
     return;
   }
 
-  size_t c_idx = fpl_sys->get_cmd_fpl_idx();
-  std::shared_ptr<FplnInt> curr_fpln = fpl_sys->get_fpln_ptr(c_idx);
+  size_t c_idx = cmd_resources.fpl_sys->get_cmd_fpl_idx();
+  std::shared_ptr<FplnInt> curr_fpln = cmd_resources.fpl_sys->get_fpln_ptr(c_idx);
 
   std::cout << "Departure: " << curr_fpln->get_dep_icao() << "\n";
   std::cout << "Arrival: " << curr_fpln->get_arr_icao() << "\n";
@@ -167,14 +173,14 @@ inline void fplinfo(FPLSys* fpl_sys, std::vector<std::string>& in) {
   std::cout << "Arrival runway: " << curr_fpln->get_arr_rwy() << "\n";
 }
 
-inline void set_fpl_dep(FPLSys* fpl_sys, std::vector<std::string>& in) {
+inline void set_fpl_dep(command_res_t cmd_resources, std::vector<std::string>& in) {
   if (in.size() != 1) {
     std::cout << "Command expects 1 argument: icao code\n";
     return;
   }
 
-  size_t c_idx = fpl_sys->get_cmd_fpl_idx();
-  std::shared_ptr<FplnInt> curr_fpln = fpl_sys->get_fpln_ptr(c_idx);
+  size_t c_idx = cmd_resources.fpl_sys->get_cmd_fpl_idx();
+  std::shared_ptr<FplnInt> curr_fpln = cmd_resources.fpl_sys->get_fpln_ptr(c_idx);
 
   libnav::DbErr err = curr_fpln->set_dep(in[0]);
   if (err != libnav::DbErr::SUCCESS && err != libnav::DbErr::PARTIAL_LOAD) {
@@ -184,14 +190,14 @@ inline void set_fpl_dep(FPLSys* fpl_sys, std::vector<std::string>& in) {
   }
 }
 
-inline void set_fpl_arr(FPLSys* fpl_sys, std::vector<std::string>& in) {
+inline void set_fpl_arr(command_res_t cmd_resources, std::vector<std::string>& in) {
   if (in.size() != 1) {
     std::cout << "Command expects 1 argument: icao code\n";
     return;
   }
 
-  size_t c_idx = fpl_sys->get_cmd_fpl_idx();
-  std::shared_ptr<FplnInt> curr_fpl = fpl_sys->get_fpln_ptr(c_idx);
+  size_t c_idx = cmd_resources.fpl_sys->get_cmd_fpl_idx();
+  std::shared_ptr<FplnInt> curr_fpl = cmd_resources.fpl_sys->get_fpln_ptr(c_idx);
 
   libnav::DbErr err = curr_fpl->set_arr(in[0]);
   if (err != libnav::DbErr::SUCCESS && err != libnav::DbErr::PARTIAL_LOAD) {
@@ -201,14 +207,14 @@ inline void set_fpl_arr(FPLSys* fpl_sys, std::vector<std::string>& in) {
   }
 }
 
-inline void set_dep_rwy(FPLSys* fpl_sys, std::vector<std::string>& in) {
+inline void set_dep_rwy(command_res_t cmd_resources, std::vector<std::string>& in) {
   if (in.size() != 1) {
     std::cout << "Command expects 1 argument: icao code\n";
     return;
   }
 
-  size_t c_idx = fpl_sys->get_cmd_fpl_idx();
-  std::shared_ptr<FplnInt> curr_fpl = fpl_sys->get_fpln_ptr(c_idx);
+  size_t c_idx = cmd_resources.fpl_sys->get_cmd_fpl_idx();
+  std::shared_ptr<FplnInt> curr_fpl = cmd_resources.fpl_sys->get_fpln_ptr(c_idx);
 
   bool rwy_set = curr_fpl->set_dep_rwy(in[0]);
 
@@ -217,14 +223,14 @@ inline void set_dep_rwy(FPLSys* fpl_sys, std::vector<std::string>& in) {
   }
 }
 
-inline void set_arr_rwy(FPLSys* fpl_sys, std::vector<std::string>& in) {
+inline void set_arr_rwy(command_res_t cmd_resources, std::vector<std::string>& in) {
   if (in.size() != 1) {
     std::cout << "Command expects 1 argument: icao code\n";
     return;
   }
 
-  size_t c_idx = fpl_sys->get_cmd_fpl_idx();
-  std::shared_ptr<FplnInt> curr_fpl = fpl_sys->get_fpln_ptr(c_idx);
+  size_t c_idx = cmd_resources.fpl_sys->get_cmd_fpl_idx();
+  std::shared_ptr<FplnInt> curr_fpl = cmd_resources.fpl_sys->get_fpln_ptr(c_idx);
 
   bool rwy_set = curr_fpl->set_arr_rwy(in[0]);
 
@@ -233,14 +239,14 @@ inline void set_arr_rwy(FPLSys* fpl_sys, std::vector<std::string>& in) {
   }
 }
 
-inline void get_dep_rwys(FPLSys* fpl_sys, std::vector<std::string>& in) {
+inline void get_dep_rwys(command_res_t cmd_resources, std::vector<std::string>& in) {
   if (in.size() != 0) {
     std::cout << "Command expects 0 arguments\n";
     return;
   }
 
-  size_t c_idx = fpl_sys->get_cmd_fpl_idx();
-  std::shared_ptr<FplnInt> curr_fpl = fpl_sys->get_fpln_ptr(c_idx);
+  size_t c_idx = cmd_resources.fpl_sys->get_cmd_fpl_idx();
+  std::shared_ptr<FplnInt> curr_fpl = cmd_resources.fpl_sys->get_fpln_ptr(c_idx);
 
   std::vector<std::string> rwys =
       curr_fpl->get_dep_rwys(glob_rwy_filter, glob_proc_filter);
@@ -249,14 +255,14 @@ inline void get_dep_rwys(FPLSys* fpl_sys, std::vector<std::string>& in) {
   }
 }
 
-inline void get_arr_rwys(FPLSys* fpl_sys, std::vector<std::string>& in) {
+inline void get_arr_rwys(command_res_t cmd_resources, std::vector<std::string>& in) {
   if (in.size() != 0) {
     std::cout << "Command expects 0 arguments\n";
     return;
   }
 
-  size_t c_idx = fpl_sys->get_cmd_fpl_idx();
-  std::shared_ptr<FplnInt> curr_fpl = fpl_sys->get_fpln_ptr(c_idx);
+  size_t c_idx = cmd_resources.fpl_sys->get_cmd_fpl_idx();
+  std::shared_ptr<FplnInt> curr_fpl = cmd_resources.fpl_sys->get_fpln_ptr(c_idx);
 
   std::vector<std::string> rwys = curr_fpl->get_arr_rwys();
   for (auto i : rwys) {
@@ -264,7 +270,7 @@ inline void get_arr_rwys(FPLSys* fpl_sys, std::vector<std::string>& in) {
   }
 }
 
-inline void get_proc(FPLSys* fpl_sys, std::vector<std::string>& in) {
+inline void get_proc(command_res_t cmd_resources, std::vector<std::string>& in) {
   if (in.size() != 3) {
     std::cout << "Command expects 3 arguments: {procedure type}, {DEP/ARR}, \
             {PROC/TRANS}\n";
@@ -278,8 +284,8 @@ inline void get_proc(FPLSys* fpl_sys, std::vector<std::string>& in) {
     return;
   }
 
-  size_t c_idx = fpl_sys->get_cmd_fpl_idx();
-  std::shared_ptr<FplnInt> curr_fpl = fpl_sys->get_fpln_ptr(c_idx);
+  size_t c_idx = cmd_resources.fpl_sys->get_cmd_fpl_idx();
+  std::shared_ptr<FplnInt> curr_fpl = cmd_resources.fpl_sys->get_fpln_ptr(c_idx);
 
   bool is_arr = in[1] != "DEP";
   bool is_trans = in[2] == "TRANS";
@@ -300,15 +306,15 @@ inline void get_proc(FPLSys* fpl_sys, std::vector<std::string>& in) {
   }
 }
 
-inline void set_proc(FPLSys* fpl_sys, std::vector<std::string>& in) {
+inline void set_proc(command_res_t cmd_resources, std::vector<std::string>& in) {
   if (in.size() != 4) {
     std::cout << "Command expects 4 arguments: {procedure type}, {proc name}, \
                 {DEP/ARR}, {TRANS/PROC}\n";
     return;
   }
 
-  size_t c_idx = fpl_sys->get_cmd_fpl_idx();
-  std::shared_ptr<FplnInt> curr_fpl = fpl_sys->get_fpln_ptr(c_idx);
+  size_t c_idx = cmd_resources.fpl_sys->get_cmd_fpl_idx();
+  std::shared_ptr<FplnInt> curr_fpl = cmd_resources.fpl_sys->get_fpln_ptr(c_idx);
 
   int tmp = strutils::stoi_with_strip(in[0]);
 
@@ -331,20 +337,20 @@ inline void set_proc(FPLSys* fpl_sys, std::vector<std::string>& in) {
   }
 }
 
-inline void print_legs(FPLSys* fpl_sys, std::vector<std::string>& in) {
+inline void print_legs(command_res_t cmd_resources, std::vector<std::string>& in) {
   if (in.size() != 1) {
     std::cout << "Command expects 1 argument: layout{1/2}\n";
     return;
   }
 
-  size_t c_idx = fpl_sys->get_cmd_fpl_idx();
+  size_t c_idx = cmd_resources.fpl_sys->get_cmd_fpl_idx();
 
   bool show_dist_trk = in[0] == "2";
 
   if (in[0] != "1" && in[0] != "2") return;
 
   size_t n_legs;
-  auto legs = fpl_sys->get_leg_list(&n_legs, c_idx);
+  auto legs = cmd_resources.fpl_sys->get_leg_list(&n_legs, c_idx);
 
   size_t cnt = 0;
   for (auto i : legs) {
@@ -381,20 +387,20 @@ inline void print_legs(FPLSys* fpl_sys, std::vector<std::string>& in) {
   }
 }
 
-inline void add_via(FPLSys* fpl_sys, std::vector<std::string>& in) {
+inline void add_via(command_res_t cmd_resources, std::vector<std::string>& in) {
   if (in.size() != 2) {
     std::cout
         << "Command expects 2 arguments: {Next segment index}, {Airway name}\n";
     return;
   }
 
-  size_t c_idx = fpl_sys->get_cmd_fpl_idx();
-  fpln_info_t f_inf = fpl_sys->get_fpl_info(c_idx);
-  std::shared_ptr<FplnInt> curr_fpl = fpl_sys->get_fpln_ptr(c_idx);
+  size_t c_idx = cmd_resources.fpl_sys->get_cmd_fpl_idx();
+  fpln_info_t f_inf = cmd_resources.fpl_sys->get_fpl_info(c_idx);
+  std::shared_ptr<FplnInt> curr_fpl = cmd_resources.fpl_sys->get_fpln_ptr(c_idx);
 
   size_t idx = size_t(strutils::stoi_with_strip(in[0]));
   size_t n_segs;
-  auto segs = fpl_sys->get_seg_list(&n_segs, c_idx);
+  auto segs = cmd_resources.fpl_sys->get_seg_list(&n_segs, c_idx);
 
   seg_list_node_t* s_ptr = nullptr;
   if (idx < n_segs) {
@@ -408,19 +414,19 @@ inline void add_via(FPLSys* fpl_sys, std::vector<std::string>& in) {
   }
 }
 
-inline void delete_via(FPLSys* fpl_sys, std::vector<std::string>& in) {
+inline void delete_via(command_res_t cmd_resources, std::vector<std::string>& in) {
   if (in.size() != 1) {
     std::cout << "Command expects 1 argument: {Next segment index}\n";
     return;
   }
 
-  size_t c_idx = fpl_sys->get_cmd_fpl_idx();
-  fpln_info_t f_inf = fpl_sys->get_fpl_info(c_idx);
-  std::shared_ptr<FplnInt> curr_fpl = fpl_sys->get_fpln_ptr(c_idx);
+  size_t c_idx = cmd_resources.fpl_sys->get_cmd_fpl_idx();
+  fpln_info_t f_inf = cmd_resources.fpl_sys->get_fpl_info(c_idx);
+  std::shared_ptr<FplnInt> curr_fpl = cmd_resources.fpl_sys->get_fpln_ptr(c_idx);
 
   size_t idx = size_t(strutils::stoi_with_strip(in[0]));
   size_t n_segs;
-  auto segs = fpl_sys->get_seg_list(&n_segs, c_idx);
+  auto segs = cmd_resources.fpl_sys->get_seg_list(&n_segs, c_idx);
 
   seg_list_node_t* s_ptr = nullptr;
   if (idx < n_segs) {
@@ -434,19 +440,19 @@ inline void delete_via(FPLSys* fpl_sys, std::vector<std::string>& in) {
   }
 }
 
-inline void add_to(FPLSys* fpl_sys, std::vector<std::string>& in) {
+inline void add_to(command_res_t cmd_resources, std::vector<std::string>& in) {
   if (in.size() != 2) {
     std::cout << "Command expects 2 arguments: {Next segment index}, {End "
                  "waypoint name}\n";
     return;
   }
 
-  size_t c_idx = fpl_sys->get_cmd_fpl_idx();
-  fpln_info_t f_inf = fpl_sys->get_fpl_info(c_idx);
-  std::shared_ptr<FplnInt> curr_fpl = fpl_sys->get_fpln_ptr(c_idx);
+  size_t c_idx = cmd_resources.fpl_sys->get_cmd_fpl_idx();
+  fpln_info_t f_inf = cmd_resources.fpl_sys->get_fpl_info(c_idx);
+  std::shared_ptr<FplnInt> curr_fpl = cmd_resources.fpl_sys->get_fpln_ptr(c_idx);
 
   std::vector<libnav::waypoint_entry_t> wpt_entr;
-  size_t n_found = fpl_sys->get_navaid_db_ptr()->get_wpt_data(in[1], &wpt_entr);
+  size_t n_found = cmd_resources.fpl_sys->get_navaid_db_ptr()->get_wpt_data(in[1], &wpt_entr);
 
   libnav::waypoint_entry_t tgt;
 
@@ -458,7 +464,7 @@ inline void add_to(FPLSys* fpl_sys, std::vector<std::string>& in) {
 
   size_t idx = size_t(strutils::stoi_with_strip(in[0]));
   size_t n_segs;
-  auto segs = fpl_sys->get_seg_list(&n_segs, c_idx);
+  auto segs = cmd_resources.fpl_sys->get_seg_list(&n_segs, c_idx);
 
   seg_list_node_t* s_ptr = nullptr;
   if (idx < n_segs) {
@@ -473,19 +479,19 @@ inline void add_to(FPLSys* fpl_sys, std::vector<std::string>& in) {
   }
 }
 
-inline void delete_to(FPLSys* fpl_sys, std::vector<std::string>& in) {
+inline void delete_to(command_res_t cmd_resources, std::vector<std::string>& in) {
   if (in.size() != 1) {
     std::cout << "Command expects 1 argument: {Next segment index}\n";
     return;
   }
 
-  size_t c_idx = fpl_sys->get_cmd_fpl_idx();
-  fpln_info_t f_inf = fpl_sys->get_fpl_info(c_idx);
-  std::shared_ptr<FplnInt> curr_fpl = fpl_sys->get_fpln_ptr(c_idx);
+  size_t c_idx = cmd_resources.fpl_sys->get_cmd_fpl_idx();
+  fpln_info_t f_inf = cmd_resources.fpl_sys->get_fpl_info(c_idx);
+  std::shared_ptr<FplnInt> curr_fpl = cmd_resources.fpl_sys->get_fpln_ptr(c_idx);
 
   size_t idx = size_t(strutils::stoi_with_strip(in[0]));
   size_t n_segs;
-  auto segs = fpl_sys->get_seg_list(&n_segs, c_idx);
+  auto segs = cmd_resources.fpl_sys->get_seg_list(&n_segs, c_idx);
 
   seg_list_node_t* s_ptr = nullptr;
   if (idx < segs.size()) {
@@ -499,22 +505,22 @@ inline void delete_to(FPLSys* fpl_sys, std::vector<std::string>& in) {
   }
 }
 
-inline void legs_set(FPLSys* fpl_sys, std::vector<std::string>& in) {
+inline void legs_set(command_res_t cmd_resources, std::vector<std::string>& in) {
   if (in.size() != 3 && in.size() != 4) {
     std::cout << "Command expects 3 arguments: {index}, {L/R CDU}, {L/R "
                  "Field}, (optional){Scratch pad content. If not empty}\n";
     return;
   }
 
-  size_t c_idx = fpl_sys->get_cmd_fpl_idx();
-  fpln_info_t f_inf = fpl_sys->get_fpl_info(c_idx);
-  std::shared_ptr<FplnInt> curr_fpl = fpl_sys->get_fpln_ptr(c_idx);
+  size_t c_idx = cmd_resources.fpl_sys->get_cmd_fpl_idx();
+  fpln_info_t f_inf = cmd_resources.fpl_sys->get_fpl_info(c_idx);
+  std::shared_ptr<FplnInt> curr_fpl = cmd_resources.fpl_sys->get_fpln_ptr(c_idx);
 
   if (in[2] == "R") return;
 
   std::size_t idx = std::size_t(strutils::stoi_with_strip(in[0])) + 1;
   std::size_t n_legs;
-  auto legs = fpl_sys->get_leg_list(&n_legs, c_idx);
+  auto legs = cmd_resources.fpl_sys->get_leg_list(&n_legs, c_idx);
 
   if (idx >= n_legs) {
     std::cout << "Index out of range\n";
@@ -528,13 +534,13 @@ inline void legs_set(FPLSys* fpl_sys, std::vector<std::string>& in) {
     std::cout << "Invalid second parameter\n";
     return;
   }
-  std::pair<std::size_t, double> sel_leg = fpl_sys->get_sel_leg(is_rt);
+  std::pair<std::size_t, double> sel_leg = cmd_resources.fpl_sys->get_sel_leg(is_rt);
 
   if (f_inf.leg_list_id != sel_leg.second) {
     if (in.size() == 4) {
       std::vector<libnav::waypoint_entry_t> wpt_entr;
       size_t n_found =
-          fpl_sys->get_navaid_db_ptr()->get_wpt_data(in[3], &wpt_entr);
+          cmd_resources.fpl_sys->get_navaid_db_ptr()->get_wpt_data(in[3], &wpt_entr);
 
       libnav::waypoint_entry_t tgt;
 
@@ -550,7 +556,7 @@ inline void legs_set(FPLSys* fpl_sys, std::vector<std::string>& in) {
       if (!leg_ptr->data.is_discon) {
         sel_leg.first = idx;
         sel_leg.second = f_inf.leg_list_id;
-        fpl_sys->set_sel_leg(sel_leg, is_rt);
+        cmd_resources.fpl_sys->set_sel_leg(sel_leg, is_rt);
       }
     }
   } else if (idx < n_legs - 1) {
@@ -567,24 +573,24 @@ inline void legs_set(FPLSys* fpl_sys, std::vector<std::string>& in) {
       curr_fpl->dir_from_to({legs[from].ptr, sel_leg.second},
                             {legs[to].ptr, sel_leg.second});
       sel_leg.second = -1;
-      fpl_sys->set_sel_leg(sel_leg, is_rt);
+      cmd_resources.fpl_sys->set_sel_leg(sel_leg, is_rt);
     }
   }
 }
 
-inline void delete_leg(FPLSys* fpl_sys, std::vector<std::string>& in) {
+inline void delete_leg(command_res_t cmd_resources, std::vector<std::string>& in) {
   if (in.size() != 1) {
     std::cout << "Command expects 1 argument: {leg number}\n";
     return;
   }
 
-  size_t c_idx = fpl_sys->get_cmd_fpl_idx();
-  std::shared_ptr<FplnInt> curr_fpl = fpl_sys->get_fpln_ptr(c_idx);
-  fpln_info_t f_inf = fpl_sys->get_fpl_info(c_idx);
+  size_t c_idx = cmd_resources.fpl_sys->get_cmd_fpl_idx();
+  std::shared_ptr<FplnInt> curr_fpl = cmd_resources.fpl_sys->get_fpln_ptr(c_idx);
+  fpln_info_t f_inf = cmd_resources.fpl_sys->get_fpl_info(c_idx);
 
   size_t idx = size_t(strutils::stoi_with_strip(in[0])) + 1;
   size_t n_legs;
-  auto legs = fpl_sys->get_leg_list(&n_legs, c_idx);
+  auto legs = cmd_resources.fpl_sys->get_leg_list(&n_legs, c_idx);
 
   if (idx >= n_legs - 1) {
     std::cout << "Index out of range\n";
@@ -598,16 +604,16 @@ inline void delete_leg(FPLSys* fpl_sys, std::vector<std::string>& in) {
   }
 }
 
-inline void print_seg(FPLSys* fpl_sys, std::vector<std::string>& in) {
+inline void print_seg(command_res_t cmd_resources, std::vector<std::string>& in) {
   if (in.size() != 0) {
     std::cout << "Command expects 0 arguments\n";
     return;
   }
 
-  size_t c_idx = fpl_sys->get_cmd_fpl_idx();
+  size_t c_idx = cmd_resources.fpl_sys->get_cmd_fpl_idx();
 
   size_t n_segs;
-  auto segs = fpl_sys->get_seg_list(&n_segs, c_idx);
+  auto segs = cmd_resources.fpl_sys->get_seg_list(&n_segs, c_idx);
 
   for (size_t i = 0; i < n_segs; i++) {
     auto curr_sg = segs[i];
@@ -617,22 +623,22 @@ inline void print_seg(FPLSys* fpl_sys, std::vector<std::string>& in) {
       end_nm = end_leg->data.leg.main_fix.id;
     }
     std::cout << curr_sg.data.name << " " << end_nm << " "
-              << curr_sg.data.seg_type << "\n";
+              << static_cast<std::size_t>(curr_sg.data.seg_type) << "\n";
   }
 }
 
-inline void print_refs(FPLSys* fpl_sys, std::vector<std::string>& in) {
+inline void print_refs(command_res_t cmd_resources, std::vector<std::string>& in) {
   if (in.size() != 0) {
     std::cout << "Command expects 0 arguments\n";
     return;
   }
 
-  size_t c_idx = fpl_sys->get_cmd_fpl_idx();
-  std::shared_ptr<FplnInt> curr_fpl = fpl_sys->get_fpln_ptr(c_idx);
+  size_t c_idx = cmd_resources.fpl_sys->get_cmd_fpl_idx();
+  std::shared_ptr<FplnInt> curr_fpl = cmd_resources.fpl_sys->get_fpln_ptr(c_idx);
   curr_fpl->print_refs();
 }
 
-inline void help(FPLSys* fpl_sys, std::vector<std::string>& in);
+inline void help(command_res_t cmd_resources, std::vector<std::string>& in);
 
 std::unordered_map<std::string, cmd> cmd_map = {{"set", set_var},
                                                 {"print", print},
@@ -662,8 +668,8 @@ std::unordered_map<std::string, cmd> cmd_map = {{"set", set_var},
                                                 {"prefs", print_refs},
                                                 {"help", help}};
 
-inline void help(FPLSys* fpl_sys, std::vector<std::string>& in) {
-  (void)fpl_sys;
+inline void help(command_res_t cmd_resources, std::vector<std::string>& in) {
+  (void)cmd_resources;
 
   if (in.size() != 0) {
     std::cout << "Command expects 0 arguments\n";

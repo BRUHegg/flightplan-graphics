@@ -20,6 +20,7 @@
 #include <string>
 #include <unordered_map>
 
+#include "environment.hpp"
 #include "flightpln_int.hpp"
 
 #define UNUSED(x) (void)(x)
@@ -31,15 +32,6 @@ enum class NDMode { APP, VOR, MAP, PLAN };
 
 constexpr NDMode DFLT_ND_MODE = NDMode::MAP;
 
-const std::string AC_LAT_DEG_VAR = "ac_lat_deg";
-const std::string AC_LON_DEG_VAR = "ac_lon_deg";
-const std::string AC_BRNG_TRU_DEG_VAR = "ac_brng_tru_deg";
-const std::string AC_SLIP_DEG_VAR = "ac_slip_deg";
-const std::string AC_MAGVAR_DEG_VAR = "ac_magvar_deg";
-const std::string AC_GS_KTS_VAR = "ac_gs_kts";
-const std::string AC_TAS_KTS_VAR = "ac_tas_kts";
-const std::string FPL_SEL = "fpl_sel";
-
 // FplSys stores 3 routes in fpl_vec_
 // Index 0 is for active route, 1 for RTE1 and 2 for RTE2
 constexpr size_t N_FPL_SYS_RTES = 3;
@@ -48,25 +40,8 @@ constexpr size_t RTE1_IDX = 1;
 constexpr size_t RTE2_IDX = 2;
 constexpr size_t N_INTFCS = 2;  // Number of interfaces(interface is a CDU+ND)
 
-constexpr double AC_LAT_DEF = 45.588670483;
-constexpr double AC_LON_DEF = -122.598150383;
-constexpr double AC_BRNG_TRU_DEF = 175;
-constexpr double AC_SLIP_DEF = 0;
-constexpr double AC_MAGVAR_DEF = 0;
-constexpr double AC_GS_KTS_DEF = 0;
-constexpr double AC_TAS_KTS_DEF = 0;
-constexpr double FPL_SEL_DEF = 1;
-
 constexpr double DIST_FONT_SZ_DD = 21;  // Double digits;
 constexpr double DIST_FONT_SZ_TD = 19;
-
-const std::vector<std::string> RSV_VARS = {
-    AC_LAT_DEG_VAR,    AC_LON_DEG_VAR, AC_BRNG_TRU_DEG_VAR, AC_SLIP_DEG_VAR,
-    AC_MAGVAR_DEG_VAR, AC_GS_KTS_VAR,  AC_TAS_KTS_VAR,      FPL_SEL};
-
-const std::vector<double> RSV_VAR_VAL = {
-    AC_LAT_DEF,    AC_LON_DEF,    AC_BRNG_TRU_DEF, AC_SLIP_DEF,
-    AC_MAGVAR_DEF, AC_GS_KTS_DEF, AC_TAS_KTS_DEF,  FPL_SEL_DEF};
 
 struct hdg_info_t {
   double brng_tru_rad, slip_rad, magvar_rad;
@@ -99,7 +74,9 @@ class FPLSys {
  public:
   FPLSys(std::shared_ptr<libnav::ArptDB> arpt_db,
          std::shared_ptr<libnav::NavaidDB> navaid_db,
-         std::shared_ptr<libnav::AwyDB> awy_db, std::string cifp_path,
+         std::shared_ptr<libnav::AwyDB> awy_db, 
+         std::shared_ptr<fms_environment::EnvDataRefMap> env_map,
+         std::string cifp_path,
          std::string fpl_path);
 
   std::size_t get_cmd_fpl_idx() const noexcept;
@@ -115,14 +92,6 @@ class FPLSys {
   std::shared_ptr<libnav::NavaidDB> get_navaid_db_ptr() const noexcept;
 
   std::string get_fpln_dir() const noexcept;
-
-  bool has_env_var(const std::string& var_name) const noexcept;
-
-  bool set_env_var(const std::string& var_name,
-                   const std::string& val) noexcept;
-
-  std::optional<std::string> get_env_var(
-      const std::string& var_name) const noexcept;
 
   std::pair<std::size_t, double> get_sel_leg(bool rt) const noexcept;
 
@@ -182,37 +151,42 @@ class FPLSys {
 
  private:
   // These are used by commands
-  // Position:
-  double ac_lat_deg;
-  double ac_lon_deg;
-  double ac_brng_deg;
-  double ac_slip_deg;
-  double ac_magvar_deg;
-  // Speed
-  double ac_gs_kts;
-  double ac_tas_kts;
+  struct pos_data_t {
+    // Position:
+    double ac_lat_deg;
+    double ac_lon_deg;
+    double ac_brng_deg;
+    double ac_slip_deg;
+    double ac_magvar_deg;
+    // Speed
+    double ac_gs_kts;
+    double ac_tas_kts;
+
+    using str_type = typename fms_environment::val_ref_t;
+
+    std::unordered_map<str_type, double*> get_val_pointers();
+  };
+
+  std::unordered_map<fms_environment::val_ref_t, double*> double_values_;
 
   std::size_t cmd_fpl_idx;
 
-  bool flt_rwy, flt_proc, flt_trans;
-
   std::shared_ptr<libnav::ArptDB> arpt_db_ptr_;
   std::shared_ptr<libnav::NavaidDB> navaid_db_ptr_;
-
   std::shared_ptr<libnav::AwyDB> awy_db_ptr_;
+  std::shared_ptr<fms_environment::EnvDataRefMap> env_map_ptr_;
 
   std::vector<std::shared_ptr<FplnInt>> fpl_vec_;
 
   std::pair<std::size_t, double> leg_sel_cdu_l;
   std::pair<std::size_t, double> leg_sel_cdu_r;
 
-  std::unordered_map<std::string, std::string> env_vars;
-
   std::string cifp_dir_path;
   std::string fpl_dir;
 
   std::mutex intnl_mtx;
 
+  pos_data_t position_;
   std::vector<fpln_data_t> fpl_datas;
 
   std::size_t act_rte_idx;
@@ -235,6 +209,6 @@ class FPLSys {
 
   void update_flt_nbr(size_t idx = 0);
 
-  void update_pos();
+  void update_hot_env_vars();
 };
 }  // namespace test

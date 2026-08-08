@@ -12,10 +12,10 @@
 
 #include <common/cairo_utils.hpp>
 #include <fpln/fpln_sys.hpp>
-#include <geom.hpp>
+#include <util/geom.hpp>
 #include <libnav/str_utils.hpp>
 #include <memory>
-#include <util.hpp>
+#include <util/util.hpp>
 
 namespace StratosphereAvionics {
 enum class PoiType { AIRPORT, WAYPOINT, VOR_ILS_DME, VHF_NOT_VORDME };

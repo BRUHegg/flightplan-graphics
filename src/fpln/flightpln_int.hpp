@@ -18,7 +18,7 @@
 
 #include <assert.h>
 
-#include <geom.hpp>
+#include <util/geom.hpp>
 #include <iostream>
 #include <libnav/awy_db.hpp>
 #include <libnav/common.hpp>
@@ -165,9 +165,9 @@ class FplnInt : public FlightPlan {
 
   static size_t get_proc_db_idx(ProcType tp, bool is_arr = false);
 
-  static fpl_segment_types get_proc_tp(ProcType tp);
+  static FplSegment get_proc_tp(ProcType tp);
 
-  static fpl_segment_types get_trans_tp(ProcType tp);
+  static FplSegment get_trans_tp(ProcType tp);
 
   static std::vector<std::string> get_proc(libnav::str_umap_t& db,
                                            std::string rw = "");
@@ -241,7 +241,7 @@ class FplnInt : public FlightPlan {
 
   std::string get_curr_proc_imp(ProcType tp, bool trans = false);
 
-  bool add_fpl_seg(libnav::arinc_leg_seq_t& legs, fpl_segment_types seg_tp,
+  bool add_fpl_seg(libnav::arinc_leg_seq_t& legs, FplSegment seg_tp,
                    std::string ref_nm, std::string seg_nm = "",
                    seg_list_node_t* next = nullptr, bool set_ref = true);
 

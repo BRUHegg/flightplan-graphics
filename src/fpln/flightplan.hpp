@@ -22,7 +22,7 @@
 #include <map>
 #include <mutex>
 
-#include "linked_list.hpp"
+#include "util/linked_list.hpp"
 
 namespace test {
 constexpr size_t N_FPL_LEG_CACHE_SZ = 200;
@@ -31,16 +31,16 @@ constexpr size_t N_FPL_REF_SZ = 9;
 const std::string DISCON_SEG_NAME = "DISCONTINUITY";
 const std::string DCT_LEG_NAME = "DIRECT";
 
-enum fpl_segment_types {
-  FPL_SEG_NONE = 0,
-  FPL_SEG_DEP_RWY = 1,
-  FPL_SEG_SID = FPL_SEG_DEP_RWY + 1,
-  FPL_SEG_SID_TRANS = FPL_SEG_SID + 1,
-  FPL_SEG_ENRT = FPL_SEG_SID_TRANS + 1,
-  FPL_SEG_STAR_TRANS = FPL_SEG_ENRT + 1,
-  FPL_SEG_STAR = FPL_SEG_STAR_TRANS + 1,
-  FPL_SEG_APPCH_TRANS = FPL_SEG_STAR + 1,
-  FPL_SEG_APPCH = FPL_SEG_APPCH_TRANS + 1
+enum class FplSegment : int {
+  NONE = 0,
+  DEP_RWY = 1,
+  SID = DEP_RWY + 1,
+  SID_TRANS = SID + 1,
+  ENRT = SID_TRANS + 1,
+  STAR_TRANS = ENRT + 1,
+  STAR = STAR_TRANS + 1,
+  APPCH_TRANS = STAR + 1,
+  APPCH = APPCH_TRANS + 1
 };
 
 typedef libnav::arinc_leg_t leg_t;
@@ -78,7 +78,7 @@ struct fpl_seg_t {
   bool is_direct = false;
   bool is_discon = false;
   std::string name = "";
-  fpl_segment_types seg_type = fpl_segment_types::FPL_SEG_NONE;
+  FplSegment seg_type = FplSegment::NONE;
 
   struct_util::list_node_t<leg_list_data_t>* end = nullptr;
 };
@@ -131,7 +131,7 @@ class FlightPlan {
       1) Refs:
       These are references to a particular section of the flight plan. E.g. SID
      or SID transition. All of these sections are defined in the
-     fpl_segment_types enum. Each ref stores a pointer to its end segment and a
+     FplSegment enum. Each ref stores a pointer to its end segment and a
      name associated with it( e.g. name of SID, transition, etc.
       ). If a ref doesn't have an end segment i.e. it doesn't exist in the
      flightplan, its pointer to end segment is null. There can be only one ref
@@ -220,6 +220,8 @@ class FlightPlan {
 
   double fpl_id_curr_ = 0.0;
 
+  fpl_ref_t& get_ref_for(FplSegment segment);
+
   void update_id();
 
   bool legcmp(leg_t& leg1, leg_t& leg2);
@@ -240,12 +242,12 @@ class FlightPlan {
 
   void delete_range(leg_list_node_t* start, leg_list_node_t* end);
 
-  void delete_ref(fpl_segment_types ref);
+  void delete_ref(FplSegment ref);
 
   void delete_segment(seg_list_node_t* seg, bool leave_seg = true,
                       bool add_disc = false, bool ignore_tail = false);
 
-  void add_segment(std::vector<leg_t>& legs, fpl_segment_types seg_tp,
+  void add_segment(std::vector<leg_t>& legs, FplSegment seg_tp,
                    std::string seg_name, seg_list_node_t* next,
                    bool is_direct = false);
 
@@ -253,7 +255,7 @@ class FlightPlan {
 
   void add_discon(seg_list_node_t* next);
 
-  void add_legs(leg_t start, std::vector<leg_t>& legs, fpl_segment_types seg_tp,
+  void add_legs(leg_t start, std::vector<leg_t>& legs, FplSegment seg_tp,
                 std::string seg_name, seg_list_node_t* next = nullptr);
 
   void add_direct_leg(leg_t leg, leg_list_node_t* next);
@@ -263,11 +265,15 @@ class FlightPlan {
   void reset_fpln(bool leave_dep_rwy = false);
 
  private:
-  std::map<fpl_segment_types, std::string> seg_to_str = {
-      {FPL_SEG_DEP_RWY, "DEP RWY"},        {FPL_SEG_SID, "SID"},
-      {FPL_SEG_SID_TRANS, "SID TRANS"},    {FPL_SEG_ENRT, "ENROUTE"},
-      {FPL_SEG_STAR_TRANS, "STAR TRANS"},  {FPL_SEG_STAR, "STAR"},
-      {FPL_SEG_APPCH_TRANS, "APPR TRANS"}, {FPL_SEG_APPCH, "APPR"}};
+  std::map<FplSegment, std::string> seg_to_str = {
+      {FplSegment::DEP_RWY, "DEP RWY"},        
+      {FplSegment::SID, "SID"},
+      {FplSegment::SID_TRANS, "SID TRANS"},    
+      {FplSegment::ENRT, "ENROUTE"},
+      {FplSegment::STAR_TRANS, "STAR TRANS"},  
+      {FplSegment::STAR, "STAR"},
+      {FplSegment::APPCH_TRANS, "APPR TRANS"}, 
+      {FplSegment::APPCH, "APPR"}};
 
   std::string cifp_dir_path;
 
@@ -289,7 +295,7 @@ class FlightPlan {
      inserted, pointer to the segment after the segment sequence of seg_tp.
   */
 
-  seg_list_node_t* get_insert_seg(fpl_segment_types seg_tp,
+  seg_list_node_t* get_insert_seg(FplSegment seg_tp,
                                   seg_list_node_t** next_seg);
 
   void merge_seg(seg_list_node_t* tgt);

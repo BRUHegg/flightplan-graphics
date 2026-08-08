@@ -272,9 +272,9 @@ libnav::waypoint_t get_xd_wpt(geo::point pos, std::string main_nm, int dme_nm) {
 double get_rnp(test::leg_list_node_t* leg) {
   if (leg->data.leg.rnp != 0) return double(leg->data.leg.rnp);
 
-  test::fpl_segment_types seg_tp = leg->data.seg->data.seg_type;
+  test::FplSegment seg_tp = leg->data.seg->data.seg_type;
 
-  if (seg_tp != test::FPL_SEG_ENRT) return ASSUMED_RNP_PROC_NM;
+  if (seg_tp != test::FplSegment::ENRT) return ASSUMED_RNP_PROC_NM;
 
   return ASSUMED_RNP_ENRT_NM;
 }
@@ -382,15 +382,21 @@ void FplnInt::save_to_fms(std::string& file_nm, bool save_sid_star) {
   out << DFMS_AIRAC_CYCLE_NM + DFMS_COL_SEP + curr_cycle + "\n";
 
   out << DFMS_DEP_NM << DFMS_COL_SEP << departure_->icao_code << "\n";
-  std::string dep_rwy = fpl_refs_[FPL_SEG_DEP_RWY].name;
+  std::size_t dep_rwy_seg_idx = static_cast<std::size_t>(
+    FplSegment::DEP_RWY);
+  std::string dep_rwy = fpl_refs_[dep_rwy_seg_idx].name;
 
   if (dep_rwy != "") {
     out << DFMS_DEP_RWY_NM << DFMS_COL_SEP << DFMS_RWY_PREFIX + dep_rwy << "\n";
   }
 
   if (save_sid_star) {
-    std::string sid_name = fpl_refs_[FPL_SEG_SID].name;
-    std::string sid_trans_name = fpl_refs_[FPL_SEG_SID_TRANS].name;
+    std::size_t sid_seg_idx = static_cast<std::size_t>(
+        FplSegment::SID);
+    std::size_t sid_trans_seg_idx = static_cast<std::size_t>(
+        FplSegment::SID_TRANS);
+    std::string sid_name = fpl_refs_[sid_seg_idx].name;
+    std::string sid_trans_name = fpl_refs_[sid_trans_seg_idx].name;
 
     if (sid_name != "") {
       out << DFMS_SID_NM << DFMS_COL_SEP << sid_name << "\n";
@@ -408,8 +414,12 @@ void FplnInt::save_to_fms(std::string& file_nm, bool save_sid_star) {
   }
 
   if (save_sid_star) {
-    std::string star_name = fpl_refs_[FPL_SEG_STAR].name;
-    std::string star_trans_name = fpl_refs_[FPL_SEG_STAR_TRANS].name;
+    std::size_t star_seg_idx = static_cast<std::size_t>(
+        FplSegment::STAR);
+    std::size_t star_trans_seg_idx = static_cast<std::size_t>(
+        FplSegment::STAR_TRANS);
+    std::string star_name = fpl_refs_[star_seg_idx].name;
+    std::string star_trans_name = fpl_refs_[star_trans_seg_idx].name;
 
     if (star_name != "") {
       out << DFMS_STAR_NM << DFMS_COL_SEP << star_name << "\n";
@@ -494,11 +504,11 @@ std::vector<std::string> FplnInt::get_dep_rwys(bool filter_rwy,
   std::lock_guard<std::mutex> lock(fpl_mtx_);
   std::vector<std::string> out = {};
 
-  std::string curr_rwy = fpl_refs_[FPL_SEG_DEP_RWY].name;
+  std::string curr_rwy = get_ref_for(FplSegment::DEP_RWY).name;
   if (filter_sid && curr_rwy != "") {
     out.push_back(curr_rwy);
   } else {
-    std::string curr_sid = fpl_refs_[FPL_SEG_SID].name;
+    std::string curr_sid = get_ref_for(FplSegment::SID).name;
     size_t db_idx = get_proc_db_idx(PROC_TYPE_SID, false);
 
     for (auto i : dep_rnw) {
@@ -522,7 +532,7 @@ std::vector<std::string> FplnInt::get_arr_rwys(bool filter_rwy,
   if (filter_star && curr_rwy != "") {
     out.push_back(curr_rwy);
   } else {
-    std::string curr_star = fpl_refs_[FPL_SEG_STAR].name;
+    std::string curr_star = get_ref_for(FplSegment::STAR).name;
     size_t db_idx = get_proc_db_idx(PROC_TYPE_STAR, is_arr);
 
     for (auto i : arr_rnw) {
@@ -541,7 +551,7 @@ bool FplnInt::set_dep_rwy(std::string& rwy) {
   std::lock_guard<std::mutex> lock(fpl_mtx_);
 
   if (dep_rnw.find(rwy) != dep_rnw.end()) {
-    std::string curr_rwy = fpl_refs_[FPL_SEG_DEP_RWY].name;
+    std::string curr_rwy = get_ref_for(FplSegment::DEP_RWY).name;
     if (rwy != curr_rwy) {
       int data_found =
           arpt_db_ptr_->get_rnw_data(departure_->icao_code, rwy, &dep_rnw_data);
@@ -551,10 +561,10 @@ bool FplnInt::set_dep_rwy(std::string& rwy) {
         dep_rnw_data = {};
       }
 
-      std::string curr_sid = fpl_refs_[FPL_SEG_SID].name;
-      std::string curr_trans = fpl_refs_[FPL_SEG_SID_TRANS].name;
-      delete_ref(FPL_SEG_SID_TRANS);
-      delete_ref(FPL_SEG_SID);
+      std::string curr_sid = get_ref_for(FplSegment::SID).name;
+      std::string curr_trans = get_ref_for(FplSegment::SID_TRANS).name;
+      delete_ref(FplSegment::SID_TRANS);
+      delete_ref(FplSegment::SID);
 
       libnav::arinc_rwy_data_t rwy_data = dep_rnw[rwy];
 
@@ -569,8 +579,8 @@ bool FplnInt::set_dep_rwy(std::string& rwy) {
 
       std::vector<leg_t> legs = {};
 
-      add_legs(ins_leg, legs, FPL_SEG_DEP_RWY, rwy);
-      fpl_refs_[FPL_SEG_DEP_RWY].name = rwy;
+      add_legs(ins_leg, legs, FplSegment::DEP_RWY, rwy);
+      get_ref_for(FplSegment::DEP_RWY).name = rwy;
 
       set_sid_star(curr_sid);
       set_proc_trans(PROC_TYPE_SID, curr_trans, false);
@@ -584,8 +594,9 @@ bool FplnInt::set_dep_rwy(std::string& rwy) {
 
 std::string FplnInt::get_dep_rwy() {
   std::lock_guard<std::mutex> lock(fpl_mtx_);
-  if (departure_ != nullptr && fpl_refs_[FPL_SEG_DEP_RWY].ptr != nullptr)
-    return fpl_refs_[FPL_SEG_DEP_RWY].name;
+  if (departure_ != nullptr && get_ref_for(
+    FplSegment::DEP_RWY).ptr != nullptr)
+    return get_ref_for(FplSegment::DEP_RWY).name;
   return "";
 }
 
@@ -624,12 +635,12 @@ bool FplnInt::set_arr_rwy(std::string& rwy) {
 
       libnav::arinc_leg_seq_t legs = {};
 
-      delete_ref(FPL_SEG_APPCH_TRANS);
+      delete_ref(FplSegment::APPCH_TRANS);
 
-      set_sid_star(fpl_refs_[size_t(FPL_SEG_STAR)].name, true, false);
+      set_sid_star(get_ref_for(FplSegment::STAR).name, true, false);
 
-      add_legs(rwy_leg, legs, FPL_SEG_APPCH, arr_rwy);
-      fpl_refs_[size_t(FPL_SEG_APPCH)].name = arr_rwy;
+      add_legs(rwy_leg, legs, FplSegment::APPCH, arr_rwy);
+      get_ref_for(FplSegment::APPCH).name = arr_rwy;
       appr_is_rwy = true;
     }
 
@@ -663,7 +674,7 @@ std::vector<std::string> FplnInt::get_arpt_proc(ProcType tp, bool is_arr,
                                                 bool filter_rwy,
                                                 bool filter_proc) {
   std::lock_guard<std::mutex> lock(fpl_mtx_);
-  fpl_segment_types s_tp = get_proc_tp(tp);
+  FplSegment s_tp = get_proc_tp(tp);
   size_t tp_idx = size_t(s_tp);
 
   if (tp != PROC_TYPE_APPCH && filter_rwy && fpl_refs_[tp_idx].name != "") {
@@ -685,13 +696,13 @@ std::vector<std::string> FplnInt::get_arpt_proc(ProcType tp, bool is_arr,
       if (is_arr) {
         rwy = arr_rwy;
       } else {
-        rwy = fpl_refs_[FPL_SEG_DEP_RWY].name;
+        rwy = get_ref_for(FplSegment::DEP_RWY).name;
       }
     }
 
     if (tp == PROC_TYPE_APPCH) {
       std::string star_nm = "";
-      if (filter_rwy) star_nm = fpl_refs_[FPL_SEG_STAR].name;
+      if (filter_rwy) star_nm = get_ref_for(FplSegment::STAR).name;
       size_t star_idx = get_proc_db_idx(PROC_TYPE_STAR, is_arr);
       return get_apprs(proc_db[star_idx], proc_db[db_idx], star_nm, filter_rwy);
     } else {
@@ -763,7 +774,8 @@ bool FplnInt::add_enrt_seg(timed_ptr_t<seg_list_node_t> next,
       seg_list_node_t* prev = seg_list_.tail.prev;
       leg_list_node_t* end_leg = prev->data.end;
 
-      if (prev->data.seg_type <= FPL_SEG_ENRT && prev != &(seg_list_.head)) {
+      if (prev->data.seg_type <= FplSegment::ENRT && 
+        prev != &(seg_list_.head)) {
         bool add_seg = false;
 
         if (end_leg != nullptr) {
@@ -772,7 +784,7 @@ bool FplnInt::add_enrt_seg(timed_ptr_t<seg_list_node_t> next,
             std::string end_leg_awy_id = end_fix.get_awy_id();
             add_seg = awy_db->is_in_awy(name, end_leg_awy_id);
           }
-        } else if (prev->prev->data.seg_type > FPL_SEG_DEP_RWY) {
+        } else if (prev->prev->data.seg_type > FplSegment::DEP_RWY) {
           leg_list_node_t* base_end_leg = prev->prev->data.end;
           if (base_end_leg != nullptr) {
             std::string base_awy_id =
@@ -792,7 +804,7 @@ bool FplnInt::add_enrt_seg(timed_ptr_t<seg_list_node_t> next,
           seg_list_node_t* seg_add = seg_stack_.get_new();
           if (seg_add != nullptr) {
             seg_add->data.name = name;
-            seg_add->data.seg_type = FPL_SEG_ENRT;
+            seg_add->data.seg_type = FplSegment::ENRT;
             seg_add->data.is_direct = false;
             seg_add->data.is_discon = false;
             seg_add->data.end = nullptr;
@@ -833,7 +845,7 @@ bool FplnInt::add_enrt_seg(timed_ptr_t<seg_list_node_t> next,
               }
             }
           }
-          fpl_segment_types prev_tp = prev->data.seg_type;
+          FplSegment prev_tp = prev->data.seg_type;
           if (!(prev->data.is_discon)) {
             delete_segment(prev, true, true);
           }
@@ -1054,9 +1066,9 @@ void FplnInt::update(double hdg_trk_diff) {
       }
 
       if (!leg_curr->data.is_discon) {
-        if (leg_curr->data.seg->data.seg_type == FPL_SEG_DEP_RWY) {
+        if (leg_curr->data.seg->data.seg_type == FplSegment::DEP_RWY) {
           libnav::arinc_rwy_data_t dep_data =
-              get_rwy_data(fpl_refs_[FPL_SEG_DEP_RWY].name);
+              get_rwy_data(get_ref_for(FplSegment::DEP_RWY).name);
           curr_alt_ft = dep_data.thresh_elev_msl_ft;
         } else if (leg_curr->data.leg.main_fix.data.type ==
                    libnav::NavaidType::RWY) {
@@ -1089,29 +1101,29 @@ size_t FplnInt::get_proc_db_idx(ProcType tp, bool is_arr) {
   return tp + N_ARR_DB_OFFSET * is_arr;
 }
 
-fpl_segment_types FplnInt::get_proc_tp(ProcType tp) {
+FplSegment FplnInt::get_proc_tp(ProcType tp) {
   switch (tp) {
     case PROC_TYPE_SID:
-      return FPL_SEG_SID;
+      return FplSegment::SID;
     case PROC_TYPE_STAR:
-      return FPL_SEG_STAR;
+      return FplSegment::STAR;
     case PROC_TYPE_APPCH:
-      return FPL_SEG_APPCH;
+      return FplSegment::APPCH;
     default:
-      return FPL_SEG_NONE;
+      return FplSegment::NONE;
   }
 }
 
-fpl_segment_types FplnInt::get_trans_tp(ProcType tp) {
+FplSegment FplnInt::get_trans_tp(ProcType tp) {
   switch (tp) {
     case PROC_TYPE_SID:
-      return FPL_SEG_SID_TRANS;
+      return FplSegment::SID_TRANS;
     case PROC_TYPE_STAR:
-      return FPL_SEG_STAR_TRANS;
+      return FplSegment::STAR_TRANS;
     case PROC_TYPE_APPCH:
-      return FPL_SEG_APPCH_TRANS;
+      return FplSegment::APPCH_TRANS;
     default:
-      return FPL_SEG_NONE;
+      return FplSegment::NONE;
   }
 }
 
@@ -1345,15 +1357,15 @@ size_t FplnInt::get_dfms_enrt_legs(std::vector<std::string>* out) {
   leg_list_node_t* start = &(leg_list_.head);
 
   while (start->next != &(leg_list_.tail) &&
-         (start->next->data.seg->data.seg_type < FPL_SEG_ENRT ||
-          start->data.seg->data.seg_type == FPL_SEG_DEP_RWY)) {
+         (start->next->data.seg->data.seg_type < FplSegment::ENRT ||
+          start->data.seg->data.seg_type == FplSegment::DEP_RWY)) {
     start = start->next;
   }
 
   bool first_leg = true;
 
   while (start != &(leg_list_.tail) &&
-         start->data.seg->data.seg_type <= FPL_SEG_ENRT) {
+         start->data.seg->data.seg_type <= FplSegment::ENRT) {
     if (!start->data.is_discon) {
       std::string tmp = get_dfms_enrt_leg(start, first_leg);
       out->push_back(tmp);
@@ -1504,23 +1516,23 @@ libnav::arinc_rwy_data_t FplnInt::get_rwy_data(std::string nm, bool is_arr) {
 }
 
 std::string FplnInt::get_curr_proc_imp(ProcType tp, bool trans) {
-  fpl_segment_types s_tp = get_proc_tp(tp);
+  FplSegment s_tp = get_proc_tp(tp);
 
   if (trans) {
-    if (s_tp == FPL_SEG_SID)
-      s_tp = FPL_SEG_SID_TRANS;
-    else if (s_tp == FPL_SEG_STAR)
-      s_tp = FPL_SEG_STAR_TRANS;
+    if (s_tp == FplSegment::SID)
+      s_tp = FplSegment::SID_TRANS;
+    else if (s_tp == FplSegment::STAR)
+      s_tp = FplSegment::STAR_TRANS;
     else
-      s_tp = FPL_SEG_APPCH_TRANS;
+      s_tp = FplSegment::APPCH_TRANS;
   }
 
-  if (s_tp == FPL_SEG_APPCH && appr_is_rwy) return "";
-  return fpl_refs_[s_tp].name;
+  if (s_tp == FplSegment::APPCH && appr_is_rwy) return "";
+  return get_ref_for(s_tp).name;
 }
 
 bool FplnInt::add_fpl_seg(libnav::arinc_leg_seq_t& legs,
-                          fpl_segment_types seg_tp, std::string ref_nm,
+                          FplSegment seg_tp, std::string ref_nm,
                           std::string seg_nm, seg_list_node_t* next,
                           bool set_ref) {
   if (legs.size()) {
@@ -1566,29 +1578,29 @@ void FplnInt::add_awy_seg(std::string awy, seg_list_node_t* next,
     legs.push_back(get_awy_tf_leg(awy_pts[i]));
   }
 
-  add_legs(start_leg, legs, FPL_SEG_ENRT, awy, next);
+  add_legs(start_leg, legs, FplSegment::ENRT, awy, next);
 }
 
 bool FplnInt::set_sid_star(std::string proc_nm, bool is_star, bool reset_rwy) {
   size_t db_idx;
   ProcType proc_tp;
-  fpl_segment_types proc_seg, trans_seg;
+  FplSegment proc_seg, trans_seg;
   if (!is_star) {
     proc_tp = PROC_TYPE_SID;
     db_idx = get_proc_db_idx(PROC_TYPE_SID, false);
-    proc_seg = FPL_SEG_SID;
-    trans_seg = FPL_SEG_SID_TRANS;
+    proc_seg = FplSegment::SID;
+    trans_seg = FplSegment::SID_TRANS;
   } else {
     proc_tp = PROC_TYPE_STAR;
     db_idx = get_proc_db_idx(PROC_TYPE_STAR, true);
-    proc_seg = FPL_SEG_STAR;
-    trans_seg = FPL_SEG_STAR_TRANS;
+    proc_seg = FplSegment::STAR;
+    trans_seg = FplSegment::STAR_TRANS;
   }
 
   if (proc_db[db_idx].find(proc_nm) != proc_db[db_idx].end()) {
     std::string rwy;
     if (!is_star)
-      rwy = fpl_refs_[FPL_SEG_DEP_RWY].name;
+      rwy = get_ref_for(FplSegment::DEP_RWY).name;
     else
       rwy = arr_rwy;
 
@@ -1629,14 +1641,14 @@ bool FplnInt::set_sid_star(std::string proc_nm, bool is_star, bool reset_rwy) {
           if (reset_rwy) {
             arr_rwy = "";
             has_arr_rnw_data = false;
-            delete_ref(FPL_SEG_APPCH);
-            delete_ref(FPL_SEG_APPCH_TRANS);
+            delete_ref(FplSegment::APPCH);
+            delete_ref(FplSegment::APPCH_TRANS);
           }
 
-          delete_ref(FPL_SEG_STAR_TRANS);
+          delete_ref(FplSegment::STAR_TRANS);
         } else {
-          if (reset_rwy) delete_ref(FPL_SEG_DEP_RWY);
-          delete_ref(FPL_SEG_SID_TRANS);
+          if (reset_rwy) delete_ref(FplSegment::DEP_RWY);
+          delete_ref(FplSegment::SID_TRANS);
         }
 
         if (reset_rwy) fpl_refs_[size_t(proc_seg)].name = proc_nm;
@@ -1668,7 +1680,8 @@ bool FplnInt::set_appch_legs(std::string appch, std::string& arr_rwy,
     }
   }
 
-  bool added = add_fpl_seg(appch_legs, FPL_SEG_APPCH, appch, appch_seg);
+  bool added = add_fpl_seg(appch_legs, FplSegment::APPCH, 
+    appch, appch_seg);
 
   if (added) {
     if (rwy_found) {
@@ -1676,10 +1689,12 @@ bool FplnInt::set_appch_legs(std::string appch, std::string& arr_rwy,
         ga_legs.push_back(legs[i]);
       }
 
-      seg_list_node_t* appr_seg = fpl_refs_[size_t(FPL_SEG_APPCH)].ptr;
+      seg_list_node_t* appr_seg = get_ref_for(
+        FplSegment::APPCH).ptr;
       if (appr_seg != nullptr) {
-        seg_list_node_t* seg_ins = fpl_refs_[size_t(FPL_SEG_APPCH)].ptr->next;
-        return add_fpl_seg(ga_legs, FPL_SEG_APPCH, "", MISSED_APPR_SEG_NM,
+        seg_list_node_t* seg_ins = get_ref_for(
+            FplSegment::APPCH).ptr->next;
+        return add_fpl_seg(ga_legs, FplSegment::APPCH, "", MISSED_APPR_SEG_NM,
                            seg_ins, false);
       } else {
         return false;
@@ -1696,15 +1711,15 @@ bool FplnInt::set_appch(std::string appch) {
   appr_is_rwy = false;
 
   if (proc_db[db_idx].find(appch) != proc_db[db_idx].end()) {
-    std::string curr_star = fpl_refs_[FPL_SEG_STAR].name;
-    std::string curr_star_trans = fpl_refs_[FPL_SEG_STAR_TRANS].name;
-    delete_ref(FPL_SEG_STAR_TRANS);
-    delete_ref(FPL_SEG_STAR);
+    std::string curr_star = get_ref_for(FplSegment::STAR).name;
+    std::string curr_star_trans = get_ref_for(FplSegment::STAR_TRANS).name;
+    delete_ref(FplSegment::STAR_TRANS);
+    delete_ref(FplSegment::STAR);
 
     std::string tmp = libnav::NONE_TRANS;
     libnav::arinc_leg_seq_t legs = arrival_->get_appch(appch, tmp);
-    std::string curr_tr = fpl_refs_[FPL_SEG_APPCH].name;
-    delete_ref(FPL_SEG_APPCH_TRANS);
+    std::string curr_tr = get_ref_for(FplSegment::APPCH).name;
+    delete_ref(FplSegment::APPCH_TRANS);
 
     std::string tmp_rwy = get_appr_rwy(appch);
     bool added = set_appch_legs(appch, tmp_rwy, legs);
@@ -1727,18 +1742,18 @@ bool FplnInt::set_appch(std::string appch) {
 
   arr_rwy = "";
 
-  delete_ref(FPL_SEG_STAR_TRANS);
-  delete_ref(FPL_SEG_STAR);
-  delete_ref(FPL_SEG_APPCH_TRANS);
-  delete_ref(FPL_SEG_APPCH);
+  delete_ref(FplSegment::STAR_TRANS);
+  delete_ref(FplSegment::STAR);
+  delete_ref(FplSegment::APPCH_TRANS);
+  delete_ref(FplSegment::APPCH);
   return false;
 }
 
 bool FplnInt::add_trans_legs(ProcType tp, std::string trans,
                              libnav::arinc_leg_seq_t& pr_legs,
                              libnav::arinc_leg_seq_t& tr_legs) {
-  fpl_segment_types seg_tp = get_proc_tp(tp);
-  fpl_segment_types t_tp = get_trans_tp(tp);
+  FplSegment seg_tp = get_proc_tp(tp);
+  FplSegment t_tp = get_trans_tp(tp);
   size_t t_idx = size_t(t_tp);
   if (tr_legs.size() == 0 && trans != "") {
     delete_ref(t_tp);
@@ -1783,8 +1798,8 @@ bool FplnInt::set_proc_trans(ProcType tp, std::string trans, bool is_arr) {
     trans = "";
   }
 
-  fpl_segment_types seg_tp = get_proc_tp(tp);
-  fpl_segment_types t_tp = get_trans_tp(tp);
+  FplSegment seg_tp = get_proc_tp(tp);
+  FplSegment t_tp = get_trans_tp(tp);
 
   size_t db_idx = get_proc_db_idx(tp, is_arr);
   size_t seg_idx = size_t(seg_tp);
@@ -1815,7 +1830,7 @@ bool FplnInt::set_proc_trans(ProcType tp, std::string trans, bool is_arr) {
 
   std::string rwy = libnav::NONE_TRANS;
   if (tp == ProcType::PROC_TYPE_SID)
-    rwy = fpl_refs_[FPL_SEG_DEP_RWY].name;
+    rwy = get_ref_for(FplSegment::DEP_RWY).name;
   else if (tp == PROC_TYPE_STAR)
     rwy = arr_rwy;
 
@@ -2124,7 +2139,7 @@ void FplnInt::calculate_alt_leg(leg_list_node_t* leg, double hdg_trk_diff,
   libnav::runway_entry_t* rwy_ent = nullptr;
 
   if (curr_arinc_leg.leg_type != "FA") {
-    if (leg->prev->data.seg->data.seg_type == FPL_SEG_DEP_RWY) {
+    if (leg->prev->data.seg->data.seg_type == FplSegment::DEP_RWY) {
       rwy_ent = &dep_rnw_data;
     } else if (leg->prev->data.leg.main_fix.data.type ==
                libnav::NavaidType::RWY) {

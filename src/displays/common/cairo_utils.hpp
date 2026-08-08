@@ -21,7 +21,7 @@
 #include <string>
 #include <vector>
 
-#include "geom.hpp"
+#include <util/geom.hpp>
 
 namespace cairo_utils {
 // Colors:

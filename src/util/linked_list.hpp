@@ -19,7 +19,6 @@
 
 #include <chrono>
 #include <cstdint>
-#include <mutex>
 #include <vector>
 
 namespace struct_util {
@@ -43,8 +42,6 @@ struct linked_list_t {
   double id;
 
   linked_list_t();
-
-  list_node_t<T> get_node(list_node_t<T>* ptr);
 
   void push_front(list_node_t<T>* node);
 
