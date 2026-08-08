@@ -1,4 +1,6 @@
-#include <assert.h>
+#pragma once
+
+#include <cassert>
 
 #include <fstream>
 #include <map>

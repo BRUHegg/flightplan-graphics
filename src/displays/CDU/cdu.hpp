@@ -1,11 +1,13 @@
-#include <util/geom.hpp>
+#pragma once
+#include <chrono>
 #include <memory>
 #include <stack>
 #include <string>
 
-#include "common/bytemap.hpp"
-#include "common/cairo_utils.hpp"
-#include "fpln/fpln_sys.hpp"
+#include <util/geom.hpp>
+#include <common/bytemap.hpp>
+#include <common/cairo_utils.hpp>
+#include <fpln/fpln_sys.hpp>
 
 #define FPL_DEBUG
 #ifdef FPL_DEBUG
@@ -88,7 +90,7 @@ class CDU {
   int curr_subpg_ = 1;
 
   // RTE data
-  test::RTECopySts rte_copy = test::RTECopySts::UNAVAIL;
+  test::RTECopySts rte_copy_ = test::RTECopySts::UNAVAIL;
 
   // sel des data
   /*
@@ -124,7 +126,11 @@ class CDU {
   std::vector<bool> dep_arr_proc_filter_;
   std::vector<bool> dep_arr_trans_filter_;
   std::vector<bool> dep_arr_via_filter_;
-  std::vector<std::vector<std::string>> procs_, trans_, apprs_, rwys_, vias_;
+  std::vector<std::vector<std::string>> procedures_;
+  std::vector<std::vector<std::string>> transitions_;
+  std::vector<std::vector<std::string>> approaches_;
+  std::vector<std::vector<std::string>> rwys_;
+  std::vector<std::vector<std::string>> vias_;
 
   // LEGS data:
   bool leg_sel_pr_ = false;
@@ -335,26 +341,26 @@ class CDUDisplay {
   void draw(cairo_t* cr);
 
  private:
-  geom::vect2_t scr_pos;  // position of the CDU texture on the screen
-  geom::vect2_t size;
-  geom::vect2_t disp_pos;  // position of the CDU display on the screen
-  geom::vect2_t disp_size;
-  geom::vect2_t tex_size;
-  geom::vect2_t tex_scale;
+  geom::vect2_t screen_pos_;  // position of the CDU texture on the screen
+  geom::vect2_t size_;
+  geom::vect2_t display_pos_;  // position of the CDU display on the screen
+  geom::vect2_t display_size_;
+  geom::vect2_t texture_size_;
+  geom::vect2_t texture_scale_;
 
   cairo_font_face_t* font_face;
 
-  std::shared_ptr<cairo_utils::texture_manager_t> tex_mngr;
-  std::shared_ptr<CDU> cdu_ptr;
+  std::shared_ptr<cairo_utils::texture_manager_t> tex_mngr_;
+  std::shared_ptr<CDU> cdu_ptr_;
 
-  byteutils::Bytemap* key_map;
+  byteutils::Bytemap* key_map_;
 
-  std::string scratchpad;
-  size_t scratch_curr;
+  std::string scratchpad_;
+  size_t scratch_curr_;
 
-  std::stack<std::string> msg_stack;
+  std::stack<std::string> msg_stack_;
 
-  std::chrono::time_point<std::chrono::steady_clock> last_press_tp;
+  std::chrono::time_point<std::chrono::steady_clock> last_press_tp_;
 
   void add_to_scratchpad(char c);
 

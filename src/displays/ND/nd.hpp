@@ -10,6 +10,8 @@
         used in the ND implementation. Author: discord/bruh4096#4512
 */
 
+#pragma once
+
 #include <common/cairo_utils.hpp>
 #include <fpln/fpln_sys.hpp>
 #include <util/geom.hpp>

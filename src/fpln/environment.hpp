@@ -21,7 +21,7 @@ const char FPL_SEL[] = "fpl_sel";
 
 constexpr double AC_LAT_DEF = 45.588670483;
 constexpr double AC_LON_DEF = -122.598150383;
-constexpr double AC_BRNG_TRU_DEF = 175;
+constexpr double AC_BRNG_TRU_DEF = 175.0;
 constexpr double AC_SLIP_DEF = 0;
 constexpr double AC_MAGVAR_DEF = 0;
 constexpr double AC_GS_KTS_DEF = 0;
@@ -124,6 +124,6 @@ const fms_environment::reference_desc_t kBaseVariables[] = {
      {AC_MAGVAR_DEG_VAR, AC_MAGVAR_DEF},
      {AC_GS_KTS_VAR, AC_GS_KTS_DEF},
      {AC_TAS_KTS_VAR, AC_TAS_KTS_DEF},
-     {AC_TAS_KTS_VAR, std::int64_t{1}}
+     {FPL_SEL, std::int64_t{1}}
 };
 } // fms_environment

@@ -158,11 +158,9 @@ class CMDInterface {
       std::vector<std::string> args =
           std::vector<std::string>(line_split.begin() + 1, line_split.end());
 
-      if (test::cmd_map.find(cmd_name) != test::cmd_map.end()) {
-        command_res_t cmd_resources{.fpl_sys=avncs->fpl_sys, .env_map=avncs->env_map_ptr_};
-
-        test::cmd_map[cmd_name](cmd_resources, args);
-      } else {
+      fms_commands::command_res_t cmd_resources{
+        .fpl_sys=avncs->fpl_sys, .env_map=avncs->env_map_ptr_};
+      if(!fms_commands::invoke(cmd_name, cmd_resources, args)) {
         std::cout << "Invalid command name\n";
       }
     }

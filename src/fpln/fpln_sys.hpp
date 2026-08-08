@@ -17,6 +17,7 @@
 #include <iostream>
 #include <mutex>
 #include <optional>
+#include <shared_mutex>
 #include <string>
 #include <unordered_map>
 
@@ -78,8 +79,6 @@ class FPLSys {
          std::shared_ptr<fms_environment::EnvDataRefMap> env_map,
          std::string cifp_path,
          std::string fpl_path);
-
-  std::size_t get_cmd_fpl_idx() const noexcept;
 
   std::size_t get_cnt_flplns() const noexcept;
 
@@ -169,8 +168,6 @@ class FPLSys {
 
   std::unordered_map<fms_environment::val_ref_t, double*> double_values_;
 
-  std::size_t cmd_fpl_idx;
-
   std::shared_ptr<libnav::ArptDB> arpt_db_ptr_;
   std::shared_ptr<libnav::NavaidDB> navaid_db_ptr_;
   std::shared_ptr<libnav::AwyDB> awy_db_ptr_;
@@ -178,36 +175,35 @@ class FPLSys {
 
   std::vector<std::shared_ptr<FplnInt>> fpl_vec_;
 
-  std::pair<std::size_t, double> leg_sel_cdu_l;
-  std::pair<std::size_t, double> leg_sel_cdu_r;
+  std::pair<std::size_t, double> leg_sel_cdu_l_;
+  std::pair<std::size_t, double> leg_sel_cdu_r_;
 
-  std::string cifp_dir_path;
-  std::string fpl_dir;
+  std::string cifp_dir_path_;
+  std::string fpl_dir_;
 
-  std::mutex intnl_mtx;
+  mutable std::shared_mutex main_mutex_;
 
   pos_data_t position_;
-  std::vector<fpln_data_t> fpl_datas;
+  std::vector<fpln_data_t> fpl_datas_;
 
-  std::size_t act_rte_idx;
-  double act_id;
-  std::vector<double> copy_ids;
-  std::vector<std::size_t> cdu_rte_idx;
-  std::string flt_nbr;
-  std::vector<std::string>
-      fnb_dep_icao;  // Departure icaos used to reset flight number
-  std::vector<NDMode> nd_modes;
-  std::vector<std::size_t> cdu_sel_fpl;
+  std::size_t act_rte_idx_;
+  double act_rte_id_;
+  std::vector<double> copy_ids_;
+  std::vector<std::size_t> cdu_rte_idx_;
+  std::string flight_ident_;
+  std::vector<std::string> fnb_dep_icao_;  // Departure icaos used to reset flight number
+  std::vector<NDMode> nd_modes_;
+  std::vector<std::size_t> cdu_sel_fpl_;
 
-  bool m_exec_st;
+  bool execute_status_ = false;
 
-  void update_seg_list(size_t idx = 0);
+  void update_seg_list(std::size_t idx = 0);
 
-  void update_leg_list(size_t idx = 0);
+  void update_leg_list(std::size_t idx = 0);
 
-  void update_lists(size_t idx = 0);
+  void update_lists(std::size_t idx = 0);
 
-  void update_flt_nbr(size_t idx = 0);
+  void update_flt_nbr(std::size_t idx = 0);
 
   void update_hot_env_vars();
 };
