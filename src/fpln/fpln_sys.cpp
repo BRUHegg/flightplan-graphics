@@ -123,18 +123,18 @@ void FPLSys::set_sel_leg(std::pair<std::size_t, double> val, bool rt) noexcept {
   leg_sel_cdu_l_ = val;
 }
 
-bool FPLSys::get_exec() { 
+bool FPLSys::get_exec() const noexcept { 
   std::shared_lock lk(main_mutex_);
   return execute_status_; 
 }
 
-size_t FPLSys::get_act_idx() { 
+size_t FPLSys::get_act_idx() const noexcept { 
   std::shared_lock lk(main_mutex_);
   return act_rte_idx_; 
 }
 
-std::vector<list_node_ref_t<fpl_seg_t>> FPLSys::get_seg_list(size_t* sz,
-                                                             size_t idx) {
+std::vector<list_node_ref_t<fpl_seg_t>> FPLSys::get_seg_list(
+  std::size_t* sz, std::size_t idx) const noexcept {
   std::shared_lock lk(main_mutex_);
   assert(idx < fpl_datas_.size());
 
@@ -142,8 +142,8 @@ std::vector<list_node_ref_t<fpl_seg_t>> FPLSys::get_seg_list(size_t* sz,
   return fpl_datas_[idx].seg_list;
 }
 
-std::vector<list_node_ref_t<leg_list_data_t>> FPLSys::get_leg_list(size_t* sz,
-                                                                   size_t idx) {
+std::vector<list_node_ref_t<leg_list_data_t>> FPLSys::get_leg_list(
+  std::size_t* sz, std::size_t idx) const noexcept {
   std::shared_lock lk(main_mutex_);
   assert(idx < N_FPL_SYS_RTES);
 
@@ -151,18 +151,19 @@ std::vector<list_node_ref_t<leg_list_data_t>> FPLSys::get_leg_list(size_t* sz,
   return fpl_datas_[idx].leg_list;
 }
 
-size_t FPLSys::get_nd_seg(nd_leg_data_t* out, size_t n_max, size_t idx) {
+std::size_t FPLSys::get_nd_seg(nd_leg_data_t* out, std::size_t n_max, 
+  std::size_t idx) const noexcept {
   std::shared_lock lk(main_mutex_);
   assert(idx < N_FPL_SYS_RTES);
 
   if (fpl_datas_[idx].leg_list.size() == 0) return 0;
-  size_t n_written = 0;
-  size_t i_start = 1;
+  std::size_t n_written = 0;
+  std::size_t i_start = 1;
 
   if (fpl_datas_[idx].act_leg_idx != -1 && fpl_datas_[idx].act_leg_idx)
-    i_start = size_t(fpl_datas_[idx].act_leg_idx) - 1;
+    i_start = std::size_t(fpl_datas_[idx].act_leg_idx) - 1;
 
-  for (size_t i = i_start; i < fpl_datas_[idx].leg_list.size() - 1; i++) {
+  for (std::size_t i = i_start; i < fpl_datas_[idx].leg_list.size() - 1; i++) {
     if (!n_max) return n_written;
 
     if (fpl_datas_[idx].leg_list[i].data.is_discon) continue;
@@ -179,7 +180,7 @@ size_t FPLSys::get_nd_seg(nd_leg_data_t* out, size_t n_max, size_t idx) {
   return n_written;
 }
 
-int FPLSys::get_act_leg_idx(size_t idx) {
+int FPLSys::get_act_leg_idx(std::size_t idx) const noexcept {
   std::shared_lock lk(main_mutex_);
   assert(idx < N_FPL_SYS_RTES);
 
@@ -187,13 +188,14 @@ int FPLSys::get_act_leg_idx(size_t idx) {
   return 1;
 }
 
-void FPLSys::set_cdu_sel_fpl_idx(std::size_t src, std::size_t sd_idx) {
+void FPLSys::set_cdu_sel_fpl_idx(
+  std::size_t src, std::size_t sd_idx) {
   assert(sd_idx < cdu_sel_fpl_.size());
   std::unique_lock lk(main_mutex_);
   cdu_sel_fpl_[sd_idx] = src;
 }
 
-std::size_t FPLSys::get_cdu_sel_fpl_idx(std::size_t sd_idx) {
+std::size_t FPLSys::get_cdu_sel_fpl_idx(std::size_t sd_idx) const noexcept {
   std::shared_lock lk(main_mutex_);
   assert(sd_idx < cdu_sel_fpl_.size());
   return cdu_sel_fpl_[sd_idx];
@@ -205,13 +207,13 @@ void FPLSys::set_nd_mode(NDMode src, std::size_t sd_idx) {
   nd_modes_[sd_idx] = src;
 }
 
-NDMode FPLSys::get_nd_mode(std::size_t sd_idx) {
+NDMode FPLSys::get_nd_mode(std::size_t sd_idx) const noexcept {
   std::shared_lock lk(main_mutex_);
   assert(sd_idx < nd_modes_.size());
   return nd_modes_[sd_idx];
 }
 
-bool FPLSys::get_ctr(geo::point* out, std::size_t sd_idx) {
+bool FPLSys::get_ctr(geo::point* out, std::size_t sd_idx) const noexcept {
   std::shared_lock lk(main_mutex_);
   std::size_t idx = cdu_sel_fpl_[sd_idx];
   std::size_t curr_idx = fpl_datas_[idx].cap_ctr_idx;
@@ -230,13 +232,13 @@ bool FPLSys::get_ctr(geo::point* out, std::size_t sd_idx) {
   return false;
 }
 
-geo::point FPLSys::get_ac_pos() {
+geo::point FPLSys::get_ac_pos() const noexcept {
   std::shared_lock lk(main_mutex_);
   return {position_.ac_lat_deg * geo::DEG_TO_RAD, 
     position_.ac_lon_deg * geo::DEG_TO_RAD};
 }
 
-hdg_info_t FPLSys::get_hdg_info() {
+hdg_info_t FPLSys::get_hdg_info() const noexcept {
   std::shared_lock lk(main_mutex_);
   hdg_info_t out = {};
   out.brng_tru_rad = position_.ac_brng_deg * geo::DEG_TO_RAD;
@@ -245,7 +247,7 @@ hdg_info_t FPLSys::get_hdg_info() {
   return out;
 }
 
-spd_info_t FPLSys::get_spd_info() {
+spd_info_t FPLSys::get_spd_info() const noexcept {
   std::shared_lock lk(main_mutex_);
   spd_info_t out = {};
   out.gs_kts = position_.ac_gs_kts;
@@ -254,7 +256,7 @@ spd_info_t FPLSys::get_spd_info() {
   return out;
 }
 
-act_leg_info_t FPLSys::get_act_leg_info(std::size_t idx) {
+act_leg_info_t FPLSys::get_act_leg_info(std::size_t idx) const noexcept {
   std::shared_lock lk(main_mutex_);
   assert(idx < N_FPL_SYS_RTES);
 
@@ -286,7 +288,7 @@ act_leg_info_t FPLSys::get_act_leg_info(std::size_t idx) {
   return out;
 }
 
-fpln_info_t FPLSys::get_fpl_info(size_t idx) {
+fpln_info_t FPLSys::get_fpl_info(size_t idx) const noexcept {
   std::shared_lock lk(main_mutex_);
   fpln_info_t out;
   out.leg_list_id = fpl_datas_[idx].leg_list_id;
@@ -351,12 +353,12 @@ void FPLSys::rte_activate(size_t idx) {
 
 void FPLSys::set_flt_nbr(std::string str) { flight_ident_ = str; }
 
-std::string FPLSys::get_flt_nbr() { 
+std::string FPLSys::get_flt_nbr() const noexcept { 
   std::shared_lock lk(main_mutex_);
   return flight_ident_; 
 }
 
-RTECopySts FPLSys::act_can_copy() {
+RTECopySts FPLSys::act_can_copy() const noexcept {
   std::shared_lock lk(main_mutex_);
   if (act_rte_idx_ != N_FPL_SYS_RTES && !execute_status_) {
     double id1 = fpl_vec_[RTE1_IDX]->get_id();

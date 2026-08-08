@@ -96,39 +96,40 @@ class FPLSys {
 
   void set_sel_leg(std::pair<std::size_t, double> val, bool rt) noexcept;
 
-  bool get_exec();
+  bool get_exec() const noexcept;
 
-  size_t get_act_idx();
+  std::size_t get_act_idx() const noexcept;
 
-  std::vector<list_node_ref_t<fpl_seg_t>> get_seg_list(size_t* sz,
-                                                       size_t idx = 0);
+  std::vector<list_node_ref_t<fpl_seg_t>> get_seg_list(
+    std::size_t* sz, std::size_t idx = 0) const noexcept;
 
-  std::vector<list_node_ref_t<leg_list_data_t>> get_leg_list(size_t* sz,
-                                                             size_t idx = 0);
+  std::vector<list_node_ref_t<leg_list_data_t>> get_leg_list(
+    std::size_t* sz, std::size_t idx = 0) const noexcept;
 
-  size_t get_nd_seg(nd_leg_data_t* out, size_t n_max, size_t idx = 0);
+  std::size_t get_nd_seg(nd_leg_data_t* out, std::size_t n_max, 
+    std::size_t idx = 0) const noexcept;
 
-  int get_act_leg_idx(size_t idx = 0);
+  int get_act_leg_idx(std::size_t idx = 0) const noexcept;
 
-  void set_cdu_sel_fpl_idx(size_t src, size_t sd_idx);
+  void set_cdu_sel_fpl_idx(std::size_t src, std::size_t sd_idx);
 
-  size_t get_cdu_sel_fpl_idx(size_t sd_idx);
+  std::size_t get_cdu_sel_fpl_idx(std::size_t sd_idx) const noexcept;
 
-  void set_nd_mode(NDMode src, size_t sd_idx);
+  void set_nd_mode(NDMode src, std::size_t sd_idx);
 
-  NDMode get_nd_mode(size_t sd_idx);
+  NDMode get_nd_mode(std::size_t sd_idx) const noexcept;
 
-  bool get_ctr(geo::point* out, size_t sd_idx);
+  bool get_ctr(geo::point* out, std::size_t sd_idx) const noexcept;
 
-  geo::point get_ac_pos();
+  geo::point get_ac_pos() const noexcept;
 
-  hdg_info_t get_hdg_info();
+  hdg_info_t get_hdg_info() const noexcept;
 
-  spd_info_t get_spd_info();
+  spd_info_t get_spd_info() const noexcept;
 
-  fpln_info_t get_fpl_info(size_t idx = 0);
+  fpln_info_t get_fpl_info(size_t idx = 0) const noexcept;
 
-  act_leg_info_t get_act_leg_info(size_t idx = 0);
+  act_leg_info_t get_act_leg_info(size_t idx = 0) const noexcept;
 
   void step_ctr(bool bwd, size_t sd_idx);
 
@@ -136,9 +137,9 @@ class FPLSys {
 
   void set_flt_nbr(std::string str);
 
-  std::string get_flt_nbr();
+  std::string get_flt_nbr() const noexcept;
 
-  RTECopySts act_can_copy();
+  RTECopySts act_can_copy() const noexcept;
 
   void copy_act();
 
