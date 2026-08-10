@@ -25,6 +25,7 @@
 #include <displays/ND/nd.hpp>
 #include <fpln/fpl_cmds.hpp>
 #include <fpln/fpln_sys.hpp>
+#include <util/pathlib.hpp>
 
 namespace fms_core {
 const std::string CMD_FILE_NM = "cmds.txt";
@@ -62,16 +63,16 @@ class Avionics {
 
   std::string cifp_dir_path;
 
-  Avionics(std::string apt_dat, std::string custom_apt, std::string custom_rnw,
-           std::string fix_data, std::string navaid_data, std::string awy_data,
-           std::string hold_data, std::string cifp_path, std::string fpl_path) {
-    cifp_dir_path = cifp_path;
+  Avionics(pathlib::Path apt_dat, pathlib::Path custom_apt, pathlib::Path custom_rnw,
+           pathlib::Path fix_data, pathlib::Path navaid_data, pathlib::Path awy_data,
+           pathlib::Path hold_data, pathlib::Path cifp_path, pathlib::Path fpl_path) {
+    cifp_dir_path = cifp_path.Get();
 
     arpt_db_ptr =
-        std::make_shared<libnav::ArptDB>(apt_dat, custom_apt, custom_rnw);
-    navaid_db_ptr = std::make_shared<libnav::NavaidDB>(fix_data, navaid_data);
-    awy_db = std::make_shared<libnav::AwyDB>(awy_data);
-    hold_db = std::make_shared<libnav::HoldDB>(hold_data);
+        std::make_shared<libnav::ArptDB>(apt_dat.Get(), custom_apt.Get(), custom_rnw.Get());
+    navaid_db_ptr = std::make_shared<libnav::NavaidDB>(fix_data.Get(), navaid_data.Get());
+    awy_db = std::make_shared<libnav::AwyDB>(awy_data.Get());
+    hold_db = std::make_shared<libnav::HoldDB>(hold_data.Get());
 
     libnav::DbErr err_arpt = arpt_db_ptr->get_err();
     libnav::DbErr err_wpt = navaid_db_ptr->get_wpt_err();
@@ -110,7 +111,7 @@ class Avionics {
 
     fpl_sys = std::make_shared<FPLSys>(arpt_db_ptr, navaid_db_ptr, awy_db,
                                       env_map_ptr_,
-                                       cifp_dir_path, fpl_path);
+                                       cifp_dir_path, fpl_path.Get());
   }
 
   void update() { fpl_sys->update(); }
@@ -139,8 +140,6 @@ class CMDInterface {
   byteutils::bytemap_manager_t byte_mngr;
 
   CMDInterface() {
-    earth_nav_path = "";
-    apt_dat_dir = "";
 
     pre_exec = {};
 
@@ -194,9 +193,9 @@ class CMDInterface {
   }
 
  private:
-  std::string earth_nav_path;
-  std::string apt_dat_dir;
-  std::string fpl_dir;
+  pathlib::Path earth_nav_path;
+  pathlib::Path apt_dat_dir;
+  pathlib::Path fpl_dir;
 
   std::vector<std::string> pre_exec;
 
@@ -217,11 +216,11 @@ class CMDInterface {
 
           if (str_split.size() == 2) {
             if (str_split[0] == PREFS_EARTH_PATH)
-              earth_nav_path = str_split[1];
+              earth_nav_path = pathlib::Path{str_split[1]};
             else if (str_split[0] == PREFS_APT_DIR)
-              apt_dat_dir = str_split[1];
+              apt_dat_dir = pathlib::Path{str_split[1]};
             else if (str_split[0] == PREFS_FPL_DIR)
-              fpl_dir = str_split[1];
+              fpl_dir = pathlib::Path{str_split[1]};
           }
         }
       }
@@ -233,24 +232,23 @@ class CMDInterface {
   void update_prefs() {
     std::ofstream out(PREFS_FILE_NM, std::ofstream::out);
 
-    out << PREFS_EARTH_PATH << " " << earth_nav_path << "\n";
-    out << PREFS_APT_DIR << " " << apt_dat_dir << "\n";
-    out << PREFS_FPL_DIR << " " << fpl_dir << "\n";
+    out << PREFS_EARTH_PATH << " " << earth_nav_path.Get() << "\n";
+    out << PREFS_APT_DIR << " " << apt_dat_dir.Get() << "\n";
+    out << PREFS_FPL_DIR << " " << fpl_dir.Get() << "\n";
 
     out.close();
   }
 
-  std::string get_path_from_user() {
+  pathlib::Path get_path_from_user() {
     std::string out;
-    while (!out.size()) std::getline(std::cin, out);
-    if (out.back() != '/') out += "/";
-    return out;
+    std::cin >> out;
+    return pathlib::Path{out};
   }
 
   void get_paths_from_user() {
     bool write_to_prefs = false;
 
-    if (earth_nav_path == "") {
+    if (earth_nav_path.Get() == "") {
       std::cout
           << "Please enter path to your Resources/default data directory\n";
       earth_nav_path = get_path_from_user();
@@ -258,14 +256,14 @@ class CMDInterface {
       write_to_prefs = true;
     }
 
-    if (apt_dat_dir == "") {
+    if (apt_dat_dir.Get() == "") {
       std::cout << "Please enter path to the directory containing apt.dat\n";
       apt_dat_dir = get_path_from_user();
 
       write_to_prefs = true;
     }
 
-    if (fpl_dir == "") {
+    if (fpl_dir.Get() == "") {
       std::cout << "Please enter path to the directory where flight plans "
                    "should be stored\n";
       fpl_dir = get_path_from_user();
@@ -362,7 +360,8 @@ class CMDInterface {
     load_bytemaps();
 
     avncs = std::make_shared<Avionics>(
-        apt_dat_dir + "apt.dat", "777_arpt.dat", "777_rnw.dat",
+        apt_dat_dir + "apt.dat", pathlib::Path{"777_arpt.dat"}, 
+        pathlib::Path{"777_rnw.dat"},
         earth_nav_path + "earth_fix.dat", earth_nav_path + "earth_nav.dat",
         earth_nav_path + "earth_awy.dat", earth_nav_path + "earth_hold.dat",
         earth_nav_path + "CIFP", fpl_dir);

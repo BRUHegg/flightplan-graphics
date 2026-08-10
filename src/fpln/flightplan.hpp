@@ -168,7 +168,7 @@ class FlightPlan {
 
   double get_ll_seg(size_t start, size_t l,
                     std::vector<list_node_ref_t<leg_list_data_t>>* out,
-                    int* act_idx_out) const noexcept;
+                    int* act_idx_out) noexcept;
 
   /*
       Function: get_sl_seg
@@ -180,7 +180,7 @@ class FlightPlan {
   */
 
   double get_sl_seg(size_t start, size_t l,
-                    std::vector<list_node_ref_t<fpl_seg_t>>* out) const noexcept;
+                    std::vector<list_node_ref_t<fpl_seg_t>>* out) noexcept;
 
   bool is_active() const noexcept;
 

@@ -113,7 +113,7 @@ size_t FlightPlan::get_seg_list_sz() const noexcept {
 
 double FlightPlan::get_ll_seg(
     size_t start, size_t l, std::vector<list_node_ref_t<leg_list_data_t>>* out,
-    int* act_idx_out) const noexcept {
+    int* act_idx_out) noexcept {
   std::shared_lock lk(fpl_mtx_);
   *act_idx_out = -1;
 
@@ -126,7 +126,7 @@ double FlightPlan::get_ll_seg(
   }
 
   size_t i = 0;
-  const leg_list_node_t* curr = &(leg_list_.head);
+  leg_list_node_t* curr = &(leg_list_.head);
   while (i != start) {
     curr = curr->next;
     i++;
@@ -151,7 +151,7 @@ double FlightPlan::get_ll_seg(
 }
 
 double FlightPlan::get_sl_seg(size_t start, size_t l,
-                  std::vector<list_node_ref_t<fpl_seg_t>>* out) const noexcept {
+                  std::vector<list_node_ref_t<fpl_seg_t>>* out) noexcept {
   std::shared_lock lk(fpl_mtx_);
   if (start >= seg_list_.size) {
     return -1;
@@ -162,7 +162,7 @@ double FlightPlan::get_sl_seg(size_t start, size_t l,
   }
 
   std::size_t i = 0;
-  const seg_list_node_t* curr = &(seg_list_.head);
+  seg_list_node_t* curr = &(seg_list_.head);
   while (i != start) {
     curr = curr->next;
     i++;

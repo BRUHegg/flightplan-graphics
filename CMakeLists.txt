@@ -8,6 +8,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_subdirectory(src/fpln)
 add_subdirectory(src/displays)
+add_subdirectory(src/util)
 
 file(GLOB SRC_FILES "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
 FILE(GLOB HDR_FILES "${CMAKE_CURRENT_SOURCE_DIR}/src/*.hpp")
@@ -48,7 +49,7 @@ include_directories(${GTK3_INCLUDE_DIRS})
 link_directories(${GTK3_LIBRARY_DIRS})
 add_definitions(${GTK3_CFLAGS_OTHER})
 target_link_libraries(displays PUBLIC ${GTK3_LIBRARIES})
-target_link_libraries(fpln_graphics PUBLIC ${GTK3_LIBRARIES} fpln displays)
+target_link_libraries(fpln_graphics PUBLIC ${GTK3_LIBRARIES} fpln displays util_lib)
 
 target_include_directories(displays PUBLIC "${LIBNAV}/include" "${CMAKE_CURRENT_SOURCE_DIR}/src" "${CMAKE_CURRENT_SOURCE_DIR}/src/displays" ${GTK3_INCLUDE_DIRS})
 

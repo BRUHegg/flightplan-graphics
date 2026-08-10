@@ -60,7 +60,7 @@ class FplnInt : public FlightPlan {
 
   // Export to .fms file:
 
-  void save_to_fms(std::string& file_nm, bool save_sid_star = true);
+  void save_to_fms(std::string& file_nm, bool save_sid_star = true) const;
 
   std::string get_co_rte_nm();
 
@@ -145,21 +145,21 @@ class FplnInt : public FlightPlan {
   void update(double hdg_trk_diff);
 
  private:
-  std::string co_rte_nm;
-  std::string arr_rwy;
-  bool appr_is_rwy;
+  mutable std::string co_rte_nm_;
+  std::string arr_rwy_;
+  bool appr_is_rwy_;
 
-  std::vector<libnav::str_umap_t> proc_db;
-  std::shared_ptr<libnav::AwyDB> awy_db;
-  std::shared_ptr<libnav::NavaidDB> navaid_db;
+  std::vector<libnav::str_umap_t> proc_db_;
+  std::shared_ptr<libnav::AwyDB> awy_db_;
+  std::shared_ptr<libnav::NavaidDB> navaid_db_;
 
-  libnav::arinc_rwy_db_t dep_rnw, arr_rnw;
-  bool has_dep_rnw_data, has_arr_rnw_data;
-  libnav::runway_entry_t dep_rnw_data, arr_rnw_data;
+  libnav::arinc_rwy_db_t dep_rnw_, arr_rnw_;
+  bool has_dep_rnw_data_, has_arr_rnw_data_;
+  libnav::runway_entry_t dep_rnw_data_, arr_rnw_data_;
 
-  double fpl_id_calc;
+  double fpl_id_calc_;
 
-  bool airac_mismatch;
+  bool airac_mismatch_;
 
   // Static member functions:
 
@@ -183,7 +183,7 @@ class FplnInt : public FlightPlan {
                                                  bool is_rwy = false,
                                                  bool incl_none = true);
 
-  static std::string get_dfms_enrt_leg(leg_list_node_t* lg,
+  static std::string get_dfms_enrt_leg(const leg_list_node_t* lg,
                                        bool force_dir = false);
 
   // Non-static member functions:
@@ -212,9 +212,9 @@ class FplnInt : public FlightPlan {
 
   // Auxiliury functions for export to .fms:
 
-  std::string get_dfms_arpt_leg(bool is_arr = false);
+  std::string get_dfms_arpt_leg(bool is_arr = false) const;
 
-  size_t get_dfms_enrt_legs(std::vector<std::string>* out);
+  size_t get_dfms_enrt_legs(std::vector<std::string>* out) const;
 
   // The main .fms import function:
 

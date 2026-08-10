@@ -80,7 +80,7 @@ class CDU {
   cdu_scr_data_t get_screen_data() const noexcept;
 
  private:
-  std::shared_mutex main_mutex_;
+  mutable std::shared_mutex main_mutex_;
 
   std::size_t act_sd_idx_;
 
