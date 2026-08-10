@@ -28,7 +28,7 @@ namespace {
 
 } // namespace
 
-namespace test {
+namespace fms_core {
 // FPLSys member function definitions:
 
 // Public member functions:

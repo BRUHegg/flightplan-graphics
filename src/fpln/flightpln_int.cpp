@@ -16,6 +16,22 @@
 
 #include "flightpln_int.hpp"
 
+#include <cassert>
+#include <cstddef>
+#include <cstdint>
+
+#include <memory>
+#include <set>
+#include <string>
+#include <vector>
+
+#include <libnav/arpt_db.hpp>
+#include <libnav/cifp_parser.hpp>
+#include <libnav/geo_utils.hpp>
+#include <libnav/navaid_db.hpp>
+#include <libnav/str_utils.hpp>
+#include <util/geom.hpp>
+
 namespace {
 
 constexpr size_t N_PROC_DB_SZ = 5;
@@ -84,7 +100,7 @@ double get_turn_rad(double ang1, geo::point p1, double ang2, geo::point p2);
 double get_turn_by_dir(double curr_brng_rad, double tgt_brng_rad,
                        libnav::TurnDir t_dir);
 
-double get_cf_big_turn_isect(test::leg_seg_t curr, test::leg_t next, double m_var,
+double get_cf_big_turn_isect(fms_core::leg_seg_t curr, fms_core::leg_t next, double m_var,
                              geo::point* out);
 
 std::string get_appr_rwy(std::string& appr);
@@ -101,7 +117,7 @@ libnav::waypoint_t get_ca_va_wpt(geo::point pos, int n_ft);
 
 libnav::waypoint_t get_xd_wpt(geo::point pos, std::string main_nm, int dme_nm);
 
-double get_rnp(test::leg_list_node_t* leg);
+double get_rnp(fms_core::leg_list_node_t* leg);
 
 bool is_ang_greater(double ang1_rad, double ang2_rad) {
   if (ang1_rad < 0) {
@@ -166,7 +182,7 @@ double get_turn_by_dir(double curr_brng_rad, double tgt_brng_rad,
   return turn_rad;
 }
 
-double get_cf_big_turn_isect(test::leg_seg_t curr, test::leg_t next, double m_var,
+double get_cf_big_turn_isect(fms_core::leg_seg_t curr, fms_core::leg_t next, double m_var,
                              geo::point* out) {
   assert(next.has_main_fix);
   geo::point next_main_pos = next.main_fix.data.pos;
@@ -269,18 +285,18 @@ libnav::waypoint_t get_xd_wpt(geo::point pos, std::string main_nm, int dme_nm) {
   return out;
 }
 
-double get_rnp(test::leg_list_node_t* leg) {
+double get_rnp(fms_core::leg_list_node_t* leg) {
   if (leg->data.leg.rnp != 0) return double(leg->data.leg.rnp);
 
-  test::FplSegment seg_tp = leg->data.seg->data.seg_type;
+  fms_core::FplSegment seg_tp = leg->data.seg->data.seg_type;
 
-  if (seg_tp != test::FplSegment::ENRT) return ASSUMED_RNP_PROC_NM;
+  if (seg_tp != fms_core::FplSegment::ENRT) return ASSUMED_RNP_PROC_NM;
 
   return ASSUMED_RNP_ENRT_NM;
 }
 } // namespace
 
-namespace test {
+namespace fms_core {
 // FplnInt member functions:
 // Public functions:
 

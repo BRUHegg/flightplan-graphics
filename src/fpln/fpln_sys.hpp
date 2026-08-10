@@ -26,7 +26,7 @@
 
 #define UNUSED(x) (void)(x)
 
-namespace test {
+namespace fms_core {
 enum class RTECopySts { READY, COMPLETE, UNAVAIL };
 
 enum class NDMode { APP, VOR, MAP, PLAN };

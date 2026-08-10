@@ -20,12 +20,13 @@
 #include <string>
 
 #include <fpln/environment.hpp>
-#include "displays/CDU/cdu.hpp"
-#include "displays/ND/nd.hpp"
-#include "fpln/fpl_cmds.hpp"
-#include "fpln/fpln_sys.hpp"
+#include <displays/CDU/cdu.hpp>
+#include <displays/CDU/cdu_widget.hpp>
+#include <displays/ND/nd.hpp>
+#include <fpln/fpl_cmds.hpp>
+#include <fpln/fpln_sys.hpp>
 
-namespace test {
+namespace fms_core {
 const std::string CMD_FILE_NM = "cmds.txt";
 const std::string PREFS_FILE_NM = "prefs.txt";
 
@@ -35,12 +36,12 @@ const std::string PREFS_FPL_DIR = "FPLDIR";
 
 const std::string BOEING_FONT_NAME = "BoeingFont.ttf";
 const std::pair<std::string, std::string> CDU_BYTEMAP_NAME = {
-    "cdu_key_map", StratosphereAvionics::CDU_TEXTURE_NAME};
+    "cdu_key_map", fms_displays::CDU_TEXTURE_NAME};
 const std::string TEXTURES_PATH = "textures/";
 
 constexpr double WND_HEIGHT = 900;
 constexpr double CDU_WIDTH =
-    (StratosphereAvionics::CDU_TEXTURE_ASPECT_RATIO * WND_HEIGHT);
+    (fms_displays::CDU_TEXTURE_ASPECT_RATIO * WND_HEIGHT);
 constexpr double ND_WIDTH = WND_HEIGHT;
 constexpr double WND_WIDTH = CDU_WIDTH + ND_WIDTH;
 constexpr geom::vect2_t ND_POS = {CDU_WIDTH, 0};
@@ -129,10 +130,11 @@ class CMDInterface {
  public:
   std::shared_ptr<Avionics> avncs;
   std::shared_ptr<cairo_utils::texture_manager_t> tex_mngr;
-  std::shared_ptr<StratosphereAvionics::NDData> nd_data;
-  std::shared_ptr<StratosphereAvionics::NDDisplay> nd_display;
-  std::shared_ptr<StratosphereAvionics::CDU> cdu_l;
-  std::shared_ptr<StratosphereAvionics::CDUDisplay> cdu_display_l;
+  std::shared_ptr<fms_displays::NDData> nd_data;
+  std::shared_ptr<fms_displays::NDDisplay> nd_display;
+  std::shared_ptr<fms_displays::CDU> cdu_l;
+  std::shared_ptr<fms_displays::CDUDisplay> cdu_display_l;
+  std::shared_ptr<fms_displays::CDUWidget> cdu_widget_l;
 
   byteutils::bytemap_manager_t byte_mngr;
 
@@ -166,15 +168,15 @@ class CMDInterface {
     }
   }
 
-  void on_click(geom::vect2_t pos) { cdu_display_l->on_click(pos); }
+  void on_click(geom::vect2_t pos) { cdu_widget_l->on_click(pos); }
 
   void draw(cairo_t* cr) {
-    cdu_l->update();
     nd_display->draw(cr);
-    cdu_display_l->draw(cr);
+    cdu_widget_l->draw(cr);
   }
 
   void update() {
+    cdu_l->update();
     avncs->update();
     nd_data->update();
   }
@@ -310,25 +312,25 @@ class CMDInterface {
 
   void load_textures() {
     std::vector<std::string> tgt_names = {
-        StratosphereAvionics::WPT_ACT_NAME,
-        StratosphereAvionics::WPT_INACT_NAME,
-        StratosphereAvionics::AIRPLANE_NAME,
-        StratosphereAvionics::PLN_BACKGND_INNER_NAME,
-        StratosphereAvionics::PLN_BACKGND_OUTER_NAME,
-        StratosphereAvionics::MAP_BACKGND_NAME,
-        StratosphereAvionics::MAP_AC_TRI_NAME,
-        StratosphereAvionics::MAP_HDG_NAME,
-        StratosphereAvionics::HTRK_BOX_NAME,
-        StratosphereAvionics::ARPT_NML_POI_NAME,
-        StratosphereAvionics::ARPT_ALTN_POI_NAME,
-        StratosphereAvionics::VORDME_POI_NAME,
-        StratosphereAvionics::DME_POI_NAME,
+        fms_displays::WPT_ACT_NAME,
+        fms_displays::WPT_INACT_NAME,
+        fms_displays::AIRPLANE_NAME,
+        fms_displays::PLN_BACKGND_INNER_NAME,
+        fms_displays::PLN_BACKGND_OUTER_NAME,
+        fms_displays::MAP_BACKGND_NAME,
+        fms_displays::MAP_AC_TRI_NAME,
+        fms_displays::MAP_HDG_NAME,
+        fms_displays::HTRK_BOX_NAME,
+        fms_displays::ARPT_NML_POI_NAME,
+        fms_displays::ARPT_ALTN_POI_NAME,
+        fms_displays::VORDME_POI_NAME,
+        fms_displays::DME_POI_NAME,
 
-        StratosphereAvionics::CDU_TEXTURE_NAME,
-        StratosphereAvionics::CDU_WHITE_TEXT_NAME,
-        StratosphereAvionics::CDU_GREEN_TEXT_NAME,
-        StratosphereAvionics::CDU_CYAN_TEXT_NAME,
-        StratosphereAvionics::CDU_MAGENTA_TEXT_NAME};
+        fms_displays::CDU_TEXTURE_NAME,
+        fms_displays::CDU_WHITE_TEXT_NAME,
+        fms_displays::CDU_GREEN_TEXT_NAME,
+        fms_displays::CDU_CYAN_TEXT_NAME,
+        fms_displays::CDU_MAGENTA_TEXT_NAME};
 
     tex_mngr = std::make_shared<cairo_utils::texture_manager_t>();
 
@@ -365,16 +367,18 @@ class CMDInterface {
         earth_nav_path + "earth_awy.dat", earth_nav_path + "earth_hold.dat",
         earth_nav_path + "CIFP", fpl_dir);
 
-    nd_data = std::make_shared<StratosphereAvionics::NDData>(avncs->fpl_sys);
+    nd_data = std::make_shared<fms_displays::NDData>(avncs->fpl_sys);
     if (!nd_data->init()) {
       throw "Failed to allocate nd_data\n";
     }
-    nd_display = std::make_shared<StratosphereAvionics::NDDisplay>(
+    nd_display = std::make_shared<fms_displays::NDDisplay>(
         nd_data, tex_mngr, boeing_font_face, ND_POS, ND_SZ, 0);
-    cdu_l = std::make_shared<StratosphereAvionics::CDU>(avncs->fpl_sys, 0);
+    cdu_l = std::make_shared<fms_displays::CDU>(avncs->fpl_sys, 0);
     byteutils::Bytemap* cdu_map = byte_mngr.get_bytemap(CDU_BYTEMAP_NAME.first);
-    cdu_display_l = std::make_shared<StratosphereAvionics::CDUDisplay>(
-        CDU_L_POS, CDU_L_SZ, boeing_font_face, tex_mngr, cdu_l, cdu_map);
+    cdu_display_l = std::make_shared<fms_displays::CDUDisplay>(
+        CDU_L_POS, CDU_L_SZ, boeing_font_face, tex_mngr, cdu_l);
+    cdu_widget_l = std::make_shared<fms_displays::CDUWidget>(
+      CDU_L_POS, CDU_L_SZ, tex_mngr, cdu_l, cdu_display_l, cdu_map);
 
     std::cout << "Avionics loaded\n";
   }

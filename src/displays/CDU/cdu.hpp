@@ -1,20 +1,25 @@
 #pragma once
+
 #include <chrono>
 #include <memory>
+#include <mutex>
+#include <queue>
 #include <stack>
 #include <string>
 
-#include <util/geom.hpp>
 #include <common/bytemap.hpp>
 #include <common/cairo_utils.hpp>
 #include <fpln/fpln_sys.hpp>
+#include <fpln/flightpln_int.hpp>
+#include <libnav/cifp_parser.hpp>
+#include <util/geom.hpp>
 
 #define FPL_DEBUG
 #ifdef FPL_DEBUG
 #include <iostream>
 #endif
 
-namespace StratosphereAvionics {
+namespace fms_displays {
 enum class CDUPage {
   RTE,
   DEP_ARR_INTRO,
@@ -37,7 +42,6 @@ enum class CDUPage {
 };
 
 constexpr double CDU_TEXTURE_ASPECT_RATIO = (488.0 / 751.0);
-const std::string CDU_TEXTURE_NAME = "cdu";
 const std::string CDU_WHITE_TEXT_NAME = "cdu_big_white";
 const std::string CDU_GREEN_TEXT_NAME = "cdu_big_green";
 const std::string CDU_CYAN_TEXT_NAME = "cdu_big_cyan";
@@ -63,25 +67,25 @@ struct cdu_scr_data_t {
 
 class CDU {
  public:
-  CDU(std::shared_ptr<test::FPLSys> fs, size_t sd_idx);
+  CDU(std::shared_ptr<fms_core::FPLSys> fs, size_t sd_idx);
 
-  void update();
+  void update() noexcept;
 
-  bool get_exec_lt();
+  bool get_exec_lt() const noexcept;
 
   std::string on_event(int event_key, std::string scratchpad,
-                       std::string* s_out);
+                       std::string* s_out) noexcept;
 
-  cdu_scr_data_t get_screen_data();
+  cdu_scr_data_t get_screen_data() noexcept;
 
  private:
   std::size_t act_sd_idx_;
 
-  std::shared_ptr<test::FPLSys> fpl_sys_;
-  std::shared_ptr<test::FplnInt> fpln_;
-  std::shared_ptr<test::FplnInt> m_rte1_ptr_;
-  std::shared_ptr<test::FplnInt> m_rte2_ptr_;
-  std::shared_ptr<test::FplnInt> m_act_ptr_;
+  std::shared_ptr<fms_core::FPLSys> fpl_sys_;
+  std::shared_ptr<fms_core::FplnInt> fpln_;
+  std::shared_ptr<fms_core::FplnInt> m_rte1_ptr_;
+  std::shared_ptr<fms_core::FplnInt> m_rte2_ptr_;
+  std::shared_ptr<fms_core::FplnInt> m_act_ptr_;
   std::size_t sel_fpl_idx_;  // [0;3]
   std::size_t act_fpl_idx_;  // [0;3]
 
@@ -90,7 +94,7 @@ class CDU {
   int curr_subpg_ = 1;
 
   // RTE data
-  test::RTECopySts rte_copy_ = test::RTECopySts::UNAVAIL;
+  fms_core::RTECopySts rte_copy_ = fms_core::RTECopySts::UNAVAIL;
 
   // sel des data
   /*
@@ -135,9 +139,9 @@ class CDU {
   // LEGS data:
   bool leg_sel_pr_ = false;
   size_t n_seg_list_sz_, n_leg_list_sz_;
-  std::vector<test::list_node_ref_t<test::fpl_seg_t>> seg_list_;
-  std::vector<test::list_node_ref_t<test::leg_list_data_t>> leg_list_;
-  std::vector<test::fpln_info_t> fpl_infos_;
+  std::vector<fms_core::list_node_ref_t<fms_core::fpl_seg_t>> seg_list_;
+  std::vector<fms_core::list_node_ref_t<fms_core::leg_list_data_t>> leg_list_;
+  std::vector<fms_core::fpln_info_t> fpl_infos_;
   std::vector<std::pair<size_t, double>> leg_sel_;
   std::vector<size_t> pln_ctr_idx_;
   std::vector<geo::point> pln_ctr_pos_;
@@ -160,7 +164,7 @@ class CDU {
   */
 
   static std::string get_cdu_leg_prop(
-      test::list_node_ref_t<test::leg_list_data_t>& src);
+      fms_core::list_node_ref_t<fms_core::leg_list_data_t>& src);
 
   /*
       Function: get_leg_alt
@@ -175,7 +179,7 @@ class CDU {
   */
 
   static std::string get_leg_alt(
-      test::list_node_ref_t<test::leg_list_data_t>& src, bool alt2 = false,
+      fms_core::list_node_ref_t<fms_core::leg_list_data_t>& src, bool alt2 = false,
       bool fl = false);
 
   /*
@@ -187,19 +191,19 @@ class CDU {
   */
 
   static std::string get_cdu_leg_vcstr(
-      test::list_node_ref_t<test::leg_list_data_t>& src);
+      fms_core::list_node_ref_t<fms_core::leg_list_data_t>& src);
 
   static std::string get_cdu_leg_spdcstr(
-      test::list_node_ref_t<test::leg_list_data_t>& src);
+      fms_core::list_node_ref_t<fms_core::leg_list_data_t>& src);
 
   static std::string get_cdu_leg_nm(
-      test::list_node_ref_t<test::leg_list_data_t>& src);
+      fms_core::list_node_ref_t<fms_core::leg_list_data_t>& src);
 
   static bool scratchpad_has_delete(std::string& scratchpad);
 
-  static test::spd_cstr_t get_spd_cstr(std::string& str);
+  static fms_core::spd_cstr_t get_spd_cstr(std::string& str);
 
-  static test::alt_cstr_t get_alt_cstr(std::string& str);
+  static fms_core::alt_cstr_t get_alt_cstr(std::string& str);
 
   void update_fpl_infos();
 
@@ -233,38 +237,38 @@ class CDU {
 
   std::string delete_to(size_t next_idx);
 
-  void get_seg_page(cdu_scr_data_t* in);
+  void get_seg_page(cdu_scr_data_t* in) const noexcept;
 
-  std::string get_sts(std::string& cr, std::string& act);
+  std::string get_sts(std::string& cr, std::string& act) const noexcept;
 
   void get_procs(cdu_scr_data_t* in, std::string curr_proc,
                  std::string curr_trans, std::string act_proc,
-                 std::string act_trans, bool rte2);
+                 std::string act_trans, bool rte2) const noexcept;
 
   void get_rwys(cdu_scr_data_t* in, std::string curr_rwy, std::string act_rwy,
                 bool rte2, std::string curr_appr = "",
                 std::string curr_via = "", std::string act_appr = "",
-                std::string act_via = "", bool get_appr = false);
+                std::string act_via = "", bool get_appr = false) const noexcept;
 
-  std::string get_small_heading();
+  std::string get_small_heading() const noexcept;
 
-  void set_procs(test::ProcType ptp, bool is_arr, bool rte2);
+  void set_procs(fms_core::ProcType ptp, bool is_arr, bool rte2);
 
-  void set_fpl_proc(int event, test::ProcType ptp, bool is_arr, bool rte2);
+  void set_fpl_proc(int event, fms_core::ProcType ptp, bool is_arr, bool rte2);
 
-  void get_rte_dep_arr(cdu_scr_data_t& out, bool rte2);
+  void get_rte_dep_arr(cdu_scr_data_t& out, bool rte2) const noexcept;
 
-  bool arr_has_rwys(std::string& cr_appr, bool rte2) const;
+  bool arr_has_rwys(std::string& cr_appr, bool rte2) const noexcept;
 
   // Per-page fetching of the number of subpages:
 
-  int get_n_sel_des_subpg();
+  int get_n_sel_des_subpg() const noexcept;
 
-  int get_n_rte_subpg();
+  int get_n_rte_subpg() const noexcept;
 
-  int get_n_dep_arr_subpg(bool rte2);
+  int get_n_dep_arr_subpg(bool rte2) noexcept;
 
-  int get_n_legs_subpg();
+  int get_n_legs_subpg() const noexcept;
 
   // Per-page event handling:
 
@@ -279,9 +283,9 @@ class CDU {
 
   std::string handle_arr(int event_key, bool rte2);
 
-  size_t get_leg_stt_idx();
+  size_t get_leg_stt_idx() const noexcept;
 
-  size_t get_leg_end_idx();
+  size_t get_leg_end_idx() const noexcept;
 
   // reset_leg_dto_sel resets selection when user exits legs page
 
@@ -313,47 +317,48 @@ class CDU {
   // Per-page content fetching. The CDU displays exactly what these functions
   // output:
 
-  cdu_scr_data_t get_sel_des_page();
+  cdu_scr_data_t get_sel_des_page() const noexcept;
 
-  cdu_scr_data_t get_rte_page();
+  cdu_scr_data_t get_rte_page() const noexcept;
 
-  cdu_scr_data_t get_dep_arr_page();
+  cdu_scr_data_t get_dep_arr_page() const noexcept;
 
   void dep_arr_set_bottom(cdu_scr_data_t& out);
 
-  cdu_scr_data_t get_dep_page(bool rte2);
+  cdu_scr_data_t get_dep_page(bool rte2) noexcept;
 
-  cdu_scr_data_t get_arr_page(bool rte2);
+  cdu_scr_data_t get_arr_page(bool rte2) noexcept;
 
-  std::string get_legs_btm();
+  std::string get_legs_btm() const noexcept;
 
-  cdu_scr_data_t get_legs_page();
+  cdu_scr_data_t get_legs_page() noexcept;
 };
 
 class CDUDisplay {
  public:
+  using event_type = int;
+
   CDUDisplay(geom::vect2_t pos, geom::vect2_t sz, cairo_font_face_t* ff,
              std::shared_ptr<cairo_utils::texture_manager_t> tm,
-             std::shared_ptr<CDU> cdu, byteutils::Bytemap* bm);
+             std::shared_ptr<CDU> cdu);
 
-  void on_click(geom::vect2_t pos);
+  void on_event(event_type event);
 
   void draw(cairo_t* cr);
 
  private:
+  mutable std::mutex main_mutex_;
+  std::queue<event_type> events_;
+
   geom::vect2_t screen_pos_;  // position of the CDU texture on the screen
   geom::vect2_t size_;
   geom::vect2_t display_pos_;  // position of the CDU display on the screen
   geom::vect2_t display_size_;
-  geom::vect2_t texture_size_;
-  geom::vect2_t texture_scale_;
 
   cairo_font_face_t* font_face;
 
   std::shared_ptr<cairo_utils::texture_manager_t> tex_mngr_;
   std::shared_ptr<CDU> cdu_ptr_;
-
-  byteutils::Bytemap* key_map_;
 
   std::string scratchpad_;
   size_t scratch_curr_;
@@ -362,11 +367,15 @@ class CDUDisplay {
 
   std::chrono::time_point<std::chrono::steady_clock> last_press_tp_;
 
+  void handle_event(event_type event) noexcept;
+
+  void process_events(std::size_t cnt_max) noexcept;
+
   void add_to_scratchpad(char c);
 
   void clear_scratchpad();
 
-  void update_scratchpad(int event);
+  void update_scratchpad(event_type event);
 
   static int get_cdu_letter_idx(char c);
 
@@ -383,8 +392,6 @@ class CDUDisplay {
                      double l_intv_px, std::string sts = "",
                      geom::vect2_t scale = {}, CDUColor clr = CDUColor::WHITE);
 
-  void draw_exec(cairo_t* cr);
-
   void draw_screen(cairo_t* cr);
 };
-}  // namespace StratosphereAvionics
+}  // namespace fms_displays

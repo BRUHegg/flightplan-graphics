@@ -27,7 +27,7 @@
 namespace fms_commands {
 
 struct command_res_t {
-  std::shared_ptr<test::FPLSys> fpl_sys;
+  std::shared_ptr<fms_core::FPLSys> fpl_sys;
   std::shared_ptr<fms_environment::EnvDataRefMap> env_map;
 };
 

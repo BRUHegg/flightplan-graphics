@@ -25,7 +25,7 @@
 #include <libnav/str_utils.hpp>
 #include <util/util.hpp>
 
-namespace StratosphereAvionics {
+namespace fms_displays {
 enum class PoiType { AIRPORT, WAYPOINT, VOR_ILS_DME, VHF_NOT_VORDME };
 
 // Texture names(for use with texture manager)
@@ -137,7 +137,7 @@ struct efis_selection_t {
 
 class NDData {
  public:
-  NDData(std::shared_ptr<test::FPLSys> fpl_sys);
+  NDData(std::shared_ptr<fms_core::FPLSys> fpl_sys);
 
   bool init();
 
@@ -164,9 +164,9 @@ class NDData {
 
   efis_selection_t get_efis_sts_sd(size_t sd_idx);
 
-  void set_mode(size_t sd_idx, test::NDMode md, bool set_ctr = false);
+  void set_mode(size_t sd_idx, fms_core::NDMode md, bool set_ctr = false);
 
-  std::pair<test::NDMode, bool> get_mode(size_t sd_idx) const;
+  std::pair<fms_core::NDMode, bool> get_mode(size_t sd_idx) const;
 
   std::vector<int> get_rte_draw_seq(size_t sd_idx);
 
@@ -178,11 +178,11 @@ class NDData {
 
   double get_hdg_trk() const;
 
-  test::hdg_info_t get_hdg_data();
+  fms_core::hdg_info_t get_hdg_data();
 
-  test::spd_info_t get_spd_data();
+  fms_core::spd_info_t get_spd_data();
 
-  test::act_leg_info_t get_act_leg_info();
+  fms_core::act_leg_info_t get_act_leg_info();
 
   bool has_dep_rwy(size_t idx);
 
@@ -190,7 +190,7 @@ class NDData {
 
   void switch_range(bool down, size_t sd_idx);
 
-  double get_range(size_t sd_idx);
+  double get_range(size_t sd_idx) const noexcept;
 
   // POI functions
 
@@ -215,10 +215,10 @@ class NDData {
   void destroy();
 
  private:
-  std::shared_mutex main_mutex_;
+  mutable std::shared_mutex main_mutex_;
 
-  std::vector<std::shared_ptr<test::FplnInt>> fpl_vec_;
-  std::shared_ptr<test::FPLSys> fpl_sys_ptr_;
+  std::vector<std::shared_ptr<fms_core::FplnInt>> fpl_vec_;
+  std::shared_ptr<fms_core::FPLSys> fpl_sys_ptr_;
 
   bool idx_proj_act_ = false;
   poi_data_t pois_projected_[2];
@@ -227,7 +227,7 @@ class NDData {
   bool trk_up_ = true;
 
   // Of size N_FPL_SYS_RTES
-  std::vector<test::nd_leg_data_t*> leg_data_;
+  std::vector<fms_core::nd_leg_data_t*> leg_data_;
   std::vector<size_t> leg_data_sz_;
 
   std::vector<double> fpl_id_last_;
@@ -242,39 +242,41 @@ class NDData {
 
   std::vector<int> act_leg_idx_sd_;
   // Stored 1 per fo, 1 per cap
-  std::vector<std::pair<test::NDMode, bool>> curr_modes_;
+  std::vector<std::pair<fms_core::NDMode, bool>> curr_modes_;
   std::vector<geom::vect2_t> ac_pos_projected_;
   std::vector<bool> ac_pos_ok_;
   std::vector<size_t> range_index_;
   std::vector<geo::point> map_center_;
   std::vector<efis_selection_t> efis_sel_;
 
-  test::hdg_info_t heading_data_;
+  fms_core::hdg_info_t heading_data_;
   geo::point ac_pos_last_;
 
-  static bool bound_check(double x1, double x2, double rng);
+  static bool bound_check(double x1, double x2, double rng) noexcept;
 
-  static nd_util_idx_t get_util_idx(size_t gn_idx);
+  static nd_util_idx_t get_util_idx(std::size_t gn_idx) noexcept;
 
-  double get_cr_rot() const;
+  double get_range_impl(std::size_t sd_idx) const noexcept;
 
-  std::pair<geo::point, double> get_proj_params(size_t sd_idx) const;
+  double get_cr_rot() const noexcept;
 
-  bool in_view(geom::vect2_t start, geom::vect2_t end, size_t sd_idx);
+  std::pair<geo::point, double> get_proj_params(std::size_t sd_idx) const noexcept;
+
+  bool in_view(geom::vect2_t start, geom::vect2_t end, std::size_t sd_idx) const noexcept;
 
   void update_rte_draw_seq();
 
-  void update_ctr(size_t sd_idx);
+  void update_ctr(std::size_t sd_idx);
 
-  bool project_ac_pos(size_t sd_idx);
+  bool project_ac_pos(std::size_t sd_idx);
 
-  void project_legs(size_t gn_idx);
+  void project_legs(std::size_t gn_idx);
 
-  void project_rwys(size_t gn_idx);
+  void project_rwys(std::size_t gn_idx);
 
-  void fetch_legs(size_t dt_idx);
+  void fetch_legs(std::size_t dt_idx);
 
-  void update_fpl(size_t dt_idx);
+  void update_fpl(std::size_t dt_idx);
 };
 
 class NDDisplay {
@@ -291,7 +293,7 @@ class NDDisplay {
   std::shared_ptr<cairo_utils::texture_manager_t> tex_mngr;
 
   bool is_trk_up;
-  test::NDMode cr_md;
+  fms_core::NDMode cr_md;
   bool is_ctr, has_tfc;
   efis_selection_t efis_sel;
 
@@ -300,7 +302,7 @@ class NDDisplay {
   geom::vect2_t scr_pos;
   geom::vect2_t size;
   geom::vect2_t map_ctr, scale_factor;
-  test::hdg_info_t hdg_data;
+  fms_core::hdg_info_t hdg_data;
   double rng, curr_rng;
 
   size_t side_idx;
@@ -354,4 +356,4 @@ class NDDisplay {
   void draw_labeled_point(cairo_t* cr, cairo_surface_t* img,
                           labeled_point_t& src_point, double img_scale);
 };
-}  // namespace StratosphereAvionics
+}  // namespace fms_displays

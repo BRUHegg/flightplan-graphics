@@ -16,18 +16,18 @@
 
 #pragma once
 
-#include <assert.h>
+#include <memory>
+#include <vector>
 
-#include <util/geom.hpp>
-#include <iostream>
 #include <libnav/awy_db.hpp>
+#include <libnav/cifp_parser.hpp>
 #include <libnav/common.hpp>
 #include <libnav/str_utils.hpp>
-#include <set>
+#include <util/geom.hpp>
 
 #include "flightplan.hpp"
 
-namespace test {
+namespace fms_core {
 enum ProcType { PROC_TYPE_SID = 0, PROC_TYPE_STAR = 1, PROC_TYPE_APPCH = 2 };
 
 struct dfms_arr_data_t {

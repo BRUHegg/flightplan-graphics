@@ -24,7 +24,7 @@
 
 #include "util/linked_list.hpp"
 
-namespace test {
+namespace fms_core {
 constexpr size_t N_FPL_LEG_CACHE_SZ = 200;
 constexpr size_t N_FPL_SEG_CACHE_SZ = 100;
 constexpr size_t N_FPL_REF_SZ = 9;

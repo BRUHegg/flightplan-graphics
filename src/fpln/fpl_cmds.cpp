@@ -133,7 +133,7 @@ void load_fpln(command_res_t cmd_resources, std::vector<std::string>& in) {
 
   size_t c_idx = get_cmd_fpln_idx(cmd_resources);
 
-  std::shared_ptr<test::FplnInt> curr_fpln =
+  std::shared_ptr<fms_core::FplnInt> curr_fpln =
       cmd_resources.fpl_sys->get_fpln_ptr(c_idx);
   std::string dep_nm = curr_fpln->get_dep_icao();
   std::string arr_nm = curr_fpln->get_arr_icao();
@@ -157,7 +157,7 @@ void save_fpln(command_res_t cmd_resources, std::vector<std::string>& in) {
 
   size_t c_idx = get_cmd_fpln_idx(cmd_resources);
 
-  std::shared_ptr<test::FplnInt> curr_fpln =
+  std::shared_ptr<fms_core::FplnInt> curr_fpln =
       cmd_resources.fpl_sys->get_fpln_ptr(c_idx);
   std::string dep_nm = curr_fpln->get_dep_icao();
   std::string arr_nm = curr_fpln->get_arr_icao();
@@ -196,7 +196,7 @@ void fplinfo(command_res_t cmd_resources, std::vector<std::string>& in) {
   }
 
   size_t c_idx = get_cmd_fpln_idx(cmd_resources);
-  std::shared_ptr<test::FplnInt> curr_fpln =
+  std::shared_ptr<fms_core::FplnInt> curr_fpln =
       cmd_resources.fpl_sys->get_fpln_ptr(c_idx);
 
   std::cout << "Departure: " << curr_fpln->get_dep_icao() << "\n";
@@ -212,7 +212,7 @@ void set_fpl_dep(command_res_t cmd_resources, std::vector<std::string>& in) {
   }
 
   size_t c_idx = get_cmd_fpln_idx(cmd_resources);
-  std::shared_ptr<test::FplnInt> curr_fpln =
+  std::shared_ptr<fms_core::FplnInt> curr_fpln =
       cmd_resources.fpl_sys->get_fpln_ptr(c_idx);
 
   libnav::DbErr err = curr_fpln->set_dep(in[0]);
@@ -230,7 +230,7 @@ void set_fpl_arr(command_res_t cmd_resources, std::vector<std::string>& in) {
   }
 
   size_t c_idx = get_cmd_fpln_idx(cmd_resources);
-  std::shared_ptr<test::FplnInt> curr_fpl =
+  std::shared_ptr<fms_core::FplnInt> curr_fpl =
       cmd_resources.fpl_sys->get_fpln_ptr(c_idx);
 
   libnav::DbErr err = curr_fpl->set_arr(in[0]);
@@ -248,7 +248,7 @@ void set_dep_rwy(command_res_t cmd_resources, std::vector<std::string>& in) {
   }
 
   size_t c_idx = get_cmd_fpln_idx(cmd_resources);
-  std::shared_ptr<test::FplnInt> curr_fpl =
+  std::shared_ptr<fms_core::FplnInt> curr_fpl =
       cmd_resources.fpl_sys->get_fpln_ptr(c_idx);
 
   bool rwy_set = curr_fpl->set_dep_rwy(in[0]);
@@ -265,7 +265,7 @@ void set_arr_rwy(command_res_t cmd_resources, std::vector<std::string>& in) {
   }
 
   size_t c_idx = get_cmd_fpln_idx(cmd_resources);
-  std::shared_ptr<test::FplnInt> curr_fpl =
+  std::shared_ptr<fms_core::FplnInt> curr_fpl =
       cmd_resources.fpl_sys->get_fpln_ptr(c_idx);
 
   bool rwy_set = curr_fpl->set_arr_rwy(in[0]);
@@ -282,7 +282,7 @@ void get_dep_rwys(command_res_t cmd_resources, std::vector<std::string>& in) {
   }
 
   size_t c_idx = get_cmd_fpln_idx(cmd_resources);
-  std::shared_ptr<test::FplnInt> curr_fpl =
+  std::shared_ptr<fms_core::FplnInt> curr_fpl =
       cmd_resources.fpl_sys->get_fpln_ptr(c_idx);
 
   std::vector<std::string> rwys =
@@ -299,7 +299,7 @@ void get_arr_rwys(command_res_t cmd_resources, std::vector<std::string>& in) {
   }
 
   size_t c_idx = get_cmd_fpln_idx(cmd_resources);
-  std::shared_ptr<test::FplnInt> curr_fpl =
+  std::shared_ptr<fms_core::FplnInt> curr_fpl =
       cmd_resources.fpl_sys->get_fpln_ptr(c_idx);
 
   std::vector<std::string> rwys = curr_fpl->get_arr_rwys();
@@ -323,7 +323,7 @@ void get_proc(command_res_t cmd_resources, std::vector<std::string>& in) {
   }
 
   size_t c_idx = get_cmd_fpln_idx(cmd_resources);
-  std::shared_ptr<test::FplnInt> curr_fpl =
+  std::shared_ptr<fms_core::FplnInt> curr_fpl =
       cmd_resources.fpl_sys->get_fpln_ptr(c_idx);
 
   bool is_arr = in[1] != "DEP";
@@ -333,10 +333,10 @@ void get_proc(command_res_t cmd_resources, std::vector<std::string>& in) {
       (in[2] == "TRANS" || in[2] == "PROC")) {
     std::vector<std::string> procs;
     if (!is_trans) {
-      procs = curr_fpl->get_arpt_proc(test::ProcType(tmp), is_arr,
+      procs = curr_fpl->get_arpt_proc(fms_core::ProcType(tmp), is_arr,
                                       glob_rwy_filter, glob_proc_filter);
     } else {
-      procs = curr_fpl->get_arpt_proc_trans(test::ProcType(tmp), false, is_arr);
+      procs = curr_fpl->get_arpt_proc_trans(fms_core::ProcType(tmp), false, is_arr);
     }
 
     for (auto i : procs) {
@@ -353,7 +353,7 @@ void set_proc(command_res_t cmd_resources, std::vector<std::string>& in) {
   }
 
   size_t c_idx = get_cmd_fpln_idx(cmd_resources);
-  std::shared_ptr<test::FplnInt> curr_fpl =
+  std::shared_ptr<fms_core::FplnInt> curr_fpl =
       cmd_resources.fpl_sys->get_fpln_ptr(c_idx);
 
   int tmp = strutils::stoi_with_strip(in[0]);
@@ -367,9 +367,9 @@ void set_proc(command_res_t cmd_resources, std::vector<std::string>& in) {
   bool is_trans = in[3] != "PROC";
   bool ret = false;
   if (is_trans) {
-    ret = curr_fpl->set_arpt_proc_trans(test::ProcType(tmp), in[1], is_arr);
+    ret = curr_fpl->set_arpt_proc_trans(fms_core::ProcType(tmp), in[1], is_arr);
   } else {
-    ret = curr_fpl->set_arpt_proc(test::ProcType(tmp), in[1], is_arr);
+    ret = curr_fpl->set_arpt_proc(fms_core::ProcType(tmp), in[1], is_arr);
   }
 
   if (!ret) {
@@ -435,15 +435,15 @@ void add_via(command_res_t cmd_resources, std::vector<std::string>& in) {
   }
 
   size_t c_idx = get_cmd_fpln_idx(cmd_resources);
-  test::fpln_info_t f_inf = cmd_resources.fpl_sys->get_fpl_info(c_idx);
-  std::shared_ptr<test::FplnInt> curr_fpl =
+  fms_core::fpln_info_t f_inf = cmd_resources.fpl_sys->get_fpl_info(c_idx);
+  std::shared_ptr<fms_core::FplnInt> curr_fpl =
       cmd_resources.fpl_sys->get_fpln_ptr(c_idx);
 
   size_t idx = size_t(strutils::stoi_with_strip(in[0]));
   size_t n_segs;
   auto segs = cmd_resources.fpl_sys->get_seg_list(&n_segs, c_idx);
 
-  test::seg_list_node_t* s_ptr = nullptr;
+  fms_core::seg_list_node_t* s_ptr = nullptr;
   if (idx < n_segs) {
     s_ptr = segs[idx].ptr;
   }
@@ -462,15 +462,15 @@ void delete_via(command_res_t cmd_resources, std::vector<std::string>& in) {
   }
 
   size_t c_idx = get_cmd_fpln_idx(cmd_resources);
-  test::fpln_info_t f_inf = cmd_resources.fpl_sys->get_fpl_info(c_idx);
-  std::shared_ptr<test::FplnInt> curr_fpl =
+  fms_core::fpln_info_t f_inf = cmd_resources.fpl_sys->get_fpl_info(c_idx);
+  std::shared_ptr<fms_core::FplnInt> curr_fpl =
       cmd_resources.fpl_sys->get_fpln_ptr(c_idx);
 
   size_t idx = size_t(strutils::stoi_with_strip(in[0]));
   size_t n_segs;
   auto segs = cmd_resources.fpl_sys->get_seg_list(&n_segs, c_idx);
 
-  test::seg_list_node_t* s_ptr = nullptr;
+  fms_core::seg_list_node_t* s_ptr = nullptr;
   if (idx < n_segs) {
     s_ptr = segs[idx].ptr;
   }
@@ -490,8 +490,8 @@ void add_to(command_res_t cmd_resources, std::vector<std::string>& in) {
   }
 
   size_t c_idx = get_cmd_fpln_idx(cmd_resources);
-  test::fpln_info_t f_inf = cmd_resources.fpl_sys->get_fpl_info(c_idx);
-  std::shared_ptr<test::FplnInt> curr_fpl =
+  fms_core::fpln_info_t f_inf = cmd_resources.fpl_sys->get_fpl_info(c_idx);
+  std::shared_ptr<fms_core::FplnInt> curr_fpl =
       cmd_resources.fpl_sys->get_fpln_ptr(c_idx);
 
   std::vector<libnav::waypoint_entry_t> wpt_entr;
@@ -510,7 +510,7 @@ void add_to(command_res_t cmd_resources, std::vector<std::string>& in) {
   size_t n_segs;
   auto segs = cmd_resources.fpl_sys->get_seg_list(&n_segs, c_idx);
 
-  test::seg_list_node_t* s_ptr = nullptr;
+  fms_core::seg_list_node_t* s_ptr = nullptr;
   if (idx < n_segs) {
     s_ptr = segs[idx].ptr;
   }
@@ -531,15 +531,15 @@ inline void delete_to(command_res_t cmd_resources,
   }
 
   size_t c_idx = get_cmd_fpln_idx(cmd_resources);
-  test::fpln_info_t f_inf = cmd_resources.fpl_sys->get_fpl_info(c_idx);
-  std::shared_ptr<test::FplnInt> curr_fpl =
+  fms_core::fpln_info_t f_inf = cmd_resources.fpl_sys->get_fpl_info(c_idx);
+  std::shared_ptr<fms_core::FplnInt> curr_fpl =
       cmd_resources.fpl_sys->get_fpln_ptr(c_idx);
 
   size_t idx = size_t(strutils::stoi_with_strip(in[0]));
   size_t n_segs;
   auto segs = cmd_resources.fpl_sys->get_seg_list(&n_segs, c_idx);
 
-  test::seg_list_node_t* s_ptr = nullptr;
+  fms_core::seg_list_node_t* s_ptr = nullptr;
   if (idx < segs.size()) {
     s_ptr = segs[idx].ptr;
   }
@@ -560,8 +560,8 @@ inline void legs_set(command_res_t cmd_resources,
   }
 
   size_t c_idx = get_cmd_fpln_idx(cmd_resources);
-  test::fpln_info_t f_inf = cmd_resources.fpl_sys->get_fpl_info(c_idx);
-  std::shared_ptr<test::FplnInt> curr_fpl =
+  fms_core::fpln_info_t f_inf = cmd_resources.fpl_sys->get_fpl_info(c_idx);
+  std::shared_ptr<fms_core::FplnInt> curr_fpl =
       cmd_resources.fpl_sys->get_fpln_ptr(c_idx);
 
   if (in[2] == "R") return;
@@ -601,7 +601,7 @@ inline void legs_set(command_res_t cmd_resources,
 
       curr_fpl->add_direct({in[3], tgt}, {legs[idx].ptr, f_inf.leg_list_id});
     } else if (idx < n_legs - 1) {
-      test::leg_list_node_t* leg_ptr = legs[idx].ptr;
+      fms_core::leg_list_node_t* leg_ptr = legs[idx].ptr;
       if (!leg_ptr->data.is_discon) {
         sel_leg.first = idx;
         sel_leg.second = f_inf.leg_list_id;
@@ -634,9 +634,9 @@ void delete_leg(command_res_t cmd_resources, std::vector<std::string>& in) {
   }
 
   size_t c_idx = get_cmd_fpln_idx(cmd_resources);
-  std::shared_ptr<test::FplnInt> curr_fpl =
+  std::shared_ptr<fms_core::FplnInt> curr_fpl =
       cmd_resources.fpl_sys->get_fpln_ptr(c_idx);
-  test::fpln_info_t f_inf = cmd_resources.fpl_sys->get_fpl_info(c_idx);
+  fms_core::fpln_info_t f_inf = cmd_resources.fpl_sys->get_fpl_info(c_idx);
 
   size_t idx = size_t(strutils::stoi_with_strip(in[0])) + 1;
   size_t n_legs;
@@ -667,7 +667,7 @@ void print_seg(command_res_t cmd_resources, std::vector<std::string>& in) {
 
   for (size_t i = 0; i < n_segs; i++) {
     auto curr_sg = segs[i];
-    test::leg_list_node_t* end_leg = curr_sg.data.end;
+    fms_core::leg_list_node_t* end_leg = curr_sg.data.end;
     std::string end_nm = "";
     if (end_leg != nullptr) {
       end_nm = end_leg->data.leg.main_fix.id;
@@ -684,7 +684,7 @@ void print_refs(command_res_t cmd_resources, std::vector<std::string>& in) {
   }
 
   size_t c_idx = get_cmd_fpln_idx(cmd_resources);
-  std::shared_ptr<test::FplnInt> curr_fpl =
+  std::shared_ptr<fms_core::FplnInt> curr_fpl =
       cmd_resources.fpl_sys->get_fpln_ptr(c_idx);
   curr_fpl->print_refs();
 }

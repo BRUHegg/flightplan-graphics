@@ -1,5 +1,11 @@
 #include "cdu.hpp"
 
+#include <cstddef>
+#include <fpln/flightpln_int.hpp>
+#include <libnav/cifp_parser.hpp>
+#include <string>
+#include <util/geom.hpp>
+
 namespace {
 
 constexpr int N_CDU_DATA_LINES = 6;
@@ -7,19 +13,20 @@ constexpr int N_CDU_DATA_COLS = 24;
 constexpr int N_DEP_ARR_ROW_DSP = 5;
 
 // CDU keys:
-constexpr int CDU_KEY_LSK_TOP = 1;
-constexpr int CDU_KEY_RSK_TOP = 7;
-constexpr int CDU_KEY_INIT_REF = 13;
-constexpr int CDU_KEY_A = 27;
-constexpr int CDU_KEY_SP = 53;
-constexpr int CDU_KEY_DELETE = 54;
-constexpr int CDU_KEY_SLASH = 55;
-constexpr int CDU_KEY_CLR = 56;
-constexpr int CDU_KEY_1 = 57;
-constexpr int CDU_KEY_DOT = 66;
-constexpr int CDU_KEY_0 = 67;
-constexpr int CDU_KEY_PM = 68;  // +/- key
-constexpr int CDU_KEY_EXEC = 69;
+using cdu_event_type = typename fms_displays::CDUDisplay::event_type;
+constexpr cdu_event_type CDU_KEY_LSK_TOP = 1;
+constexpr cdu_event_type CDU_KEY_RSK_TOP = 7;
+constexpr cdu_event_type CDU_KEY_INIT_REF = 13;
+constexpr cdu_event_type CDU_KEY_A = 27;
+constexpr cdu_event_type CDU_KEY_SP = 53;
+constexpr cdu_event_type CDU_KEY_DELETE = 54;
+constexpr cdu_event_type CDU_KEY_SLASH = 55;
+constexpr cdu_event_type CDU_KEY_CLR = 56;
+constexpr cdu_event_type CDU_KEY_1 = 57;
+constexpr cdu_event_type CDU_KEY_DOT = 66;
+constexpr cdu_event_type CDU_KEY_0 = 67;
+constexpr cdu_event_type CDU_KEY_PM = 68;  // +/- key
+constexpr cdu_event_type CDU_KEY_EXEC = 69;
 // LEGS:
 constexpr int SPDCSTR_MX_KT = 340;
 constexpr int SPDCSTR_MN_KT = 100;
@@ -28,21 +35,24 @@ constexpr int ALTCSTR_MN_FT = 100;
 
 constexpr char DELETE_SYMBOL = 'd';
 
-constexpr size_t N_CDU_ITM_PP = 5;  // How many items can be drawn on 1 page
-constexpr size_t N_CDU_RTES = 2;
+constexpr std::size_t N_CDU_ITM_PP =
+    5;  // How many items can be drawn on 1 page
+constexpr std::size_t N_CDU_RTES = 2;
 
-constexpr size_t N_FLT_NBR_CHR_MAX =
+constexpr std::size_t N_FLT_NBR_CHR_MAX =
     10;  // Maximum number of characters for flight number
 
-constexpr size_t N_LEG_PROP_ROWS = 14;
-constexpr size_t N_LEG_CRS_ROWS = 5;
-constexpr size_t N_LEG_CSTR_ROWS = 11;
-constexpr size_t N_LEG_VCSTR_ROWS = 6;
+constexpr std::size_t N_LEG_PROP_ROWS = 14;
+constexpr std::size_t N_LEG_CRS_ROWS = 5;
+constexpr std::size_t N_LEG_CSTR_ROWS = 11;
+constexpr std::size_t N_LEG_VCSTR_ROWS = 6;
 
-constexpr size_t N_LEG_SPDCSTR_MX_LN = 4;
-constexpr size_t N_LEG_SPDCSTR_MN_LN = 3;
-constexpr size_t N_LEG_ALTCSTR_MX_LN = N_LEG_VCSTR_ROWS;
-constexpr size_t N_LEG_ALTCSTR_MN_LN = 2;
+constexpr std::size_t N_LEG_SPDCSTR_MX_LN = 4;
+constexpr std::size_t N_LEG_SPDCSTR_MN_LN = 3;
+constexpr std::size_t N_LEG_ALTCSTR_MX_LN = N_LEG_VCSTR_ROWS;
+constexpr std::size_t N_LEG_ALTCSTR_MN_LN = 2;
+
+constexpr std::size_t CNT_CDU_EVENTS_PER_FRAME = 1;
 
 constexpr double CDU_RES_COEFF = 1.0 / 900.0;
 constexpr double CDU_V_OFFS_FIRST_SM = 0.082;
@@ -73,19 +83,10 @@ constexpr char LEGS_CSTR_SEP = '/';
 const std::string CDU_ALL_S_WHITE = std::string(N_CDU_DATA_COLS, CDU_S_WHITE);
 const std::string CDU_ALL_B_WHITE = std::string(N_CDU_DATA_COLS, CDU_B_WHITE);
 
-// Time
-constexpr double CDU_PRS_INTV_SEC =
-    0.001;  // Threshold to skip gtk's double-clicks
-
 constexpr geom::vect2_t DISPLAY_OFFS = {0.14, 0.068};
 constexpr geom::vect2_t DISPLAY_SZ = {0.9, 0.378};
 constexpr geom::vect2_t CDU_SMALL_TEXT_SZ = {0.7, 0.7};
 constexpr geom::vect2_t CDU_BIG_TEXT_SZ = {0.84, 0.87};
-
-constexpr geom::vect2_t EXEC_LT_POS = {0.793, 0.582 * 0.964};
-constexpr geom::vect2_t EXEC_LT_SZ = {0.08 * 1.2 * 0.75,
-                                      0.7 * 0.08 * 1.08 * 0.37 * 0.5};
-constexpr geom::vect3_t EXEC_LT_CLR = {0.955, 0.906, 0.269};
 
 const std::string INVALID_ENTRY_MSG = "INVALID ENTRY";
 const std::string NOT_IN_DB_MSG = "NOT IN DATA BASE";
@@ -142,7 +143,7 @@ const std::string RTE_COPY = "RTE COPY";
 const std::string COMPLETE = "COMPLETE";
 }  // namespace
 
-namespace StratosphereAvionics {
+namespace fms_displays {
 // cdu_scr_data_t definitions:
 
 cdu_scr_data_t::cdu_scr_data_t() {
@@ -153,16 +154,16 @@ cdu_scr_data_t::cdu_scr_data_t() {
 // CDU definitions:
 // Public member functions:
 
-CDU::CDU(std::shared_ptr<test::FPLSys> fs, size_t sd_idx) {
+CDU::CDU(std::shared_ptr<fms_core::FPLSys> fs, size_t sd_idx) {
   act_sd_idx_ = sd_idx;
 
   fpl_sys_ = fs;
-  sel_fpl_idx_ = test::RTE1_IDX;
-  act_fpl_idx_ = test::N_FPL_SYS_RTES;
+  sel_fpl_idx_ = fms_core::RTE1_IDX;
+  act_fpl_idx_ = fms_core::N_FPL_SYS_RTES;
   fpln_ = fs->get_fpln_ptr(sel_fpl_idx_);
-  m_rte1_ptr_ = fs->get_fpln_ptr(test::RTE1_IDX);
-  m_rte2_ptr_ = fs->get_fpln_ptr(test::RTE2_IDX);
-  m_act_ptr_ = fs->get_fpln_ptr(test::ACT_RTE_IDX);
+  m_rte1_ptr_ = fs->get_fpln_ptr(fms_core::RTE1_IDX);
+  m_rte2_ptr_ = fs->get_fpln_ptr(fms_core::RTE2_IDX);
+  m_act_ptr_ = fs->get_fpln_ptr(fms_core::ACT_RTE_IDX);
 
   dep_arr_rwy_filter_ = std::vector<bool>(N_CDU_RTES, false);
   dep_arr_rwy_filter_ = std::vector<bool>(N_CDU_RTES, false);
@@ -175,13 +176,13 @@ CDU::CDU(std::shared_ptr<test::FPLSys> fs, size_t sd_idx) {
   approaches_ = std::vector<std::vector<std::string>>(N_CDU_RTES);
   rwys_ = std::vector<std::vector<std::string>>(N_CDU_RTES);
   vias_ = std::vector<std::vector<std::string>>(N_CDU_RTES);
-  fpl_infos_ = std::vector<test::fpln_info_t>(test::N_FPL_SYS_RTES);
+  fpl_infos_ = std::vector<fms_core::fpln_info_t>(fms_core::N_FPL_SYS_RTES);
   leg_sel_ = std::vector<std::pair<size_t, double>>(N_CDU_RTES, {0LL, -1.0});
   pln_ctr_idx_ = std::vector<size_t>(N_CDU_RTES, 0);
   pln_ctr_pos_ = std::vector<geo::point>(N_CDU_RTES, {0, 0});
 }
 
-void CDU::update() {
+void CDU::update() noexcept {
   seg_list_ = fpl_sys_->get_seg_list(&n_seg_list_sz_, sel_fpl_idx_);
   leg_list_ = fpl_sys_->get_leg_list(&n_leg_list_sz_, sel_fpl_idx_);
   fpln_ = fpl_sys_->get_fpln_ptr(sel_fpl_idx_);
@@ -191,6 +192,7 @@ void CDU::update() {
     n_subpg_ = get_n_sel_des_subpg();
   } else {
     if (curr_page_ == CDUPage::RTE) {
+      rte_copy_ = fpl_sys_->act_can_copy();
       n_subpg_ = get_n_rte_subpg();
     } else if (curr_page_ == CDUPage::DEP_ARR_INTRO ||
                curr_page_ == CDUPage::DEP1 || curr_page_ == CDUPage::ARR1 ||
@@ -210,14 +212,14 @@ void CDU::update() {
   fpl_sys_->set_cdu_sel_fpl_idx(sel_fpl_idx_, act_sd_idx_);
 }
 
-bool CDU::get_exec_lt() {
+bool CDU::get_exec_lt() const noexcept {
   bool e_st = fpl_sys_->get_exec();
   if (act_fpl_idx_ == sel_fpl_idx_) return e_st;
   return false;
 }
 
 std::string CDU::on_event(int event_key, std::string scratchpad,
-                          std::string* s_out) {
+                          std::string* s_out) noexcept {
   if (curr_page_ != CDUPage::LEGS) {
     reset_leg_all_sel();
   }
@@ -271,7 +273,7 @@ std::string CDU::on_event(int event_key, std::string scratchpad,
   return msg;
 }
 
-cdu_scr_data_t CDU::get_screen_data() {
+cdu_scr_data_t CDU::get_screen_data() noexcept {
   if (sel_des_) return get_sel_des_page();
 
   if (curr_page_ == CDUPage::RTE) return get_rte_page();
@@ -312,7 +314,7 @@ void CDU::fill_char_state_buf(cdu_scr_data_t& src) {
 }
 
 std::string CDU::get_cdu_leg_prop(
-    test::list_node_ref_t<test::leg_list_data_t>& src) {
+    fms_core::list_node_ref_t<fms_core::leg_list_data_t>& src) {
   if (src.data.is_discon) {
     return DISCO_THEN;
   }
@@ -343,8 +345,9 @@ std::string CDU::get_cdu_leg_prop(
   return out;
 }
 
-std::string CDU::get_leg_alt(test::list_node_ref_t<test::leg_list_data_t>& src,
-                             bool alt2, bool fl) {
+std::string CDU::get_leg_alt(
+    fms_core::list_node_ref_t<fms_core::leg_list_data_t>& src, bool alt2,
+    bool fl) {
   int tgt_alt = src.data.leg.alt1_ft;
   if (alt2) tgt_alt = src.data.leg.alt2_ft;
   int tr_alt = src.data.leg.trans_alt;
@@ -358,7 +361,7 @@ std::string CDU::get_leg_alt(test::list_node_ref_t<test::leg_list_data_t>& src,
 }
 
 std::string CDU::get_cdu_leg_vcstr(
-    test::list_node_ref_t<test::leg_list_data_t>& src) {
+    fms_core::list_node_ref_t<fms_core::leg_list_data_t>& src) {
   if (src.data.leg.alt1_ft == 0 && src.data.leg.alt2_ft == 0) {
     return LEG_NO_ALT;
   }
@@ -392,7 +395,7 @@ std::string CDU::get_cdu_leg_vcstr(
 }
 
 std::string CDU::get_cdu_leg_spdcstr(
-    test::list_node_ref_t<test::leg_list_data_t>& src) {
+    fms_core::list_node_ref_t<fms_core::leg_list_data_t>& src) {
   if (src.data.leg.spd_lim_kias == 0) return LEG_NO_SPD;
 
   std::string spd =
@@ -407,7 +410,7 @@ std::string CDU::get_cdu_leg_spdcstr(
 }
 
 std::string CDU::get_cdu_leg_nm(
-    test::list_node_ref_t<test::leg_list_data_t>& src) {
+    fms_core::list_node_ref_t<fms_core::leg_list_data_t>& src) {
   if (src.data.is_discon) {
     return DISCO_LEG_NM;
   }
@@ -426,8 +429,8 @@ bool CDU::scratchpad_has_delete(std::string& scratchpad) {
   return 0;
 }
 
-test::spd_cstr_t CDU::get_spd_cstr(std::string& str) {
-  test::spd_cstr_t out = {-1, libnav::SpeedMode::AT};
+fms_core::spd_cstr_t CDU::get_spd_cstr(std::string& str) {
+  fms_core::spd_cstr_t out = {-1, libnav::SpeedMode::AT};
   if (str.size() > N_LEG_SPDCSTR_MX_LN || str.size() < N_LEG_SPDCSTR_MN_LN)
     return out;
   if (str.size() == N_LEG_SPDCSTR_MX_LN) {
@@ -451,8 +454,8 @@ test::spd_cstr_t CDU::get_spd_cstr(std::string& str) {
   return out;
 }
 
-test::alt_cstr_t CDU::get_alt_cstr(std::string& str) {
-  test::alt_cstr_t out = {-1, libnav::AltMode::AT};
+fms_core::alt_cstr_t CDU::get_alt_cstr(std::string& str) {
+  fms_core::alt_cstr_t out = {-1, libnav::AltMode::AT};
   if (str.size() > N_LEG_ALTCSTR_MX_LN || str.size() < N_LEG_ALTCSTR_MN_LN)
     return out;
 
@@ -626,10 +629,10 @@ std::string CDU::save_rte() {
 }
 
 std::string CDU::add_via(size_t next_idx, std::string name) {
-  test::fpln_info_t f_inf = fpl_sys_->get_fpl_info(sel_fpl_idx_);
+  fms_core::fpln_info_t f_inf = fpl_sys_->get_fpl_info(sel_fpl_idx_);
   double id = f_inf.seg_list_id;
   if (name.size() > 7) return INVALID_ENTRY_MSG;
-  test::seg_list_node_t* s_ptr = nullptr;
+  fms_core::seg_list_node_t* s_ptr = nullptr;
   if (next_idx < n_seg_list_sz_) {
     s_ptr = seg_list_[next_idx].ptr;
   }
@@ -641,9 +644,9 @@ std::string CDU::add_via(size_t next_idx, std::string name) {
 }
 
 std::string CDU::delete_via(size_t next_idx) {
-  test::fpln_info_t f_inf = fpl_infos_[sel_fpl_idx_];
+  fms_core::fpln_info_t f_inf = fpl_infos_[sel_fpl_idx_];
   double id = f_inf.seg_list_id;
-  test::seg_list_node_t* s_ptr = nullptr;
+  fms_core::seg_list_node_t* s_ptr = nullptr;
   if (next_idx < n_seg_list_sz_) {
     s_ptr = seg_list_[next_idx].ptr;
   }
@@ -654,7 +657,7 @@ std::string CDU::delete_via(size_t next_idx) {
 }
 
 std::string CDU::add_to(size_t next_idx, std::string name) {
-  test::fpln_info_t f_inf = fpl_infos_[sel_fpl_idx_];
+  fms_core::fpln_info_t f_inf = fpl_infos_[sel_fpl_idx_];
   double sg_id = f_inf.seg_list_id;
   double lg_id = f_inf.leg_list_id;
 
@@ -669,7 +672,7 @@ std::string CDU::add_to(size_t next_idx, std::string name) {
     sg_id = sel_des_seg_id_;  // Only need segment id here
   }
 
-  test::seg_list_node_t* s_ptr = nullptr;
+  fms_core::seg_list_node_t* s_ptr = nullptr;
   if (next_idx < n_seg_list_sz_) {
     s_ptr = seg_list_[next_idx].ptr;
   }
@@ -681,9 +684,9 @@ std::string CDU::add_to(size_t next_idx, std::string name) {
 }
 
 std::string CDU::delete_to(size_t next_idx) {
-  test::fpln_info_t f_inf = fpl_infos_[sel_fpl_idx_];
+  fms_core::fpln_info_t f_inf = fpl_infos_[sel_fpl_idx_];
   double id = f_inf.seg_list_id;
-  test::seg_list_node_t* s_ptr = nullptr;
+  fms_core::seg_list_node_t* s_ptr = nullptr;
   if (next_idx < n_seg_list_sz_) {
     s_ptr = seg_list_[next_idx].ptr;
   }
@@ -694,7 +697,7 @@ std::string CDU::delete_to(size_t next_idx) {
   return "";
 }
 
-void CDU::get_seg_page(cdu_scr_data_t* in) {
+void CDU::get_seg_page(cdu_scr_data_t* in) const noexcept {
   std::string via_to = " VIA" + std::string(N_CDU_DATA_COLS - 6, ' ') + "TO";
   in->data_lines.push_back(via_to);
 
@@ -703,14 +706,14 @@ void CDU::get_seg_page(cdu_scr_data_t* in) {
 
   for (size_t i = i_start; i < i_end; i++) {
     auto curr_sg = seg_list_[i];
-    test::leg_list_node_t* end_leg = curr_sg.data.end;
+    fms_core::leg_list_node_t* end_leg = curr_sg.data.end;
     std::string end_nm = "";
     std::string seg_nm = curr_sg.data.name;
     if (end_leg != nullptr) {
       end_nm = end_leg->data.leg.main_fix.id;
     }
 
-    if (seg_nm == test::DISCON_SEG_NAME) {
+    if (seg_nm == fms_core::DISCON_SEG_NAME) {
       seg_nm = std::string(7, '-');
     }
     if (end_nm == "") {
@@ -739,7 +742,7 @@ void CDU::get_seg_page(cdu_scr_data_t* in) {
   }
 }
 
-std::string CDU::get_sts(std::string& cr, std::string& act) {
+std::string CDU::get_sts(std::string& cr, std::string& act) const noexcept {
   std::string sts = "<" + SEL + ">";
   if (cr == act) sts = "<" + ACT + ">";
   return sts;
@@ -747,7 +750,7 @@ std::string CDU::get_sts(std::string& cr, std::string& act) {
 
 void CDU::get_procs(cdu_scr_data_t* in, std::string curr_proc,
                     std::string curr_trans, std::string act_proc,
-                    std::string act_trans, bool rte2) {
+                    std::string act_trans, bool rte2) const noexcept {
   size_t start_idx = size_t((curr_subpg_ - 1) * 5);
   size_t j = 1;
 
@@ -758,7 +761,8 @@ void CDU::get_procs(cdu_scr_data_t* in, std::string curr_proc,
     j += 2;
   }
 
-  for (size_t i = start_idx; i < start_idx + 6 && i < procedures_[rte2].size(); i++) {
+  for (size_t i = start_idx; i < start_idx + 6 && i < procedures_[rte2].size();
+       i++) {
     std::string curr = procedures_[rte2][i];
     if (curr == curr_proc) {
       curr = curr + std::string(6 - curr.size(), ' ') +
@@ -770,11 +774,12 @@ void CDU::get_procs(cdu_scr_data_t* in, std::string curr_proc,
   }
   if (transitions_[rte2].size() && procedures_[rte2].size() == 1) {
     size_t trans_start = size_t((curr_subpg_ - 1) * 4);
-    if (trans_start < transitions_[rte2].size()) in->data_lines[j - 1] = " TRANS";
+    if (trans_start < transitions_[rte2].size())
+      in->data_lines[j - 1] = " TRANS";
 
     if (curr_trans == "") curr_trans = libnav::NONE_TRANS;
-    for (size_t i = trans_start; i < trans_start + 4 && i < transitions_[rte2].size();
-         i++) {
+    for (size_t i = trans_start;
+         i < trans_start + 4 && i < transitions_[rte2].size(); i++) {
       std::string curr = transitions_[rte2][i];
       if (curr == curr_trans) {
         curr = curr + std::string(6 - curr.size(), ' ') +
@@ -793,7 +798,7 @@ void CDU::get_procs(cdu_scr_data_t* in, std::string curr_proc,
 void CDU::get_rwys(cdu_scr_data_t* in, std::string curr_rwy,
                    std::string act_rwy, bool rte2, std::string curr_appr,
                    std::string curr_via, std::string act_appr,
-                   std::string act_via, bool get_appr) {
+                   std::string act_via, bool get_appr) const noexcept {
   size_t start_idx = size_t((curr_subpg_ - 1) * 5);
   size_t j = 1;
 
@@ -870,7 +875,7 @@ void CDU::get_rwys(cdu_scr_data_t* in, std::string curr_rwy,
   }
 }
 
-std::string CDU::get_small_heading() {
+std::string CDU::get_small_heading() const noexcept {
   std::string curr_spg = std::to_string(curr_subpg_);
   std::string n_spg = std::to_string(n_subpg_);
   std::string out = curr_spg + "/" + n_spg + " ";
@@ -878,33 +883,34 @@ std::string CDU::get_small_heading() {
   return out;
 }
 
-void CDU::set_procs(test::ProcType ptp, bool is_arr, bool rte2) {
-  std::shared_ptr<test::FplnInt> c_fpl = m_rte1_ptr_;
+void CDU::set_procs(fms_core::ProcType ptp, bool is_arr, bool rte2) {
+  std::shared_ptr<fms_core::FplnInt> c_fpl = m_rte1_ptr_;
   if (rte2) {
     c_fpl = m_rte2_ptr_;
   }
 
-  procedures_[rte2] = c_fpl->get_arpt_proc(ptp, is_arr, dep_arr_rwy_filter_[rte2],
-                                     dep_arr_proc_filter_[rte2]);
+  procedures_[rte2] = c_fpl->get_arpt_proc(
+      ptp, is_arr, dep_arr_rwy_filter_[rte2], dep_arr_proc_filter_[rte2]);
   sort(procedures_[rte2].begin(), procedures_[rte2].end());
-  if (ptp == test::PROC_TYPE_STAR) {
-    approaches_[rte2] = c_fpl->get_arpt_proc(test::PROC_TYPE_APPCH, is_arr,
-                                       dep_arr_rwy_filter_[rte2],
-                                       dep_arr_proc_filter_[rte2]);
+  if (ptp == fms_core::PROC_TYPE_STAR) {
+    approaches_[rte2] = c_fpl->get_arpt_proc(fms_core::PROC_TYPE_APPCH, is_arr,
+                                             dep_arr_rwy_filter_[rte2],
+                                             dep_arr_proc_filter_[rte2]);
     sort(approaches_[rte2].begin(), approaches_[rte2].end());
   } else {
     approaches_[rte2] = {};
   }
   if (dep_arr_proc_filter_[rte2]) {
     if (!dep_arr_trans_filter_[rte2]) {
-      transitions_[rte2] = c_fpl->get_arpt_proc_trans(ptp, false, is_arr, false);
+      transitions_[rte2] =
+          c_fpl->get_arpt_proc_trans(ptp, false, is_arr, false);
       sort(transitions_[rte2].begin(), transitions_[rte2].end());
     } else {
       transitions_[rte2] = {c_fpl->get_curr_proc(ptp, true)};
     }
-    if (ptp == test::PROC_TYPE_STAR) {
-      vias_[rte2] = c_fpl->get_arpt_proc_trans(test::PROC_TYPE_APPCH, false,
-                                              is_arr, false);
+    if (ptp == fms_core::PROC_TYPE_STAR) {
+      vias_[rte2] = c_fpl->get_arpt_proc_trans(fms_core::PROC_TYPE_APPCH, false,
+                                               is_arr, false);
       sort(vias_[rte2].begin(), vias_[rte2].end());
     } else {
       vias_[rte2] = {};
@@ -916,15 +922,16 @@ void CDU::set_procs(test::ProcType ptp, bool is_arr, bool rte2) {
 
   if (!is_arr)
     rwys_[rte2] = c_fpl->get_dep_rwys(dep_arr_rwy_filter_[rte2],
-                                     dep_arr_proc_filter_[rte2]);
+                                      dep_arr_proc_filter_[rte2]);
   else
     rwys_[rte2] = c_fpl->get_arr_rwys(dep_arr_rwy_filter_[rte2],
-                                     dep_arr_proc_filter_[rte2]);
+                                      dep_arr_proc_filter_[rte2]);
   sort(rwys_[rte2].begin(), rwys_[rte2].end());
 }
 
-void CDU::set_fpl_proc(int event, test::ProcType ptp, bool is_arr, bool rte2) {
-  std::shared_ptr<test::FplnInt> c_fpl = m_rte1_ptr_;
+void CDU::set_fpl_proc(int event, fms_core::ProcType ptp, bool is_arr,
+                       bool rte2) {
+  std::shared_ptr<fms_core::FplnInt> c_fpl = m_rte1_ptr_;
   if (rte2) {
     c_fpl = m_rte2_ptr_;
   }
@@ -952,11 +959,11 @@ void CDU::set_fpl_proc(int event, test::ProcType ptp, bool is_arr, bool rte2) {
   }
 }
 
-void CDU::get_rte_dep_arr(cdu_scr_data_t& out, bool rte2) {
-  size_t v_idx = test::RTE1_IDX;
-  if (rte2) v_idx = test::RTE2_IDX;
+void CDU::get_rte_dep_arr(cdu_scr_data_t& out, bool rte2) const noexcept {
+  size_t v_idx = fms_core::RTE1_IDX;
+  if (rte2) v_idx = fms_core::RTE2_IDX;
 
-  std::shared_ptr<test::FplnInt> cr_fpln = fpl_sys_->get_fpln_ptr(v_idx);
+  std::shared_ptr<fms_core::FplnInt> cr_fpln = fpl_sys_->get_fpln_ptr(v_idx);
 
   std::string dep = cr_fpln->get_dep_icao();
   std::string arr = cr_fpln->get_arr_icao();
@@ -988,18 +995,16 @@ void CDU::get_rte_dep_arr(cdu_scr_data_t& out, bool rte2) {
   }
 }
 
-bool CDU::arr_has_rwys(std::string& cr_appr, bool rte2) const {
+bool CDU::arr_has_rwys(std::string& cr_appr, bool rte2) const noexcept {
   if (dep_arr_proc_filter_[rte2] && cr_appr != "") return false;
   return true;
 }
 
-int CDU::get_n_sel_des_subpg() {
+int CDU::get_n_sel_des_subpg() const noexcept {
   return int(sel_des_data_.size()) / 6 + bool(int(sel_des_data_.size()) % 6);
 }
 
-int CDU::get_n_rte_subpg() {
-  rte_copy_ = fpl_sys_->act_can_copy();
-
+int CDU::get_n_rte_subpg() const noexcept {
   std::string dep_rwy = fpln_->get_dep_rwy();
   if (dep_rwy != "") {
     size_t n_seg_act = n_seg_list_sz_ - 1;
@@ -1008,10 +1013,10 @@ int CDU::get_n_rte_subpg() {
   return 1;
 }
 
-int CDU::get_n_dep_arr_subpg(bool rte2) {
+int CDU::get_n_dep_arr_subpg(bool rte2) noexcept {
   CDUPage c_dep_pg = CDUPage::DEP1;
   CDUPage c_arr_pg = CDUPage::ARR1;
-  std::shared_ptr<test::FplnInt> c_fpl = m_rte1_ptr_;
+  std::shared_ptr<fms_core::FplnInt> c_fpl = m_rte1_ptr_;
   if (rte2) {
     c_dep_pg = CDUPage::DEP2;
     c_arr_pg = CDUPage::ARR2;
@@ -1025,23 +1030,24 @@ int CDU::get_n_dep_arr_subpg(bool rte2) {
   }
 
   if (curr_page_ == c_dep_pg) {
-    set_procs(test::PROC_TYPE_SID, false, rte2);
+    set_procs(fms_core::PROC_TYPE_SID, false, rte2);
     size_t max_cnt =
-        std::max(rwys_[rte2].size(), procedures_[rte2].size() + transitions_[rte2].size());
+        std::max(rwys_[rte2].size(),
+                 procedures_[rte2].size() + transitions_[rte2].size());
     return int(max_cnt) / N_DEP_ARR_ROW_DSP + bool(max_cnt % N_DEP_ARR_ROW_DSP);
   } else if (curr_page_ == c_arr_pg) {
-    set_procs(test::PROC_TYPE_STAR, true, rte2);
-    size_t max_cnt =
-        std::max(procedures_[rte2].size() + transitions_[rte2].size(),
-                 approaches_[rte2].size() + vias_[rte2].size() + rwys_[rte2].size());
+    set_procs(fms_core::PROC_TYPE_STAR, true, rte2);
+    size_t max_cnt = std::max(
+        procedures_[rte2].size() + transitions_[rte2].size(),
+        approaches_[rte2].size() + vias_[rte2].size() + rwys_[rte2].size());
     return int(max_cnt) / N_DEP_ARR_ROW_DSP + bool(max_cnt % N_DEP_ARR_ROW_DSP);
   }
 
   return 1;
 }
 
-int CDU::get_n_legs_subpg() {
-  size_t n_leg_act = n_leg_list_sz_ - 2;
+int CDU::get_n_legs_subpg() const noexcept {
+  std::size_t n_leg_act = n_leg_list_sz_ - 2;
   return (n_leg_act / N_CDU_ITM_PP) + bool(n_leg_act % N_CDU_ITM_PP);
 }
 
@@ -1074,10 +1080,10 @@ std::string CDU::handle_rte(int event_key, std::string scratchpad,
     if (exec_lt) {
       fpl_sys_->erase();
     } else {
-      if (sel_fpl_idx_ == test::RTE1_IDX)
-        sel_fpl_idx_ = test::RTE2_IDX;
+      if (sel_fpl_idx_ == fms_core::RTE1_IDX)
+        sel_fpl_idx_ = fms_core::RTE2_IDX;
       else
-        sel_fpl_idx_ = test::RTE1_IDX;
+        sel_fpl_idx_ = fms_core::RTE1_IDX;
     }
 
     return "";
@@ -1090,7 +1096,8 @@ std::string CDU::handle_rte(int event_key, std::string scratchpad,
     } else if (event_key == CDU_KEY_RSK_TOP + 1) {
       return set_flt_nbr(scratchpad);
     } else if (event_key == CDU_KEY_RSK_TOP + 3) {
-      if (rte_copy_ == test::RTECopySts::READY && sel_fpl_idx_ == act_fpl_idx_)
+      if (rte_copy_ == fms_core::RTECopySts::READY &&
+          sel_fpl_idx_ == act_fpl_idx_)
         fpl_sys_->copy_act();
     } else if (event_key == CDU_KEY_LSK_TOP + 1) {
       return set_dep_rwy(scratchpad);
@@ -1124,8 +1131,9 @@ std::string CDU::handle_rte(int event_key, std::string scratchpad,
 }
 
 std::string CDU::handle_dep_arr(int event_key) {
-  std::shared_ptr<test::FplnInt> rte1 = fpl_sys_->get_fpln_ptr(test::RTE1_IDX);
-  std::shared_ptr<test::FplnInt> rte2 = rte1;
+  std::shared_ptr<fms_core::FplnInt> rte1 =
+      fpl_sys_->get_fpln_ptr(fms_core::RTE1_IDX);
+  std::shared_ptr<fms_core::FplnInt> rte2 = rte1;
   std::string dep1 = rte1->get_dep_icao();
   std::string arr1 = rte1->get_arr_icao();
   std::string dep2 = rte2->get_dep_icao();
@@ -1160,9 +1168,9 @@ std::string CDU::handle_dep(int event_key, bool rte2) {
   } else if (event_key == CDU_KEY_RSK_TOP + 5) {
     set_page(CDUPage::RTE);
   } else if (event_key && event_key < CDU_KEY_LSK_TOP + 5) {
-    set_fpl_proc(event_key, test::PROC_TYPE_SID, false, rte2);
+    set_fpl_proc(event_key, fms_core::PROC_TYPE_SID, false, rte2);
   } else if (event_key >= CDU_KEY_RSK_TOP && event_key < CDU_KEY_RSK_TOP + 5) {
-    std::shared_ptr<test::FplnInt> c_fpl = m_rte1_ptr_;
+    std::shared_ptr<fms_core::FplnInt> c_fpl = m_rte1_ptr_;
     if (rte2) {
       c_fpl = m_rte2_ptr_;
     }
@@ -1189,26 +1197,26 @@ std::string CDU::handle_arr(int event_key, bool rte2) {
   } else if (event_key == CDU_KEY_RSK_TOP + 5) {
     set_page(CDUPage::RTE);
   } else if (event_key && event_key < CDU_KEY_LSK_TOP + 5) {
-    set_fpl_proc(event_key, test::PROC_TYPE_STAR, true, rte2);
+    set_fpl_proc(event_key, fms_core::PROC_TYPE_STAR, true, rte2);
   } else if (event_key >= CDU_KEY_RSK_TOP && event_key < CDU_KEY_RSK_TOP + 5) {
     int start_idx = (curr_subpg_ - 1) * 5;
     int curr_idx = start_idx + event_key - CDU_KEY_RSK_TOP;
 
-    std::shared_ptr<test::FplnInt> c_fpl = m_rte1_ptr_;
+    std::shared_ptr<fms_core::FplnInt> c_fpl = m_rte1_ptr_;
     if (rte2) {
       c_fpl = m_rte2_ptr_;
     }
 
     if (curr_idx < int(approaches_[rte2].size())) {
-      c_fpl->set_arpt_proc(test::PROC_TYPE_APPCH, approaches_[rte2][size_t(curr_idx)],
-                           true);
+      c_fpl->set_arpt_proc(fms_core::PROC_TYPE_APPCH,
+                           approaches_[rte2][size_t(curr_idx)], true);
       dep_arr_proc_filter_[rte2] = !dep_arr_proc_filter_[rte2];
     } else if (curr_idx >= int(approaches_[rte2].size())) {
       curr_idx -= int(approaches_[rte2].size());
-      std::string curr_appr = c_fpl->get_curr_proc(test::PROC_TYPE_APPCH);
+      std::string curr_appr = c_fpl->get_curr_proc(fms_core::PROC_TYPE_APPCH);
       bool h_rwys = arr_has_rwys(curr_appr, rte2);
       if (curr_idx < int(vias_[rte2].size())) {
-        c_fpl->set_arpt_proc_trans(test::PROC_TYPE_APPCH,
+        c_fpl->set_arpt_proc_trans(fms_core::PROC_TYPE_APPCH,
                                    vias_[rte2][size_t(curr_idx)], true);
         dep_arr_via_filter_[rte2] = !dep_arr_via_filter_[rte2];
       } else if (curr_idx < int(rwys_[rte2].size()) && h_rwys) {
@@ -1220,16 +1228,16 @@ std::string CDU::handle_arr(int event_key, bool rte2) {
   return "";
 }
 
-size_t CDU::get_leg_stt_idx() {
-  return 2 + N_CDU_ITM_PP * size_t(curr_subpg_ - 1);
+std::size_t CDU::get_leg_stt_idx() const noexcept {
+  return 2 + N_CDU_ITM_PP * std::size_t(curr_subpg_ - 1);
 }
 
-size_t CDU::get_leg_end_idx() {
-  size_t stt_idx = get_leg_stt_idx();
+std::size_t CDU::get_leg_end_idx() const noexcept {
+  std::size_t stt_idx = get_leg_stt_idx();
   return std::min(leg_list_.size() - 1, stt_idx + N_CDU_ITM_PP);
 }
 
-void CDU::reset_leg_dto_sel(size_t fp_idx) {
+void CDU::reset_leg_dto_sel(std::size_t fp_idx) {
   assert(fp_idx < N_CDU_RTES);
   leg_sel_[fp_idx].second = -1;
 }
@@ -1269,7 +1277,7 @@ bool CDU::handle_legs_dto(size_t usr_idx, std::string scratchpad,
 
       double cr_lg_id = leg_sel_[sd_idx].second;
       bool rv = fpln_->dir_from_to({leg_list_[i_fr].ptr, cr_lg_id},
-                                  {leg_list_[i_to].ptr, cr_lg_id});
+                                   {leg_list_[i_to].ptr, cr_lg_id});
       reset_leg_dto_sel(sd_idx);
       UNUSED(rv);
     }
@@ -1278,7 +1286,7 @@ bool CDU::handle_legs_dto(size_t usr_idx, std::string scratchpad,
 }
 
 std::string CDU::handle_legs_insert(size_t usr_idx, std::string scratchpad) {
-  test::fpln_info_t f_inf = fpl_infos_[sel_fpl_idx_];
+  fms_core::fpln_info_t f_inf = fpl_infos_[sel_fpl_idx_];
   double sg_id = f_inf.seg_list_id;
   double lg_id = f_inf.leg_list_id;
 
@@ -1299,7 +1307,7 @@ std::string CDU::handle_legs_insert(size_t usr_idx, std::string scratchpad) {
 }
 
 std::string CDU::handle_legs_delete(size_t usr_idx) {
-  test::fpln_info_t f_inf = fpl_infos_[sel_fpl_idx_];
+  fms_core::fpln_info_t f_inf = fpl_infos_[sel_fpl_idx_];
   double lg_id = f_inf.leg_list_id;
 
   bool retval = fpln_->delete_leg({leg_list_[usr_idx].ptr, lg_id});
@@ -1309,13 +1317,13 @@ std::string CDU::handle_legs_delete(size_t usr_idx) {
 
 std::string CDU::handle_legs_cstr_mod(size_t usr_idx, std::string& scratchpad) {
   bool scr_is_del = scratchpad_has_delete(scratchpad);
-  test::fpln_info_t f_inf = fpl_infos_[sel_fpl_idx_];
+  fms_core::fpln_info_t f_inf = fpl_infos_[sel_fpl_idx_];
   double lg_id = f_inf.leg_list_id;
   if (scr_is_del) {
     fpln_->set_spd_cstr({leg_list_[usr_idx].ptr, lg_id},
-                       {0, libnav::SpeedMode::AT});
+                        {0, libnav::SpeedMode::AT});
     fpln_->set_alt_cstr({leg_list_[usr_idx].ptr, lg_id},
-                       {0, libnav::AltMode::AT});
+                        {0, libnav::AltMode::AT});
     return "";
   }
 
@@ -1330,12 +1338,12 @@ std::string CDU::handle_legs_cstr_mod(size_t usr_idx, std::string& scratchpad) {
   }
 
   if (cst[0] != "") {
-    test::spd_cstr_t spc = get_spd_cstr(cst[0]);
+    fms_core::spd_cstr_t spc = get_spd_cstr(cst[0]);
     if (spc.magnitude == -1) return INVALID_ENTRY_MSG;
     fpln_->set_spd_cstr({leg_list_[usr_idx].ptr, lg_id}, spc);
   }
   if (cst[1] != "") {
-    test::alt_cstr_t alc = get_alt_cstr(cst[1]);
+    fms_core::alt_cstr_t alc = get_alt_cstr(cst[1]);
     if (alc.magnitude == -1) return INVALID_ENTRY_MSG;
     fpln_->set_alt_cstr({leg_list_[usr_idx].ptr, lg_id}, alc);
   }
@@ -1349,10 +1357,10 @@ std::string CDU::handle_legs(int event_key, std::string scratchpad,
     if (exec_lt) {
       fpl_sys_->erase();
     } else {
-      if (sel_fpl_idx_ == test::RTE1_IDX)
-        sel_fpl_idx_ = test::RTE2_IDX;
+      if (sel_fpl_idx_ == fms_core::RTE1_IDX)
+        sel_fpl_idx_ = fms_core::RTE2_IDX;
       else
-        sel_fpl_idx_ = test::RTE1_IDX;
+        sel_fpl_idx_ = fms_core::RTE1_IDX;
     }
   } else if (event_key == CDU_KEY_RSK_TOP + 5) {
     bool exec_lt = fpl_sys_->get_exec();
@@ -1396,7 +1404,7 @@ std::string CDU::handle_legs(int event_key, std::string scratchpad,
   return "";
 }
 
-cdu_scr_data_t CDU::get_sel_des_page() {
+cdu_scr_data_t CDU::get_sel_des_page() const noexcept {
   cdu_scr_data_t out = {};
   fill_char_state_buf(out);
 
@@ -1426,7 +1434,7 @@ cdu_scr_data_t CDU::get_sel_des_page() {
   return out;
 }
 
-cdu_scr_data_t CDU::get_rte_page() {
+cdu_scr_data_t CDU::get_rte_page() const noexcept {
   bool exec_lt = fpl_sys_->get_exec();
 
   cdu_scr_data_t out = {};
@@ -1446,7 +1454,7 @@ cdu_scr_data_t CDU::get_rte_page() {
   }
   std::string c_rte_top = "RTE 1";
   std::string c_rte_btm = "<RTE 2";
-  if (sel_fpl_idx_ == test::RTE2_IDX) {
+  if (sel_fpl_idx_ == fms_core::RTE2_IDX) {
     c_rte_top = "RTE 2";
     c_rte_btm = "<RTE 1";
   }
@@ -1504,11 +1512,12 @@ cdu_scr_data_t CDU::get_rte_page() {
     out.data_lines.push_back(
         "<REQUEST" + std::string(size_t(N_CDU_DATA_COLS) - 8 - 10, ' ') +
         co_rte_dsp);
-    if (rte_copy_ == test::RTECopySts::READY && sel_fpl_idx_ == act_fpl_idx_) {
+    if (rte_copy_ == fms_core::RTECopySts::READY &&
+        sel_fpl_idx_ == act_fpl_idx_) {
       out.data_lines.push_back("");
       size_t cp_pad = size_t(N_CDU_DATA_COLS) - RTE_COPY.size() - 1;
       out.data_lines.push_back(std::string(cp_pad, ' ') + RTE_COPY + ">");
-    } else if (rte_copy_ == test::RTECopySts::COMPLETE &&
+    } else if (rte_copy_ == fms_core::RTECopySts::COMPLETE &&
                sel_fpl_idx_ == act_fpl_idx_) {
       size_t cp_pad1 = size_t(N_CDU_DATA_COLS) - RTE_COPY.size();
       size_t cp_pad2 = size_t(N_CDU_DATA_COLS) - COMPLETE.size();
@@ -1547,7 +1556,7 @@ cdu_scr_data_t CDU::get_rte_page() {
   return out;
 }
 
-cdu_scr_data_t CDU::get_dep_arr_page() {
+cdu_scr_data_t CDU::get_dep_arr_page() const noexcept {
   cdu_scr_data_t out = {};
   fill_char_state_buf(out);
 
@@ -1579,8 +1588,8 @@ void CDU::dep_arr_set_bottom(cdu_scr_data_t& out) {
   }
 }
 
-cdu_scr_data_t CDU::get_dep_page(bool rte2) {
-  std::shared_ptr<test::FplnInt> c_fpl = m_rte1_ptr_;
+cdu_scr_data_t CDU::get_dep_page(bool rte2) noexcept {
+  std::shared_ptr<fms_core::FplnInt> c_fpl = m_rte1_ptr_;
   if (rte2) {
     c_fpl = m_rte2_ptr_;
   }
@@ -1602,10 +1611,11 @@ cdu_scr_data_t CDU::get_dep_page(bool rte2) {
   else
     out.data_lines[0] = DEP_COLS1;
 
-  std::string curr_sid = c_fpl->get_curr_proc(test::PROC_TYPE_SID);
-  std::string curr_trans = c_fpl->get_curr_proc(test::PROC_TYPE_SID, true);
-  std::string act_sid = m_act_ptr_->get_curr_proc(test::PROC_TYPE_SID);
-  std::string act_trans = m_act_ptr_->get_curr_proc(test::PROC_TYPE_SID, true);
+  std::string curr_sid = c_fpl->get_curr_proc(fms_core::PROC_TYPE_SID);
+  std::string curr_trans = c_fpl->get_curr_proc(fms_core::PROC_TYPE_SID, true);
+  std::string act_sid = m_act_ptr_->get_curr_proc(fms_core::PROC_TYPE_SID);
+  std::string act_trans =
+      m_act_ptr_->get_curr_proc(fms_core::PROC_TYPE_SID, true);
   get_procs(&out, curr_sid, curr_trans, act_sid, act_trans, rte2);
 
   std::string dep_rwy = c_fpl->get_dep_rwy();
@@ -1617,8 +1627,8 @@ cdu_scr_data_t CDU::get_dep_page(bool rte2) {
   return out;
 }
 
-cdu_scr_data_t CDU::get_arr_page(bool rte2) {
-  std::shared_ptr<test::FplnInt> c_fpl = m_rte1_ptr_;
+cdu_scr_data_t CDU::get_arr_page(bool rte2) noexcept {
+  std::shared_ptr<fms_core::FplnInt> c_fpl = m_rte1_ptr_;
   if (rte2) {
     c_fpl = m_rte2_ptr_;
   }
@@ -1640,19 +1650,21 @@ cdu_scr_data_t CDU::get_arr_page(bool rte2) {
   else
     out.data_lines[0] = ARR_COLS1;
 
-  std::string curr_star = c_fpl->get_curr_proc(test::PROC_TYPE_STAR);
-  std::string curr_trans = c_fpl->get_curr_proc(test::PROC_TYPE_STAR, true);
-  std::string act_star = m_act_ptr_->get_curr_proc(test::PROC_TYPE_STAR);
-  std::string act_trans = m_act_ptr_->get_curr_proc(test::PROC_TYPE_STAR, true);
+  std::string curr_star = c_fpl->get_curr_proc(fms_core::PROC_TYPE_STAR);
+  std::string curr_trans = c_fpl->get_curr_proc(fms_core::PROC_TYPE_STAR, true);
+  std::string act_star = m_act_ptr_->get_curr_proc(fms_core::PROC_TYPE_STAR);
+  std::string act_trans =
+      m_act_ptr_->get_curr_proc(fms_core::PROC_TYPE_STAR, true);
   get_procs(&out, curr_star, curr_trans, act_star, act_trans, rte2);
 
   std::string arr_rwy = c_fpl->get_arr_rwy();
-  std::string arr_appr = c_fpl->get_curr_proc(test::PROC_TYPE_APPCH);
-  std::string arr_via = c_fpl->get_curr_proc(test::PROC_TYPE_APPCH, true);
+  std::string arr_appr = c_fpl->get_curr_proc(fms_core::PROC_TYPE_APPCH);
+  std::string arr_via = c_fpl->get_curr_proc(fms_core::PROC_TYPE_APPCH, true);
 
   std::string act_rwy = m_act_ptr_->get_arr_rwy();
-  std::string act_appr = m_act_ptr_->get_curr_proc(test::PROC_TYPE_APPCH);
-  std::string act_via = m_act_ptr_->get_curr_proc(test::PROC_TYPE_APPCH, true);
+  std::string act_appr = m_act_ptr_->get_curr_proc(fms_core::PROC_TYPE_APPCH);
+  std::string act_via =
+      m_act_ptr_->get_curr_proc(fms_core::PROC_TYPE_APPCH, true);
 
   get_rwys(&out, arr_rwy, act_rwy, rte2, arr_appr, arr_via, act_appr, act_via,
            true);
@@ -1662,12 +1674,12 @@ cdu_scr_data_t CDU::get_arr_page(bool rte2) {
   return out;
 }
 
-std::string CDU::get_legs_btm() {
+std::string CDU::get_legs_btm() const noexcept {
   bool is_act = sel_fpl_idx_ == act_fpl_idx_;
   bool exec_lt = fpl_sys_->get_exec();
 
   std::string c_legs_btm = "<RTE 2";
-  if (sel_fpl_idx_ == test::RTE2_IDX) {
+  if (sel_fpl_idx_ == fms_core::RTE2_IDX) {
     c_legs_btm = "<RTE 1";
   }
 
@@ -1679,7 +1691,7 @@ std::string CDU::get_legs_btm() {
   return c_legs_btm + LEGS_BTM_ACT;
 }
 
-cdu_scr_data_t CDU::get_legs_page() {
+cdu_scr_data_t CDU::get_legs_page() noexcept {
   cdu_scr_data_t out = {};
   fill_char_state_buf(out);
 
@@ -1697,7 +1709,7 @@ cdu_scr_data_t CDU::get_legs_page() {
     out.heading_color = CDUColor::WHITE;
   }
   std::string c_legs_top = "RTE 1 LEGS";
-  if (sel_fpl_idx_ == test::RTE2_IDX) {
+  if (sel_fpl_idx_ == fms_core::RTE2_IDX) {
     c_legs_top = "RTE 2 LEGS";
   }
   out.heading_big = "  " + act_sts + c_legs_top;
@@ -1708,7 +1720,7 @@ cdu_scr_data_t CDU::get_legs_page() {
   bool disc_pr = false;
   size_t sts_idx = 1;
 
-  test::act_leg_info_t act_info = fpl_sys_->get_act_leg_info();
+  fms_core::act_leg_info_t act_info = fpl_sys_->get_act_leg_info();
 
   for (size_t i = i_start; i < i_end; i++) {
     if (!disc_pr) out.data_lines.push_back(get_cdu_leg_prop(leg_list_[i]));
@@ -1764,7 +1776,7 @@ cdu_scr_data_t CDU::get_legs_page() {
 CDUDisplay::CDUDisplay(geom::vect2_t pos, geom::vect2_t sz,
                        cairo_font_face_t* ff,
                        std::shared_ptr<cairo_utils::texture_manager_t> tm,
-                       std::shared_ptr<CDU> cdu, byteutils::Bytemap* bm) {
+                       std::shared_ptr<CDU> cdu) {
   screen_pos_ = pos;
   size_ = sz;
   display_pos_ = screen_pos_ + size_ * DISPLAY_OFFS;
@@ -1775,61 +1787,52 @@ CDUDisplay::CDUDisplay(geom::vect2_t pos, geom::vect2_t sz,
   tex_mngr_ = tm;
   cdu_ptr_ = cdu;
 
-  key_map_ = bm;
-
-  texture_size_ = cairo_utils::get_surf_sz(tex_mngr_->data[CDU_TEXTURE_NAME]);
-  texture_scale_ = size_ / texture_size_;
-
   scratchpad_ = std::string(size_t(N_CDU_DATA_COLS), ' ');
   scratch_curr_ = 0;
 
   last_press_tp_ = std::chrono::steady_clock::now();
 }
 
-void CDUDisplay::on_click(geom::vect2_t pos) {
-  auto curr_tp = std::chrono::steady_clock::now();
-  std::chrono::duration<double> dur = curr_tp - last_press_tp_;
-  double dur_cnt = dur.count();
-
-  last_press_tp_ = curr_tp;
-
-  if (dur_cnt < CDU_PRS_INTV_SEC) return;
-
-  pos = (pos - screen_pos_) / texture_scale_;
-  if (pos.x >= 0 && pos.y >= 0 && pos.x < texture_size_.x && pos.y < texture_size_.y) {
-    int event = int(key_map_->get_at(size_t(pos.x), size_t(pos.y)));
-
-    if (event && (event < CDU_KEY_A || event == CDU_KEY_EXEC)) {
-      std::string scratch_proc = strutils::strip(scratchpad_);
-      std::string scr_out;
-      std::string msg = cdu_ptr_->on_event(event, scratch_proc, &scr_out);
-
-      if (scr_out != "") {
-        scratch_curr_ = scr_out.size();
-        scratchpad_ =
-            scr_out + std::string(N_CDU_DATA_COLS - scr_out.size(), ' ');
-      } else {
-        if (msg == "")
-          clear_scratchpad();
-        else
-          msg_stack_.push(msg);
-      }
-    }
-    update_scratchpad(event);
-  }
+void CDUDisplay::on_event(event_type event) {
+  std::unique_lock lk(main_mutex_);
+  events_.push(event);
 }
 
 void CDUDisplay::draw(cairo_t* cr) {
-  cairo_utils::draw_image(cr, tex_mngr_->data[CDU_TEXTURE_NAME], screen_pos_,
-                          texture_scale_, false);
-
-  bool dr_exc = cdu_ptr_->get_exec_lt();
-  if (dr_exc) draw_exec(cr);
-
+  std::unique_lock lk(main_mutex_);
+  process_events(CNT_CDU_EVENTS_PER_FRAME);
   draw_screen(cr);
 }
 
 // Private member functions:
+
+void CDUDisplay::handle_event(event_type event) noexcept {
+  if (event && (event < CDU_KEY_A || event == CDU_KEY_EXEC)) {
+    std::string scratch_proc = strutils::strip(scratchpad_);
+    std::string scr_out;
+    std::string msg = cdu_ptr_->on_event(event, scratch_proc, &scr_out);
+
+    if (scr_out != "") {
+      scratch_curr_ = scr_out.size();
+      scratchpad_ =
+          scr_out + std::string(N_CDU_DATA_COLS - scr_out.size(), ' ');
+    } else {
+      if (msg == "")
+        clear_scratchpad();
+      else
+        msg_stack_.push(msg);
+    }
+  }
+  update_scratchpad(event);
+}
+
+void CDUDisplay::process_events(std::size_t cnt_max) noexcept {
+  while (cnt_max && events_.size()) {
+    event_type curr = events_.front();
+    handle_event(curr);
+    events_.pop();
+  }
+}
 
 void CDUDisplay::add_to_scratchpad(char c) {
   if (scratch_curr_ != size_t(N_CDU_DATA_COLS)) {
@@ -1846,7 +1849,7 @@ void CDUDisplay::clear_scratchpad() {
   scratchpad_[scratch_curr_] = ' ';
 }
 
-void CDUDisplay::update_scratchpad(int event) {
+void CDUDisplay::update_scratchpad(event_type event) {
   if (event == CDU_KEY_DELETE) {
     if (scratchpad_[0] == DELETE_SYMBOL) {
       scratchpad_[0] = ' ';
@@ -2003,14 +2006,6 @@ void CDUDisplay::draw_cdu_line(cairo_t* cr, std::string& s, geom::vect2_t pos,
   }
 }
 
-void CDUDisplay::draw_exec(cairo_t* cr) {
-  geom::vect2_t lt_pos = {screen_pos_.x + size_.x * EXEC_LT_POS.x,
-                          screen_pos_.y + size_.y * EXEC_LT_POS.y};
-  geom::vect2_t lt_sz = {size_.x * EXEC_LT_SZ.x, size_.y * EXEC_LT_SZ.y};
-
-  cairo_utils::draw_rect(cr, lt_pos, lt_sz, EXEC_LT_CLR);
-}
-
 void CDUDisplay::draw_screen(cairo_t* cr) {
   geom::vect2_t offs_hdg_small = {0, display_size_.y * CDU_V_OFFS_SMALL_FIRST};
   geom::vect2_t pos_hdg_small = display_pos_ + offs_hdg_small;
@@ -2037,7 +2032,8 @@ void CDUDisplay::draw_screen(cairo_t* cr) {
     }
     if (j + 1 < curr_screen.data_lines.size()) {
       draw_cdu_line(cr, curr_screen.data_lines[j + 1], pos_big,
-                    CDU_TEXT_INTV * display_size_.x, curr_screen.chr_sts[j + 1]);
+                    CDU_TEXT_INTV * display_size_.x,
+                    curr_screen.chr_sts[j + 1]);
     }
 
     pos_small.y += CDU_V_OFFS_REG * display_size_.y;
@@ -2056,4 +2052,4 @@ void CDUDisplay::draw_screen(cairo_t* cr) {
   draw_cdu_line(cr, tgt_scratch, pos_small, CDU_TEXT_INTV * display_size_.x, "",
                 CDU_BIG_TEXT_SZ);
 }
-}  // namespace StratosphereAvionics
+}  // namespace fms_displays

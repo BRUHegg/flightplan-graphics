@@ -28,16 +28,16 @@ constexpr size_t N_PROJ_CACHE_SZ = 202;
 constexpr size_t DEP_RWY_PROJ_IDX = N_PROJ_CACHE_SZ - 2;
 constexpr size_t ARR_RWY_PROJ_IDX = N_PROJ_CACHE_SZ - 1;
 constexpr size_t N_ND_SDS =
-    test::N_INTFCS;  // Essentially this is how many NDs we can have
-constexpr size_t N_MP_DATA_SZ = N_ND_SDS * test::N_FPL_SYS_RTES;
+    fms_core::N_INTFCS;  // Essentially this is how many NDs we can have
+constexpr size_t N_MP_DATA_SZ = N_ND_SDS * fms_core::N_FPL_SYS_RTES;
 constexpr size_t N_EFIS_TYPE_CACHE_SZ = 150;  // Number of fetched POIs per type
 constexpr size_t N_EFIS_MAP_ALTN_APTS = 4;
 constexpr double N_MAX_DIST_NM = 640;
 constexpr double ND_DEFAULT_RNG_NM = 10;
 // Percentage of resolution that translates into full range:
-static std::unordered_map<test::NDMode, double, util::enum_class_hash_t>
-    ND_RNG_FULL_RES_COEFF = {{test::NDMode::MAP, 0.7},
-                             {test::NDMode::PLAN, 0.4}};
+static std::unordered_map<fms_core::NDMode, double, util::enum_class_hash_t>
+    ND_RNG_FULL_RES_COEFF = {{fms_core::NDMode::MAP, 0.7},
+                             {fms_core::NDMode::PLAN, 0.4}};
 // Arc angles for TFC rings
 const std::vector<std::pair<double, double>> ND_MAP_TFC_ARC_ANGLES = {
     {0, 0},
@@ -127,13 +127,13 @@ const std::string ND_HTRK_TRU = "TRU";
 
 const std::vector<double> ND_RANGES_NM = {10, 20, 40, 80, 160, 320, 640};
 // Only the supported modes are in ND_MDS
-const std::vector<test::NDMode> ND_MDS = {test::NDMode::MAP,
-                                          test::NDMode::PLAN};
+const std::vector<fms_core::NDMode> ND_MDS = {fms_core::NDMode::MAP,
+                                          fms_core::NDMode::PLAN};
 constexpr double RNG_DEC_1_NM = 2.5;
 constexpr double RNG_DEC_2_NM = 1.25;
 }  // namespace
 
-namespace StratosphereAvionics {
+namespace fms_displays {
 bool poi_data_t::init_ptr(labeled_point_with_dist_t** ptr) {
   labeled_point_with_dist_t* p_new =
       new labeled_point_with_dist_t[N_EFIS_TYPE_CACHE_SZ];
@@ -326,49 +326,49 @@ void map_data_t::destroy() {
 
 // Public member functions:
 
-NDData::NDData(std::shared_ptr<test::FPLSys> fpl_sys)
+NDData::NDData(std::shared_ptr<fms_core::FPLSys> fpl_sys)
     : poi_data_(fpl_sys->get_arpt_db_ptr(), fpl_sys->get_navaid_db_ptr()) {
   fpl_sys_ptr_ = fpl_sys;
   for (std::size_t i = 0; i < fpl_sys->get_cnt_flplns(); ++i) {
     fpl_vec_.push_back(fpl_sys->get_fpln_ptr(i));
   }
 
-  leg_data_ = std::vector<test::nd_leg_data_t*>(test::N_FPL_SYS_RTES);
-  leg_data_sz_ = std::vector<size_t>(test::N_FPL_SYS_RTES, 0);
+  leg_data_ = std::vector<fms_core::nd_leg_data_t*>(fms_core::N_FPL_SYS_RTES);
+  leg_data_sz_ = std::vector<size_t>(fms_core::N_FPL_SYS_RTES, 0);
 
   rte_draw_seq_ = std::vector<std::vector<int>>(
-      N_ND_SDS, std::vector<int>(test::N_FPL_SYS_RTES, V_RTE_NOT_DRAWN));
+      N_ND_SDS, std::vector<int>(fms_core::N_FPL_SYS_RTES, V_RTE_NOT_DRAWN));
 
   mp_data_ = std::vector<map_data_t>(N_MP_DATA_SZ);
   act_leg_idx_sd_ = std::vector<int>(N_MP_DATA_SZ, 0);
 
-  curr_modes_ = std::vector<std::pair<test::NDMode, bool>>(
-      N_ND_SDS, {test::DFLT_ND_MODE, false});
+  curr_modes_ = std::vector<std::pair<fms_core::NDMode, bool>>(
+      N_ND_SDS, {fms_core::DFLT_ND_MODE, false});
   ac_pos_projected_ = std::vector<geom::vect2_t>(N_ND_SDS, {0, 0});
   ac_pos_ok_ = std::vector<bool>(N_ND_SDS, 0);
   range_index_ = std::vector<size_t>(N_ND_SDS, 0);
   map_center_ = std::vector<geo::point>(N_ND_SDS, {0, 0});
 
-  fpl_id_last_ = std::vector<double>(test::N_FPL_SYS_RTES, 0);
+  fpl_id_last_ = std::vector<double>(fms_core::N_FPL_SYS_RTES, 0);
 
   heading_data_ = {};
 
-  has_dep_rwy_ = std::vector<bool>(test::N_FPL_SYS_RTES, false);
-  has_arr_rwy_ = std::vector<bool>(test::N_FPL_SYS_RTES, false);
+  has_dep_rwy_ = std::vector<bool>(fms_core::N_FPL_SYS_RTES, false);
+  has_arr_rwy_ = std::vector<bool>(fms_core::N_FPL_SYS_RTES, false);
 
   efis_sel_ = std::vector<efis_selection_t>(N_ND_SDS, efis_selection_t{});
 
   pois_projected_[0] = {};
   pois_projected_[1] = {};
 
-  act_leg_idx_ = std::vector<int>(test::N_FPL_SYS_RTES, -1);
+  act_leg_idx_ = std::vector<int>(fms_core::N_FPL_SYS_RTES, -1);
   ac_pos_last_ = {N_MAX_DIST_NM, N_MAX_DIST_NM};
 }
 
 bool NDData::init() {
   std::unique_lock lk(main_mutex_);
-  for (size_t i = 0; i < test::N_FPL_SYS_RTES; i++) {
-    leg_data_[i] = new test::nd_leg_data_t[N_LEG_PROJ_CACHE_SZ];
+  for (size_t i = 0; i < fms_core::N_FPL_SYS_RTES; i++) {
+    leg_data_[i] = new fms_core::nd_leg_data_t[N_LEG_PROJ_CACHE_SZ];
     if (leg_data_[i] == nullptr) {
       destroy();
       return false;
@@ -415,18 +415,18 @@ efis_selection_t NDData::get_efis_sts_sd(size_t sd_idx) {
   return efis_sel_[sd_idx];
 }
 
-void NDData::set_mode(size_t sd_idx, test::NDMode md, bool set_ctr) {
+void NDData::set_mode(size_t sd_idx, fms_core::NDMode md, bool set_ctr) {
   assert(sd_idx < N_ND_SDS);
   std::unique_lock lk(main_mutex_);
   curr_modes_[sd_idx].first = md;
-  if (md == test::NDMode::PLAN)
+  if (md == fms_core::NDMode::PLAN)
     curr_modes_[sd_idx].second = false;
   else if (set_ctr)
     curr_modes_[sd_idx].second = !curr_modes_[sd_idx].second;
   fpl_sys_ptr_->set_nd_mode(md, sd_idx);
 }
 
-std::pair<test::NDMode, bool> NDData::get_mode(size_t sd_idx) const {
+std::pair<fms_core::NDMode, bool> NDData::get_mode(size_t sd_idx) const {
   assert(sd_idx < N_ND_SDS);
   std::shared_lock lk(main_mutex_);
   return curr_modes_[sd_idx];
@@ -462,17 +462,17 @@ double NDData::get_hdg_trk() const {
   return get_cr_rot(); 
 }
 
-test::hdg_info_t NDData::get_hdg_data() { 
+fms_core::hdg_info_t NDData::get_hdg_data() { 
   std::shared_lock lk(main_mutex_);
   return heading_data_; 
 }
 
-test::spd_info_t NDData::get_spd_data() {
+fms_core::spd_info_t NDData::get_spd_data() {
   std::shared_lock lk(main_mutex_);
   return fpl_sys_ptr_->get_spd_info();
 }
 
-test::act_leg_info_t NDData::get_act_leg_info() {
+fms_core::act_leg_info_t NDData::get_act_leg_info() {
   std::shared_lock lk(main_mutex_);
   return fpl_sys_ptr_->get_act_leg_info();
 }
@@ -496,9 +496,9 @@ void NDData::switch_range(bool down, size_t sd_idx) {
   }
 }
 
-double NDData::get_range(size_t sd_idx) {
+double NDData::get_range(std::size_t sd_idx) const noexcept {
   std::shared_lock lk(main_mutex_);
-  return ND_RANGES_NM[range_index_[sd_idx]];
+  return get_range_impl(sd_idx);
 }
 
 // POI functions
@@ -557,7 +557,7 @@ void NDData::update() {
     update_ctr(i);
     ac_pos_ok_[i] = project_ac_pos(i);
   }
-  for (size_t i = 0; i < test::N_FPL_SYS_RTES; i++) update_fpl(i);
+  for (size_t i = 0; i < fms_core::N_FPL_SYS_RTES; i++) update_fpl(i);
   geo::point curr_pos = fpl_sys_ptr_->get_ac_pos();
   double abs_diff = abs(curr_pos.lat_rad - ac_pos_last_.lat_rad) +
                     abs(curr_pos.lon_rad - ac_pos_last_.lon_rad);
@@ -571,7 +571,7 @@ void NDData::update() {
 
 void NDData::destroy() {
   std::unique_lock lk(main_mutex_);
-  for (size_t i = 0; i < test::N_FPL_SYS_RTES; i++) delete[] leg_data_[i];
+  for (size_t i = 0; i < fms_core::N_FPL_SYS_RTES; i++) delete[] leg_data_[i];
   for (size_t i = 0; i < N_MP_DATA_SZ; i++) mp_data_[i].destroy();
   pois_projected_[0].destroy();
   pois_projected_[1].destroy();
@@ -581,35 +581,40 @@ void NDData::destroy() {
 // Private member functions:
 // Static member functions:
 
-bool NDData::bound_check(double x1, double x2, double rng) {
+bool NDData::bound_check(double x1, double x2, double rng) noexcept {
   return (x1 < rng && x2 >= rng) || (x1 >= rng && x2 < rng) ||
          (x1 > -rng && x2 <= -rng) || (x2 > -rng && x1 <= -rng) ||
          (abs(x1) <= rng && abs(x2) <= rng);
 }
 
-nd_util_idx_t NDData::get_util_idx(size_t gn_idx) {
+nd_util_idx_t NDData::get_util_idx(std::size_t gn_idx) noexcept {
   return {gn_idx % N_ND_SDS, gn_idx / N_ND_SDS};
 }
 
 // Non-static member functions:
 
-double NDData::get_cr_rot() const {
+double NDData::get_range_impl(std::size_t sd_idx) const noexcept {
+  return ND_RANGES_NM[range_index_[sd_idx]];
+}
+
+double NDData::get_cr_rot() const noexcept {
   if (trk_up_) return -(heading_data_.brng_tru_rad + heading_data_.magvar_rad);
   return -(heading_data_.brng_tru_rad + heading_data_.magvar_rad +
            heading_data_.slip_rad);
 }
 
-std::pair<geo::point, double> NDData::get_proj_params(size_t sd_idx) const {
+std::pair<geo::point, double> NDData::get_proj_params(
+  std::size_t sd_idx) const noexcept {
   assert(sd_idx < curr_modes_.size());
-  if (curr_modes_[sd_idx].first == test::NDMode::PLAN) return {map_center_[sd_idx], 0};
+  if (curr_modes_[sd_idx].first == fms_core::NDMode::PLAN) return {map_center_[sd_idx], 0};
   return {fpl_sys_ptr_->get_ac_pos(), get_cr_rot()};
 }
 
-bool NDData::in_view(geom::vect2_t start, geom::vect2_t end, size_t sd_idx) {
+bool NDData::in_view(geom::vect2_t start, geom::vect2_t end, size_t sd_idx) const noexcept {
   assert(sd_idx < curr_modes_.size());
   double a = start.x - end.x;
-  double rng = get_range(sd_idx);
-  if (curr_modes_[sd_idx].second || curr_modes_[sd_idx].first == test::NDMode::PLAN)
+  double rng = get_range_impl(sd_idx);
+  if (curr_modes_[sd_idx].second || curr_modes_[sd_idx].first == fms_core::NDMode::PLAN)
     rng /= 2;
 
   if (a != 0) {
@@ -639,15 +644,15 @@ void NDData::update_rte_draw_seq() {
   size_t act_idx = fpl_sys_ptr_->get_act_idx();
   bool exec_st = fpl_sys_ptr_->get_exec();
   for (size_t i = 0; i < N_ND_SDS; i++) {
-    std::vector<int> tmp(test::N_FPL_SYS_RTES, V_RTE_NOT_DRAWN);
+    std::vector<int> tmp(fms_core::N_FPL_SYS_RTES, V_RTE_NOT_DRAWN);
     size_t sel_idx = fpl_sys_ptr_->get_cdu_sel_fpl_idx(i);
-    tmp[1] = test::ACT_RTE_IDX;
+    tmp[1] = fms_core::ACT_RTE_IDX;
     if (act_idx != sel_idx)
       tmp[2] = sel_idx;
     else
       tmp[0] = act_idx;
-    if (!exec_st || act_idx >= test::N_FPL_SYS_RTES) tmp[0] = -1;
-    for (size_t j = 0; j < test::N_FPL_SYS_RTES; j++) {
+    if (!exec_st || act_idx >= fms_core::N_FPL_SYS_RTES) tmp[0] = -1;
+    for (size_t j = 0; j < fms_core::N_FPL_SYS_RTES; j++) {
       if (ND_RTE_CLRS[j] == cairo_utils::WHITE)
         rte_draw_seq_[i][j] = tmp[0];
       else if (ND_RTE_CLRS[j] == cairo_utils::MAGENTA)
@@ -658,7 +663,7 @@ void NDData::update_rte_draw_seq() {
   }
 }
 
-void NDData::update_ctr(size_t sd_idx) {
+void NDData::update_ctr(std::size_t sd_idx) {
   geo::point tmp;
   bool ret = fpl_sys_ptr_->get_ctr(&tmp, sd_idx);
   if (!ret) {
@@ -667,7 +672,7 @@ void NDData::update_ctr(size_t sd_idx) {
   map_center_[sd_idx] = tmp;
 }
 
-void NDData::project_legs(size_t gn_idx) {
+void NDData::project_legs(std::size_t gn_idx) {
   nd_util_idx_t idxs = get_util_idx(gn_idx);
 
   std::pair<geo::point, double> mp_prm = get_proj_params(idxs.sd_idx);
@@ -676,8 +681,8 @@ void NDData::project_legs(size_t gn_idx) {
   leg_proj_t* dst = mp_data_[gn_idx].proj_legs;
   geom::line_joint_t* dst_joint = mp_data_[gn_idx].line_joints;
 
-  size_t* sz_ptr = &mp_data_[gn_idx].n_act_proj_legs;
-  size_t* sz_ptr_joint = &mp_data_[gn_idx].n_act_joints;
+  std::size_t* sz_ptr = &mp_data_[gn_idx].n_act_proj_legs;
+  std::size_t* sz_ptr_joint = &mp_data_[gn_idx].n_act_joints;
 
   *sz_ptr = 0;
   *sz_ptr_joint = 0;
@@ -686,7 +691,7 @@ void NDData::project_legs(size_t gn_idx) {
   bool prev_skipped = false;
   bool prev_bypassed = false;
 
-  for (size_t i = 0; i < leg_data_sz_[idxs.dt_idx]; i++) {
+  for (std::size_t i = 0; i < leg_data_sz_[idxs.dt_idx]; i++) {
     if (i >= N_LEG_PROJ_CACHE_SZ) break;
 
     dst[*sz_ptr].joint = nullptr;
@@ -726,7 +731,7 @@ void NDData::project_legs(size_t gn_idx) {
 
       if (*sz_ptr && !prev_skipped &&
           !leg_data_[idxs.dt_idx][i].leg_data.has_disc) {
-        size_t bwd_offs = 1;
+        std::size_t bwd_offs = 1;
         if (prev_bypassed) bwd_offs++;
         geom::vect2_t prev_start = dst[*sz_ptr - bwd_offs].start;
         geom::vect2_t prev_end = dst[*sz_ptr - bwd_offs].end;
@@ -748,7 +753,7 @@ void NDData::project_legs(size_t gn_idx) {
           leg_data_[idxs.dt_idx][i].leg_data.turn_rad_nm;
 
       if (act_leg_idx_[idxs.dt_idx] != -1 &&
-          i == size_t(act_leg_idx_[idxs.dt_idx])) {
+          i == std::size_t(act_leg_idx_[idxs.dt_idx])) {
         act_leg_idx_sd_[gn_idx] = int(*sz_ptr);
       }
 
@@ -763,7 +768,7 @@ void NDData::project_legs(size_t gn_idx) {
   }
 }
 
-void NDData::project_rwys(size_t gn_idx) {
+void NDData::project_rwys(std::size_t gn_idx) {
   nd_util_idx_t idxs = get_util_idx(gn_idx);
 
   std::string dep_rwy = fpl_vec_[idxs.dt_idx]->get_dep_rwy();
@@ -804,12 +809,12 @@ void NDData::project_rwys(size_t gn_idx) {
   }
 }
 
-bool NDData::project_ac_pos(size_t sd_idx) {
+bool NDData::project_ac_pos(std::size_t sd_idx) {
   geo::point map_ctr = map_center_[sd_idx];
   geo::point curr_pos = fpl_sys_ptr_->get_ac_pos();
 
   double gc_dist_nm = map_ctr.get_gc_dist_nm(curr_pos);
-  double rng = get_range(sd_idx) / 2;
+  double rng = get_range_impl(sd_idx) / 2;
 
   if (rng < gc_dist_nm) return false;
 
@@ -819,20 +824,20 @@ bool NDData::project_ac_pos(size_t sd_idx) {
   return true;
 }
 
-void NDData::fetch_legs(size_t dt_idx) {
+void NDData::fetch_legs(std::size_t dt_idx) {
   leg_data_sz_[dt_idx] = fpl_sys_ptr_->get_nd_seg(
       leg_data_[dt_idx], N_LEG_PROJ_CACHE_SZ, dt_idx);
   act_leg_idx_[dt_idx] = fpl_sys_ptr_->get_act_leg_idx();
 }
 
-void NDData::update_fpl(size_t idx) {
+void NDData::update_fpl(std::size_t idx) {
   double id_curr = fpl_vec_[idx]->get_id();
 
   if (id_curr != fpl_id_last_[idx]) {
     fetch_legs(idx);
   }
 
-  for (size_t i = 0; i < N_ND_SDS; i++) {
+  for (std::size_t i = 0; i < N_ND_SDS; i++) {
     project_legs(i + idx * N_ND_SDS);
     project_rwys(i + idx * N_ND_SDS);
   }
@@ -889,18 +894,18 @@ void NDDisplay::draw(cairo_t* cr) {
 
 void NDDisplay::update_mode() {
   is_trk_up = nd_data->get_th_up();
-  std::pair<test::NDMode, bool> md_dt = nd_data->get_mode(side_idx);
+  std::pair<fms_core::NDMode, bool> md_dt = nd_data->get_mode(side_idx);
   cr_md = md_dt.first;
   is_ctr = md_dt.second;
   efis_sel = nd_data->get_efis_sts_sd(side_idx);
 }
 
 void NDDisplay::update_map_params() {
-  if (cr_md == test::NDMode::PLAN) {
+  if (cr_md == fms_core::NDMode::PLAN) {
     curr_rng = rng / 2;
     map_ctr = size.scmul(0.5);
     map_ctr.y += size.y * ND_PRJ_CTR_V_OFFS_PLAN;
-  } else if (cr_md == test::NDMode::MAP) {
+  } else if (cr_md == fms_core::NDMode::MAP) {
     curr_rng = rng;
     map_ctr = size.scmul(0.5);
     map_ctr.y += size.y * ND_PRJ_CTR_V_OFFS_MAP;
@@ -1082,7 +1087,7 @@ void NDDisplay::draw_runways(cairo_t* cr, size_t idx) {
 
 void NDDisplay::draw_all_fplns(cairo_t* cr) {
   std::vector<int> fpl_draw_seq = nd_data->get_rte_draw_seq(side_idx);
-  for (size_t i = 0; i < test::N_FPL_SYS_RTES; i++) {
+  for (size_t i = 0; i < fms_core::N_FPL_SYS_RTES; i++) {
     if (fpl_draw_seq[i] == -1) continue;
     draw_runways(cr, fpl_draw_seq[i]);
     draw_flight_plan(cr, false, ND_RTE_CLRS[i], fpl_draw_seq[i]);
@@ -1092,7 +1097,7 @@ void NDDisplay::draw_all_fplns(cairo_t* cr) {
 
 void NDDisplay::draw_airplane(cairo_t* cr) {
   geom::vect2_t wpt_scale = size.scmul(1 / WPT_SCALE_FACT);
-  if (cr_md == test::NDMode::PLAN) {
+  if (cr_md == fms_core::NDMode::PLAN) {
     geom::vect2_t pos;
     bool do_drawing = nd_data->get_ac_pos(&pos, side_idx);
     if (do_drawing) {
@@ -1139,7 +1144,7 @@ void NDDisplay::draw_htrk(cairo_t* cr) {
 }
 
 void NDDisplay::draw_hdg_tri(cairo_t* cr) {
-  if (cr_md == test::NDMode::MAP) {
+  if (cr_md == fms_core::NDMode::MAP) {
     double rot_rad = 0;
     if (is_trk_up) rot_rad = -hdg_data.slip_rad;
     geom::vect2_t wpt_scale = size.scmul(1 / WPT_SCALE_FACT);
@@ -1192,22 +1197,22 @@ void NDDisplay::draw_tfc_arcs(cairo_t* cr) {
 void NDDisplay::draw_background(cairo_t* cr, bool draw_inner) {
   cairo_surface_t* back_surf;
 
-  if (cr_md == test::NDMode::PLAN) {
+  if (cr_md == fms_core::NDMode::PLAN) {
     if (draw_inner)
       back_surf = tex_mngr->data[PLN_BACKGND_INNER_NAME];
     else
       back_surf = tex_mngr->data[PLN_BACKGND_OUTER_NAME];
-  } else if (cr_md == test::NDMode::MAP) {
+  } else if (cr_md == fms_core::NDMode::MAP) {
     back_surf = tex_mngr->data[MAP_BACKGND_NAME];
   }
 
-  if ((!draw_inner && cr_md == test::NDMode::MAP) ||
-      cr_md == test::NDMode::PLAN) {
+  if ((!draw_inner && cr_md == fms_core::NDMode::MAP) ||
+      cr_md == fms_core::NDMode::PLAN) {
     geom::vect2_t scale_back = size / cairo_utils::get_surf_sz(back_surf);
     cairo_utils::draw_image(cr, back_surf, scr_pos, scale_back, false);
   }
 
-  if (cr_md == test::NDMode::MAP) {
+  if (cr_md == fms_core::NDMode::MAP) {
     if (!draw_inner) {
       cairo_surface_t* map_hdg_surf = tex_mngr->data[MAP_HDG_NAME];
       geom::vect2_t scale_hdg =
@@ -1231,7 +1236,7 @@ void NDDisplay::draw_background(cairo_t* cr, bool draw_inner) {
 }
 
 void NDDisplay::draw_act_leg_info(cairo_t* cr) {
-  test::act_leg_info_t leg_info = nd_data->get_act_leg_info();
+  fms_core::act_leg_info_t leg_info = nd_data->get_act_leg_info();
 
   geom::vect2_t act_name_pos = scr_pos + size * ACT_LEG_NAME_OFFS;
   geom::vect2_t act_time_pos = scr_pos + size * ACT_LEG_TIME_OFFS;
@@ -1251,7 +1256,7 @@ void NDDisplay::draw_act_leg_info(cairo_t* cr) {
 }
 
 void NDDisplay::draw_spd_info(cairo_t* cr) {
-  test::spd_info_t spd_info = nd_data->get_spd_data();
+  fms_core::spd_info_t spd_info = nd_data->get_spd_data();
 
   geom::vect2_t gs_text_pos = scr_pos + size * GS_TEXT_OFFS;
   geom::vect2_t gs_pos = scr_pos + size * GS_OFFS;
@@ -1305,7 +1310,7 @@ void NDDisplay::draw_range(cairo_t* cr) {
   geom::vect2_t pos_2_up = {ctr_trans.x,
                             ctr_trans.y - curr_rng * 0.5 * scale_factor.y};
 
-  if (cr_md == test::NDMode::PLAN || is_ctr) {
+  if (cr_md == fms_core::NDMode::PLAN || is_ctr) {
     cairo_utils::draw_centered_text(cr, font_face, rng_full_str, pos_1_dn,
                                     cairo_utils::WHITE, ND_WPT_FONT_SZ);
     cairo_utils::draw_centered_text(cr, font_face, rng_half_str, pos_2_dn,
@@ -1361,7 +1366,7 @@ void NDDisplay::draw_vors_dmes(cairo_t* cr) {
 }
 
 void NDDisplay::draw_efis_filters(cairo_t* cr) {
-  if (cr_md == test::NDMode::MAP) {
+  if (cr_md == fms_core::NDMode::MAP) {
     if (efis_sel.arpt_on) {
       draw_airports(cr);
     }
@@ -1385,4 +1390,4 @@ void NDDisplay::draw_labeled_point(cairo_t* cr, cairo_surface_t* img,
                               cairo_utils::ND_CYAN,
                               EFIS_POI_NAME_FNT_SZ * sc_fact_txt);
 }
-}  // namespace StratosphereAvionics
+}  // namespace fms_displays

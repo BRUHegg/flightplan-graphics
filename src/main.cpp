@@ -19,7 +19,7 @@
 
 const std::string WINDOW_TITLE = "ND Display";
 
-std::shared_ptr<test::CMDInterface> cmdint;
+std::shared_ptr<fms_core::CMDInterface> cmdint;
 
 gboolean keypress_handler(GtkWidget* widget, GdkEventKey* event,
                           gpointer data) {
@@ -35,9 +35,9 @@ gboolean keypress_handler(GtkWidget* widget, GdkEventKey* event,
   } else if (event->keyval == GDK_KEY_Down) {
     cmdint->nd_data->switch_range(true, 0);
   } else if (event->keyval == GDK_KEY_m || event->keyval == GDK_KEY_M) {
-    cmdint->nd_data->set_mode(0, test::NDMode::MAP);
+    cmdint->nd_data->set_mode(0, fms_core::NDMode::MAP);
   } else if (event->keyval == GDK_KEY_p || event->keyval == GDK_KEY_P) {
-    cmdint->nd_data->set_mode(0, test::NDMode::PLAN);
+    cmdint->nd_data->set_mode(0, fms_core::NDMode::PLAN);
   } else if (event->keyval == GDK_KEY_a || event->keyval == GDK_KEY_A) {
     cmdint->nd_data->toggle_efis_arpt_sd(0);
   } else if (event->keyval == GDK_KEY_s || event->keyval == GDK_KEY_S) {
@@ -77,7 +77,7 @@ static gboolean clicked(GtkWidget* widget, GdkEventButton* event,
 }
 
 int main(int argc, char* argv[]) {
-  cmdint = std::make_shared<test::CMDInterface>();
+  cmdint = std::make_shared<fms_core::CMDInterface>();
 
   GtkWidget* window;
   GtkWidget* darea;
@@ -98,8 +98,8 @@ int main(int argc, char* argv[]) {
   g_signal_connect(window, "destroy", G_CALLBACK(gtk_main_quit), NULL);
 
   gtk_window_set_position(GTK_WINDOW(window), GTK_WIN_POS_CENTER);
-  gtk_window_set_default_size(GTK_WINDOW(window), test::WND_WIDTH,
-                              test::WND_HEIGHT);
+  gtk_window_set_default_size(GTK_WINDOW(window), fms_core::WND_WIDTH,
+                              fms_core::WND_HEIGHT);
   gtk_window_set_title(GTK_WINDOW(window), WINDOW_TITLE.c_str());
 
   gtk_widget_show_all(window);

@@ -16,7 +16,7 @@
 
 #include <iostream>
 
-namespace test {
+namespace fms_core {
 // leg_seg_t definitions:
 
 void leg_seg_t::set_calc_wpt(libnav::waypoint_t wpt) {
