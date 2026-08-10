@@ -76,7 +76,7 @@ class CDU {
   std::string on_event(int event_key, std::string scratchpad,
                        std::string* s_out) noexcept;
 
-  cdu_scr_data_t get_screen_data() noexcept;
+  cdu_scr_data_t get_screen_data() const noexcept;
 
  private:
   std::size_t act_sd_idx_;
@@ -164,7 +164,7 @@ class CDU {
   */
 
   static std::string get_cdu_leg_prop(
-      fms_core::list_node_ref_t<fms_core::leg_list_data_t>& src);
+      const fms_core::list_node_ref_t<fms_core::leg_list_data_t>& src);
 
   /*
       Function: get_leg_alt
@@ -178,7 +178,7 @@ class CDU {
       @return string for CDU to display.
   */
 
-  static std::string get_leg_alt(
+  static std::string get_leg_alt(const
       fms_core::list_node_ref_t<fms_core::leg_list_data_t>& src, bool alt2 = false,
       bool fl = false);
 
@@ -190,20 +190,20 @@ class CDU {
       @return string for CDU to display.
   */
 
-  static std::string get_cdu_leg_vcstr(
+  static std::string get_cdu_leg_vcstr(const
       fms_core::list_node_ref_t<fms_core::leg_list_data_t>& src);
 
-  static std::string get_cdu_leg_spdcstr(
+  static std::string get_cdu_leg_spdcstr(const
       fms_core::list_node_ref_t<fms_core::leg_list_data_t>& src);
 
-  static std::string get_cdu_leg_nm(
+  static std::string get_cdu_leg_nm(const
       fms_core::list_node_ref_t<fms_core::leg_list_data_t>& src);
 
-  static bool scratchpad_has_delete(std::string& scratchpad);
+  static bool scratchpad_has_delete(const std::string& scratchpad);
 
-  static fms_core::spd_cstr_t get_spd_cstr(std::string& str);
+  static fms_core::spd_cstr_t get_spd_cstr(const std::string& str);
 
-  static fms_core::alt_cstr_t get_alt_cstr(std::string& str);
+  static fms_core::alt_cstr_t get_alt_cstr(const std::string& str);
 
   void update_fpl_infos();
 
@@ -323,15 +323,15 @@ class CDU {
 
   cdu_scr_data_t get_dep_arr_page() const noexcept;
 
-  void dep_arr_set_bottom(cdu_scr_data_t& out);
+  void dep_arr_set_bottom(cdu_scr_data_t& out) const noexcept;
 
-  cdu_scr_data_t get_dep_page(bool rte2) noexcept;
+  cdu_scr_data_t get_dep_page(bool rte2) const noexcept;
 
-  cdu_scr_data_t get_arr_page(bool rte2) noexcept;
+  cdu_scr_data_t get_arr_page(bool rte2) const noexcept;
 
   std::string get_legs_btm() const noexcept;
 
-  cdu_scr_data_t get_legs_page() noexcept;
+  cdu_scr_data_t get_legs_page() const noexcept;
 };
 
 class CDUDisplay {

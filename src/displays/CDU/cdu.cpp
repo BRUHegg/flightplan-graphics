@@ -273,7 +273,7 @@ std::string CDU::on_event(int event_key, std::string scratchpad,
   return msg;
 }
 
-cdu_scr_data_t CDU::get_screen_data() noexcept {
+cdu_scr_data_t CDU::get_screen_data() const noexcept {
   if (sel_des_) return get_sel_des_page();
 
   if (curr_page_ == CDUPage::RTE) return get_rte_page();
@@ -314,7 +314,7 @@ void CDU::fill_char_state_buf(cdu_scr_data_t& src) {
 }
 
 std::string CDU::get_cdu_leg_prop(
-    fms_core::list_node_ref_t<fms_core::leg_list_data_t>& src) {
+    const fms_core::list_node_ref_t<fms_core::leg_list_data_t>& src) {
   if (src.data.is_discon) {
     return DISCO_THEN;
   }
@@ -345,7 +345,7 @@ std::string CDU::get_cdu_leg_prop(
   return out;
 }
 
-std::string CDU::get_leg_alt(
+std::string CDU::get_leg_alt(const
     fms_core::list_node_ref_t<fms_core::leg_list_data_t>& src, bool alt2,
     bool fl) {
   int tgt_alt = src.data.leg.alt1_ft;
@@ -360,7 +360,7 @@ std::string CDU::get_leg_alt(
   return alt_str;
 }
 
-std::string CDU::get_cdu_leg_vcstr(
+std::string CDU::get_cdu_leg_vcstr(const
     fms_core::list_node_ref_t<fms_core::leg_list_data_t>& src) {
   if (src.data.leg.alt1_ft == 0 && src.data.leg.alt2_ft == 0) {
     return LEG_NO_ALT;
@@ -394,7 +394,7 @@ std::string CDU::get_cdu_leg_vcstr(
          "B";
 }
 
-std::string CDU::get_cdu_leg_spdcstr(
+std::string CDU::get_cdu_leg_spdcstr(const
     fms_core::list_node_ref_t<fms_core::leg_list_data_t>& src) {
   if (src.data.leg.spd_lim_kias == 0) return LEG_NO_SPD;
 
@@ -409,7 +409,7 @@ std::string CDU::get_cdu_leg_spdcstr(
   return spd;
 }
 
-std::string CDU::get_cdu_leg_nm(
+std::string CDU::get_cdu_leg_nm(const
     fms_core::list_node_ref_t<fms_core::leg_list_data_t>& src) {
   if (src.data.is_discon) {
     return DISCO_LEG_NM;
@@ -424,12 +424,12 @@ std::string CDU::get_cdu_leg_nm(
   return "";
 }
 
-bool CDU::scratchpad_has_delete(std::string& scratchpad) {
+bool CDU::scratchpad_has_delete(const std::string& scratchpad) {
   if (scratchpad.size() && scratchpad[0] == DELETE_SYMBOL) return 1;
   return 0;
 }
 
-fms_core::spd_cstr_t CDU::get_spd_cstr(std::string& str) {
+fms_core::spd_cstr_t CDU::get_spd_cstr(const std::string& str) {
   fms_core::spd_cstr_t out = {-1, libnav::SpeedMode::AT};
   if (str.size() > N_LEG_SPDCSTR_MX_LN || str.size() < N_LEG_SPDCSTR_MN_LN)
     return out;
@@ -454,7 +454,7 @@ fms_core::spd_cstr_t CDU::get_spd_cstr(std::string& str) {
   return out;
 }
 
-fms_core::alt_cstr_t CDU::get_alt_cstr(std::string& str) {
+fms_core::alt_cstr_t CDU::get_alt_cstr(const std::string& str) {
   fms_core::alt_cstr_t out = {-1, libnav::AltMode::AT};
   if (str.size() > N_LEG_ALTCSTR_MX_LN || str.size() < N_LEG_ALTCSTR_MN_LN)
     return out;
@@ -1577,7 +1577,7 @@ cdu_scr_data_t CDU::get_dep_arr_page() const noexcept {
   return out;
 }
 
-void CDU::dep_arr_set_bottom(cdu_scr_data_t& out) {
+void CDU::dep_arr_set_bottom(cdu_scr_data_t& out) const noexcept {
   out.data_lines[10] = std::string(N_CDU_DATA_COLS, '-');
 
   bool exec_lt = fpl_sys_->get_exec();
@@ -1588,7 +1588,7 @@ void CDU::dep_arr_set_bottom(cdu_scr_data_t& out) {
   }
 }
 
-cdu_scr_data_t CDU::get_dep_page(bool rte2) noexcept {
+cdu_scr_data_t CDU::get_dep_page(bool rte2) const noexcept {
   std::shared_ptr<fms_core::FplnInt> c_fpl = m_rte1_ptr_;
   if (rte2) {
     c_fpl = m_rte2_ptr_;
@@ -1627,7 +1627,7 @@ cdu_scr_data_t CDU::get_dep_page(bool rte2) noexcept {
   return out;
 }
 
-cdu_scr_data_t CDU::get_arr_page(bool rte2) noexcept {
+cdu_scr_data_t CDU::get_arr_page(bool rte2) const noexcept {
   std::shared_ptr<fms_core::FplnInt> c_fpl = m_rte1_ptr_;
   if (rte2) {
     c_fpl = m_rte2_ptr_;
@@ -1691,7 +1691,7 @@ std::string CDU::get_legs_btm() const noexcept {
   return c_legs_btm + LEGS_BTM_ACT;
 }
 
-cdu_scr_data_t CDU::get_legs_page() noexcept {
+cdu_scr_data_t CDU::get_legs_page() const noexcept {
   cdu_scr_data_t out = {};
   fill_char_state_buf(out);
 
