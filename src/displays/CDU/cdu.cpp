@@ -1,6 +1,9 @@
 #include "cdu.hpp"
 
 #include <cstddef>
+
+#include <mutex>
+#include <shared_mutex>
 #include <fpln/flightpln_int.hpp>
 #include <libnav/cifp_parser.hpp>
 #include <string>
@@ -183,6 +186,8 @@ CDU::CDU(std::shared_ptr<fms_core::FPLSys> fs, size_t sd_idx) {
 }
 
 void CDU::update() noexcept {
+  std::unique_lock lk(main_mutex_);
+
   seg_list_ = fpl_sys_->get_seg_list(&n_seg_list_sz_, sel_fpl_idx_);
   leg_list_ = fpl_sys_->get_leg_list(&n_leg_list_sz_, sel_fpl_idx_);
   fpln_ = fpl_sys_->get_fpln_ptr(sel_fpl_idx_);
@@ -213,6 +218,7 @@ void CDU::update() noexcept {
 }
 
 bool CDU::get_exec_lt() const noexcept {
+  std::shared_lock lk(main_mutex_);
   bool e_st = fpl_sys_->get_exec();
   if (act_fpl_idx_ == sel_fpl_idx_) return e_st;
   return false;
@@ -220,6 +226,8 @@ bool CDU::get_exec_lt() const noexcept {
 
 std::string CDU::on_event(int event_key, std::string scratchpad,
                           std::string* s_out) noexcept {
+  std::unique_lock lk(main_mutex_);
+                      
   if (curr_page_ != CDUPage::LEGS) {
     reset_leg_all_sel();
   }
@@ -274,6 +282,8 @@ std::string CDU::on_event(int event_key, std::string scratchpad,
 }
 
 cdu_scr_data_t CDU::get_screen_data() const noexcept {
+  std::shared_lock lk(main_mutex_);
+
   if (sel_des_) return get_sel_des_page();
 
   if (curr_page_ == CDUPage::RTE) return get_rte_page();

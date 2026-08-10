@@ -17,6 +17,30 @@
 #include <iostream>
 
 namespace fms_core {
+
+const char* GetStrOf(FplSegment seg) {
+  switch (seg)
+  {
+  case FplSegment::DEP_RWY:
+    return "DEP RWY";
+  case FplSegment::SID:
+    return "SID";
+  case FplSegment::SID_TRANS:
+    return "SID TRANS";
+  case FplSegment::ENRT:
+    return "ENROUTE";
+  case FplSegment::STAR_TRANS:
+    return "STAR TRANS";
+  case FplSegment::STAR:
+    return "STAR";
+  case FplSegment::APPCH_TRANS:
+    return "APPR TRANS";
+  case FplSegment::APPCH:
+    return "APPR";
+  default:
+    return "";
+  }
+}
 // leg_seg_t definitions:
 
 void leg_seg_t::set_calc_wpt(libnav::waypoint_t wpt) {
@@ -72,16 +96,25 @@ FlightPlan::FlightPlan(std::shared_ptr<libnav::ArptDB> apt_db,
   time_start_ = std::chrono::steady_clock::now();
 }
 
-double FlightPlan::get_id() { return fpl_id_curr_; }
+double FlightPlan::get_id() const noexcept { 
+  std::shared_lock lk(fpl_mtx_);
+  return fpl_id_curr_; 
+}
 
-size_t FlightPlan::get_leg_list_sz() { return leg_list_.size; }
+size_t FlightPlan::get_leg_list_sz() const noexcept { 
+  std::shared_lock lk(fpl_mtx_);
+  return leg_list_.size; 
+}
 
-size_t FlightPlan::get_seg_list_sz() { return seg_list_.size; }
+size_t FlightPlan::get_seg_list_sz() const noexcept { 
+  std::shared_lock lk(fpl_mtx_);
+  return seg_list_.size; 
+}
 
 double FlightPlan::get_ll_seg(
     size_t start, size_t l, std::vector<list_node_ref_t<leg_list_data_t>>* out,
-    int* act_idx_out) {
-  std::lock_guard<std::mutex> lock(fpl_mtx_);
+    int* act_idx_out) const noexcept {
+  std::shared_lock lk(fpl_mtx_);
   *act_idx_out = -1;
 
   if (start >= leg_list_.size) {
@@ -93,7 +126,7 @@ double FlightPlan::get_ll_seg(
   }
 
   size_t i = 0;
-  leg_list_node_t* curr = &(leg_list_.head);
+  const leg_list_node_t* curr = &(leg_list_.head);
   while (i != start) {
     curr = curr->next;
     i++;
@@ -118,8 +151,8 @@ double FlightPlan::get_ll_seg(
 }
 
 double FlightPlan::get_sl_seg(size_t start, size_t l,
-                              std::vector<list_node_ref_t<fpl_seg_t>>* out) {
-  std::lock_guard<std::mutex> lock(fpl_mtx_);
+                  std::vector<list_node_ref_t<fpl_seg_t>>* out) const noexcept {
+  std::shared_lock lk(fpl_mtx_);
   if (start >= seg_list_.size) {
     return -1;
   }
@@ -128,14 +161,14 @@ double FlightPlan::get_sl_seg(size_t start, size_t l,
     out->pop_back();
   }
 
-  size_t i = 0;
-  seg_list_node_t* curr = &(seg_list_.head);
+  std::size_t i = 0;
+  const seg_list_node_t* curr = &(seg_list_.head);
   while (i != start) {
     curr = curr->next;
     i++;
   }
 
-  size_t cnt = 0;
+  std::size_t cnt = 0;
 
   while (l && i < seg_list_.size) {
     out->push_back({curr, curr->data});
@@ -147,10 +180,11 @@ double FlightPlan::get_sl_seg(size_t start, size_t l,
   return seg_list_.id;
 }
 
-bool FlightPlan::is_active() { return is_active_; }
+bool FlightPlan::is_active() const noexcept { return is_active_; }
 
-bool FlightPlan::can_activate() {
-  leg_list_node_t* curr = &(leg_list_.head);
+bool FlightPlan::can_activate() const noexcept {
+  std::shared_lock lk(fpl_mtx_);
+  const leg_list_node_t* curr = &(leg_list_.head);
   curr = curr->next;
   if (curr->data.misc_data.is_rwy && curr != &(leg_list_.tail))
     curr = curr->next;
@@ -159,20 +193,21 @@ bool FlightPlan::can_activate() {
 }
 
 void FlightPlan::activate() {
-  std::lock_guard<std::mutex> lock(fpl_mtx_);
+  std::unique_lock lk(fpl_mtx_);
   is_active_ = true;
 }
 
 void FlightPlan::deactivate() {
-  std::lock_guard<std::mutex> lock(fpl_mtx_);
+  std::unique_lock lk(fpl_mtx_);
   is_active_ = false;
 }
 
-void FlightPlan::print_refs() {
+void FlightPlan::print_refs() const noexcept {
+  std::shared_lock lk(fpl_mtx_);
   for (size_t i = 1; i < fpl_refs_.size(); i++) {
-    std::cout << seg_to_str[FplSegment(i)] << " " << fpl_refs_[i].name
+    std::cout << GetStrOf(FplSegment(i)) << " " << fpl_refs_[i].name
               << " ";
-    seg_list_node_t* curr = fpl_refs_[i].ptr;
+    const seg_list_node_t* curr = fpl_refs_[i].ptr;
     if (curr != nullptr) {
       std::cout << "Segment " << curr->data.name << " " << static_cast<int>(
         curr->data.seg_type)
@@ -478,7 +513,7 @@ void FlightPlan::reset_fpln(bool leave_dep_rwy) {
 }
 
 FlightPlan::~FlightPlan() {
-  std::lock_guard<std::mutex> lock(fpl_mtx_);
+  std::unique_lock lk(fpl_mtx_);
 
   reset_fpln();
   leg_data_stack_.destroy();

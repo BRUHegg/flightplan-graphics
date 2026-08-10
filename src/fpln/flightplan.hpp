@@ -20,7 +20,8 @@
 #include <libnav/hold_db.hpp>
 #include <libnav/navaid_db.hpp>
 #include <map>
-#include <mutex>
+#include <shared_mutex>
+#include <type_traits>
 
 #include "util/linked_list.hpp"
 
@@ -42,6 +43,8 @@ enum class FplSegment : int {
   APPCH_TRANS = STAR + 1,
   APPCH = APPCH_TRANS + 1
 };
+
+const char* GetStrOf(FplSegment seg);
 
 typedef libnav::arinc_leg_t leg_t;
 
@@ -98,7 +101,7 @@ struct fpl_ref_t {
 template <class T>
 struct list_node_ref_t {
   struct_util::list_node_t<T>* ptr;
-  T data;
+  std::decay_t<T> data;
 };
 
 template <class T>
@@ -146,11 +149,11 @@ class FlightPlan {
   FlightPlan(std::shared_ptr<libnav::ArptDB> apt_db,
              std::shared_ptr<libnav::NavaidDB> nav_db, std::string cifp_path);
 
-  double get_id();
+  double get_id() const noexcept;
 
-  size_t get_leg_list_sz();
+  size_t get_leg_list_sz() const noexcept;
 
-  size_t get_seg_list_sz();
+  size_t get_seg_list_sz() const noexcept;
 
   /*
       Function: get_ll_seg
@@ -165,7 +168,7 @@ class FlightPlan {
 
   double get_ll_seg(size_t start, size_t l,
                     std::vector<list_node_ref_t<leg_list_data_t>>* out,
-                    int* act_idx_out);
+                    int* act_idx_out) const noexcept;
 
   /*
       Function: get_sl_seg
@@ -177,11 +180,11 @@ class FlightPlan {
   */
 
   double get_sl_seg(size_t start, size_t l,
-                    std::vector<list_node_ref_t<fpl_seg_t>>* out);
+                    std::vector<list_node_ref_t<fpl_seg_t>>* out) const noexcept;
 
-  bool is_active();
+  bool is_active() const noexcept;
 
-  bool can_activate();
+  bool can_activate() const noexcept;
 
   void activate();
 
@@ -189,7 +192,7 @@ class FlightPlan {
 
   ~FlightPlan();
 
-  void print_refs();
+  void print_refs() const noexcept;
 
  protected:
   bool is_active_ = false;
@@ -214,7 +217,7 @@ class FlightPlan {
 
   leg_list_node_t* act_leg_ = nullptr;
 
-  std::mutex fpl_mtx_;
+  mutable std::shared_mutex fpl_mtx_;
 
   std::chrono::time_point<std::chrono::steady_clock> time_start_;
 

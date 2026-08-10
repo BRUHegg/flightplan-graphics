@@ -4,6 +4,7 @@
 #include <memory>
 #include <mutex>
 #include <queue>
+#include <shared_mutex>
 #include <stack>
 #include <string>
 
@@ -79,6 +80,8 @@ class CDU {
   cdu_scr_data_t get_screen_data() const noexcept;
 
  private:
+  std::shared_mutex main_mutex_;
+
   std::size_t act_sd_idx_;
 
   std::shared_ptr<fms_core::FPLSys> fpl_sys_;
