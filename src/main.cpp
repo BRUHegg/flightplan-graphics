@@ -77,7 +77,13 @@ static gboolean clicked(GtkWidget* widget, GdkEventButton* event,
 }
 
 int main(int argc, char* argv[]) {
-  cmdint = std::make_shared<fms_core::CMDInterface>();
+  try {
+    cmdint = std::make_shared<fms_core::CMDInterface>();
+  } catch(const std::exception& err) {
+    std::cerr << err.what() << "\n";
+    return 1;
+  }
+  
 
   GtkWidget* window;
   GtkWidget* darea;

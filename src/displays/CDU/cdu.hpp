@@ -15,7 +15,6 @@
 #include <libnav/cifp_parser.hpp>
 #include <util/geom.hpp>
 
-#define FPL_DEBUG
 #ifdef FPL_DEBUG
 #include <iostream>
 #endif

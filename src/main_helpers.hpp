@@ -12,6 +12,7 @@
 
 #pragma once
 
+#include <fstream>
 #include <iostream>
 #include <libnav/common.hpp>
 #include <libnav/geo_utils.hpp>
@@ -19,12 +20,16 @@
 #include <memory>
 #include <string>
 
+#include <nlohmann/json.hpp>
+
 #include <fpln/environment.hpp>
 #include <displays/CDU/cdu.hpp>
 #include <displays/CDU/cdu_widget.hpp>
+#include <displays/common/texture_manager.hpp>
 #include <displays/ND/nd.hpp>
 #include <fpln/fpl_cmds.hpp>
 #include <fpln/fpln_sys.hpp>
+#include <util/json_require.hpp>
 #include <util/pathlib.hpp>
 
 namespace fms_core {
@@ -143,6 +148,9 @@ class CMDInterface {
 
     pre_exec = {};
 
+    if(!json_data_.init(pathlib::Path{"config.json"}, GetJsonConfigTree())) {
+      throw std::logic_error{"There was a problem loading config.json"};
+    }
     fetch_prefs_data();
     get_paths_from_user();
     get_pre_exec_cmds();
@@ -193,6 +201,31 @@ class CMDInterface {
   }
 
  private:
+  struct json_data_t {
+    nlohmann::json tex_names;
+
+    bool init(const pathlib::Path& path, 
+      const json_require::RequirementTree& config_tree) noexcept {
+      std::ifstream file(path.Get(), std::ios::binary);
+
+      if (!file) {
+        return false;
+      }
+
+      try {
+        nlohmann::json js = nlohmann::json::parse(file);
+        if(!config_tree.Verify(js)) {
+          return false;
+        }
+        tex_names = js["textures"];
+      }catch (const nlohmann::json::parse_error& e) {
+        return false;
+      }
+      return true;
+    }
+  };
+
+  json_data_t json_data_;
   pathlib::Path earth_nav_path;
   pathlib::Path apt_dat_dir;
   pathlib::Path fpl_dir;
@@ -202,6 +235,17 @@ class CMDInterface {
   FT_Library lib;
   FT_Face font;
   cairo_font_face_t* boeing_font_face;
+
+  static json_require::RequirementTree GetJsonConfigTree() {
+    json_require::RequirementTree tr;
+    auto p2 = tr.Add("textures", nlohmann::json::value_t::array);
+    p2.SetPredicate(fms_displays::TextureManager::CheckMainFont, true);
+    auto p3 = tr.Add(p2, "name", nlohmann::json::value_t::string);
+    auto p6 = tr.Add(p3, "file_name", nlohmann::json::value_t::string, false, true);
+    auto p7 = tr.Add(p6, "type", nlohmann::json::value_t::string, false, true);
+    p7.SetPredicate(fms_displays::TextureManager::CheckTextureType, true);
+    return tr;
+  }
 
   void fetch_prefs_data() {
     if (libnav::does_file_exist(PREFS_FILE_NM)) {

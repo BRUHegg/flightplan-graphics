@@ -1,0 +1,7 @@
+{
+  "textures":
+  [
+    {"name": "main_font", "file_name": "BoeingFont.ttf", "type": "font"},
+    {"name": "airplane", "file_name": "airplane.png", "type": "texture"}
+  ]
+}

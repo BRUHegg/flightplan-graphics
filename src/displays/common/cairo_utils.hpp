@@ -64,7 +64,7 @@ struct texture_manager_t {
   }
 };
 
-inline bool load_font(std::string font_path, FT_Library ft_lib,
+inline bool load_font(const std::string& font_path, FT_Library ft_lib,
                       FT_Face* font_face, cairo_font_face_t** cr_font) {
   FT_Error err = FT_New_Face(ft_lib, font_path.c_str(), 0, font_face);
 

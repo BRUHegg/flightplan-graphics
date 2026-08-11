@@ -37,7 +37,7 @@ target_include_directories(fpln PUBLIC "${LIBNAV}/include" "${CMAKE_CURRENT_SOUR
 file(GLOB LIBNAV_LIBS ${LIBNAV}/${ARCH}/*.a)
 cmake_print_variables(LIBNAV_LIBS)
 target_link_libraries(fpln PUBLIC ${LIBNAV_LIBS})
-target_link_libraries(displays PUBLIC fpln)
+target_link_libraries(displays PUBLIC fpln util_lib)
 #target_link_libraries(fpln_graphics PUBLIC )
 
 # Configure gtk
@@ -60,3 +60,18 @@ target_link_libraries(fpln_graphics PUBLIC ${FREETYPE_LIBRARIES})
 target_include_directories(displays PUBLIC ${FREETYPE_INCLUDE_DIRS})
 target_link_libraries(displays PUBLIC ${FREETYPE_LIBRARIES})
 target_include_directories(fpln_graphics PUBLIC ${FREETYPE_INCLUDE_DIRS})
+
+# Configure nlohmann::json
+
+include(FetchContent)
+
+if(POLICY CMP0135)
+    cmake_policy(SET CMP0135 NEW)
+endif()
+
+FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download/v3.12.0/json.tar.xz)
+FetchContent_MakeAvailable(json)
+
+target_link_libraries(util_lib PUBLIC nlohmann_json::nlohmann_json)
+target_link_libraries(displays PUBLIC nlohmann_json::nlohmann_json)
+target_link_libraries(fpln_graphics PUBLIC nlohmann_json::nlohmann_json)
