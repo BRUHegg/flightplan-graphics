@@ -68,6 +68,8 @@ struct cdu_scr_data_t {
 
 class CDU {
  public:
+  using flightplan_type = typename fms_core::FPLSys::flightplan_type;
+
   CDU(std::shared_ptr<fms_core::FPLSys> fs, size_t sd_idx);
 
   void update() noexcept;
@@ -85,10 +87,10 @@ class CDU {
   std::size_t act_sd_idx_;
 
   std::shared_ptr<fms_core::FPLSys> fpl_sys_;
-  std::shared_ptr<fms_core::FplnInt> fpln_;
-  std::shared_ptr<fms_core::FplnInt> m_rte1_ptr_;
-  std::shared_ptr<fms_core::FplnInt> m_rte2_ptr_;
-  std::shared_ptr<fms_core::FplnInt> m_act_ptr_;
+  std::shared_ptr<flightplan_type> fpln_;
+  std::shared_ptr<flightplan_type> m_rte1_ptr_;
+  std::shared_ptr<flightplan_type> m_rte2_ptr_;
+  std::shared_ptr<flightplan_type> m_act_ptr_;
   std::size_t sel_fpl_idx_;  // [0;3]
   std::size_t act_fpl_idx_;  // [0;3]
 

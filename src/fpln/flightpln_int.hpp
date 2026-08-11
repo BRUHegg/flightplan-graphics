@@ -24,8 +24,10 @@
 #include <libnav/common.hpp>
 #include <libnav/str_utils.hpp>
 #include <util/geom.hpp>
+#include <util/pathlib.hpp>
+#include <util/util.hpp>
 
-#include "flightplan.hpp"
+#include "fpln_base.hpp"
 
 namespace fms_core {
 enum ProcType { PROC_TYPE_SID = 0, PROC_TYPE_STAR = 1, PROC_TYPE_APPCH = 2 };
@@ -44,105 +46,137 @@ struct alt_cstr_t {
   libnav::AltMode mode;
 };
 
-class FplnInt : public FlightPlan {
+class FplnInt : public FlightPlanBase {
  public:
   FplnInt(std::shared_ptr<libnav::ArptDB> apt_db,
           std::shared_ptr<libnav::NavaidDB> nav_db,
-          std::shared_ptr<libnav::AwyDB> aw_db, std::string cifp_path);
+          std::shared_ptr<libnav::AwyDB> aw_db, pathlib::Path cifp_path);
 
   // Functions for copying data from 1 flightplan to another:
 
   void copy_from_other(FplnInt& other);
+  MY_ATTR_UNIQUE(copy_from_other)
 
   // Import from .fms file:
 
-  libnav::DbErr load_from_fms(std::string& file_nm, bool set_arpts = true);
+  libnav::DbErr load_from_fms(const std::string& file_nm, bool set_arpts = true);
+  MY_ATTR_UNIQUE(load_from_fms)
 
   // Export to .fms file:
 
-  void save_to_fms(std::string& file_nm, bool save_sid_star = true) const;
+  void save_to_fms(const std::string& file_nm, bool save_sid_star = true) const;
+  MY_ATTR_UNIQUE(save_to_fms)
 
-  std::string get_co_rte_nm();
+  std::string get_co_rte_nm() const noexcept;
+  MY_ATTR_SHARED(get_co_rte_nm)
 
   // Airport functions:
 
   libnav::DbErr set_dep(std::string icao);
+  MY_ATTR_UNIQUE(set_dep)
 
-  std::string get_dep_icao();
+  std::string get_dep_icao() const noexcept;
+  MY_ATTR_SHARED(get_dep_icao)
 
   libnav::DbErr set_arr(std::string icao);
+  MY_ATTR_UNIQUE(set_arr)
 
-  std::string get_arr_icao();
+  std::string get_arr_icao()  const noexcept;
+  MY_ATTR_SHARED(get_arr_icao)
 
   // Runway functions:
 
   std::vector<std::string> get_dep_rwys(bool filter_rwy = false,
-                                        bool filter_sid = false);
+                                        bool filter_sid = false) const noexcept;
+  MY_ATTR_SHARED(get_dep_rwys)
 
   std::vector<std::string> get_arr_rwys(bool filter_rwy = false,
                                         bool filter_star = false,
-                                        bool is_arr = true);
+                                        bool is_arr = true) const noexcept;
+  MY_ATTR_SHARED(get_arr_rwys)
 
-  bool set_dep_rwy(std::string& rwy);
+  bool set_dep_rwy(const std::string& rwy);
+  MY_ATTR_UNIQUE(set_dep_rwy)
 
-  std::string get_dep_rwy();
+  std::string get_dep_rwy() const noexcept;
+  MY_ATTR_SHARED(get_dep_rwy)
 
   bool get_dep_rwy_data(libnav::runway_entry_t* out);
+  MY_ATTR_SHARED(get_dep_rwy_data)
 
-  bool set_arr_rwy(std::string& rwy);
+  bool set_arr_rwy(const std::string& rwy);
+  MY_ATTR_UNIQUE(set_arr_rwy)
 
-  std::string get_arr_rwy();
+  std::string get_arr_rwy() const;
+  MY_ATTR_SHARED(get_arr_rwy)
 
   bool get_arr_rwy_data(libnav::runway_entry_t* out);
+  MY_ATTR_SHARED(get_arr_rwy_data)
 
   // Airport procedure functions:
 
-  std::string get_curr_proc(ProcType tp, bool trans = false);
+  std::string get_curr_proc(ProcType tp, bool trans = false) const noexcept;
+  MY_ATTR_SHARED(get_curr_proc)
 
   std::vector<std::string> get_arpt_proc(ProcType tp, bool is_arr = false,
                                          bool filter_rwy = false,
-                                         bool filter_proc = false);
+                                         bool filter_proc = false) const noexcept;
+  MY_ATTR_SHARED(get_arpt_proc)
 
   std::vector<std::string> get_arpt_proc_trans(ProcType tp, bool is_rwy = false,
                                                bool is_arr = false,
-                                               bool incl_none = true);
+                                               bool incl_none = true) const noexcept;
+  MY_ATTR_SHARED(get_arpt_proc_trans)
 
   bool set_arpt_proc(ProcType tp, std::string proc_nm, bool is_arr = false);
+  MY_ATTR_UNIQUE(set_arpt_proc)
 
   bool set_arpt_proc_trans(ProcType tp, std::string trans, bool is_arr = false);
+  MY_ATTR_UNIQUE(set_arpt_proc_trans)
 
   // Enroute:
 
   bool add_enrt_seg(timed_ptr_t<seg_list_node_t> next, std::string name);
+  MY_ATTR_UNIQUE(add_enrt_seg)
 
   // End MUST be an airway id
 
   bool awy_insert_str(timed_ptr_t<seg_list_node_t> next, std::string end_id);
+  MY_ATTR_UNIQUE(awy_insert_str)
 
   bool awy_insert(timed_ptr_t<seg_list_node_t> next, libnav::waypoint_t end);
+  MY_ATTR_UNIQUE(awy_insert)
 
   bool delete_via(timed_ptr_t<seg_list_node_t> next);
+  MY_ATTR_UNIQUE(delete_via)
 
   bool delete_seg_end(timed_ptr_t<seg_list_node_t> next);
+  MY_ATTR_UNIQUE(delete_seg_end)
 
   // Leg list interface functions:
 
   bool dir_from_to(timed_ptr_t<leg_list_node_t> from,
                    timed_ptr_t<leg_list_node_t> to);
+  MY_ATTR_UNIQUE(dir_from_to)
 
   void add_direct(libnav::waypoint_t wpt, timed_ptr_t<leg_list_node_t> next);
+  MY_ATTR_UNIQUE(add_direct)
 
   bool delete_leg(timed_ptr_t<leg_list_node_t> next);
+  MY_ATTR_UNIQUE(delete_leg)
 
   void set_spd_cstr(timed_ptr_t<leg_list_node_t> node, spd_cstr_t cst);
+  MY_ATTR_UNIQUE(set_spd_cstr)
 
   // This one only sets alt1 for now.
 
   void set_alt_cstr(timed_ptr_t<leg_list_node_t> node, alt_cstr_t cst);
+  MY_ATTR_UNIQUE(set_alt_cstr)
 
   // Calculation function
 
   void update(double hdg_trk_diff);
+  MY_ATTR_UNIQUE(update)
 
  private:
   mutable std::string co_rte_nm_;
@@ -169,17 +203,17 @@ class FplnInt : public FlightPlan {
 
   static FplSegment get_trans_tp(ProcType tp);
 
-  static std::vector<std::string> get_proc(libnav::str_umap_t& db,
+  static std::vector<std::string> get_proc(const libnav::str_umap_t& db,
                                            std::string rw = "");
 
-  static std::vector<std::string> get_apprs(libnav::str_umap_t& proc_db,
-                                            libnav::str_umap_t& appr_db,
+  static std::vector<std::string> get_apprs(const libnav::str_umap_t& proc_db,
+                                            const libnav::str_umap_t& appr_db,
                                             std::string proc,
                                             bool filter = false);
 
   static std::vector<std::string> get_proc_trans(std::string proc,
-                                                 libnav::str_umap_t& db,
-                                                 libnav::arinc_rwy_db_t& rwy_db,
+                                                 const libnav::str_umap_t& db,
+                                                 const libnav::arinc_rwy_db_t& rwy_db,
                                                  bool is_rwy = false,
                                                  bool incl_none = true);
 
@@ -218,7 +252,7 @@ class FplnInt : public FlightPlan {
 
   // The main .fms import function:
 
-  libnav::DbErr load_fms_fpln(std::string& file_nm, bool set_arpts = true);
+  libnav::DbErr load_fms_fpln(const std::string& file_nm, bool set_arpts = true);
 
   // Other auxiliury functions:
 
@@ -239,7 +273,7 @@ class FplnInt : public FlightPlan {
 
   libnav::arinc_rwy_data_t get_rwy_data(std::string nm, bool is_arr = false);
 
-  std::string get_curr_proc_imp(ProcType tp, bool trans = false);
+  std::string get_curr_proc_imp(ProcType tp, bool trans = false) const noexcept;
 
   bool add_fpl_seg(libnav::arinc_leg_seq_t& legs, FplSegment seg_tp,
                    std::string ref_nm, std::string seg_nm = "",

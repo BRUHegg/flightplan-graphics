@@ -14,21 +14,24 @@
 
 #pragma once
 
+
+#include <map>
+#include <type_traits>
+
 #include <libnav/arpt_db.hpp>
 #include <libnav/awy_db.hpp>
 #include <libnav/cifp_parser.hpp>
 #include <libnav/hold_db.hpp>
 #include <libnav/navaid_db.hpp>
-#include <map>
-#include <shared_mutex>
-#include <type_traits>
-
-#include "util/linked_list.hpp"
+#include <util/linked_list.hpp>
+#include <util/pathlib.hpp>
+#include <util/util.hpp>
 
 namespace fms_core {
-constexpr size_t N_FPL_LEG_CACHE_SZ = 200;
-constexpr size_t N_FPL_SEG_CACHE_SZ = 100;
-constexpr size_t N_FPL_REF_SZ = 9;
+
+constexpr std::size_t N_FPL_LEG_CACHE_SZ = 200;
+constexpr std::size_t N_FPL_SEG_CACHE_SZ = 100;
+constexpr std::size_t N_FPL_REF_SZ = 9;
 const std::string DISCON_SEG_NAME = "DISCONTINUITY";
 const std::string DCT_LEG_NAME = "DIRECT";
 
@@ -122,9 +125,9 @@ typedef struct_util::list_node_t<fpl_seg_t> seg_list_node_t;
 // DEBUG
 std::string get_leg_str(leg_t& leg);
 
-class FlightPlan {
+class FlightPlanBase {
   /*
-      Class: FlightPlan
+      Class: FlightPlanBase
       Description:
       This class is used to store the flight plan. It's supposed to be flexible,
       so it doesn't just store a sequence of legs. There's some added
@@ -146,14 +149,19 @@ class FlightPlan {
   typedef std::unordered_map<std::string, std::set<std::string>> str_set_map_t;
 
  public:
-  FlightPlan(std::shared_ptr<libnav::ArptDB> apt_db,
-             std::shared_ptr<libnav::NavaidDB> nav_db, std::string cifp_path);
+  using path_type = pathlib::Path;
+
+  FlightPlanBase(std::shared_ptr<libnav::ArptDB> apt_db,
+             std::shared_ptr<libnav::NavaidDB> nav_db, path_type cifp_path);
 
   double get_id() const noexcept;
+  MY_ATTR_SHARED(get_id)
 
-  size_t get_leg_list_sz() const noexcept;
+  std::size_t get_leg_list_sz() const noexcept;
+  MY_ATTR_SHARED(get_leg_list_sz)
 
-  size_t get_seg_list_sz() const noexcept;
+  std::size_t get_seg_list_sz() const noexcept;
+  MY_ATTR_SHARED(get_seg_list_sz)
 
   /*
       Function: get_ll_seg
@@ -166,9 +174,10 @@ class FlightPlan {
      active.
   */
 
-  double get_ll_seg(size_t start, size_t l,
+  double get_ll_seg(std::size_t start, std::size_t l,
                     std::vector<list_node_ref_t<leg_list_data_t>>* out,
                     int* act_idx_out) noexcept;
+  MY_ATTR_UNIQUE(get_ll_seg)
 
   /*
       Function: get_sl_seg
@@ -179,20 +188,26 @@ class FlightPlan {
       @param out: pointer to output vector
   */
 
-  double get_sl_seg(size_t start, size_t l,
+  double get_sl_seg(std::size_t start, std::size_t l,
                     std::vector<list_node_ref_t<fpl_seg_t>>* out) noexcept;
+  MY_ATTR_UNIQUE(get_sl_seg)
 
   bool is_active() const noexcept;
+  MY_ATTR_SHARED(is_active)
 
   bool can_activate() const noexcept;
+  MY_ATTR_SHARED(can_activate)
 
   void activate();
+  MY_ATTR_UNIQUE(activate)
 
   void deactivate();
+  MY_ATTR_UNIQUE(deactivate)
 
-  ~FlightPlan();
+  ~FlightPlanBase();
 
   void print_refs() const noexcept;
+  MY_ATTR_SHARED(print_refs)
 
  protected:
   bool is_active_ = false;
@@ -217,13 +232,13 @@ class FlightPlan {
 
   leg_list_node_t* act_leg_ = nullptr;
 
-  mutable std::shared_mutex fpl_mtx_;
-
   std::chrono::time_point<std::chrono::steady_clock> time_start_;
 
   double fpl_id_curr_ = 0.0;
 
   fpl_ref_t& get_ref_for(FplSegment segment);
+
+  const fpl_ref_t& get_cref_for(FplSegment segment) const;
 
   void update_id();
 
@@ -268,17 +283,7 @@ class FlightPlan {
   void reset_fpln(bool leave_dep_rwy = false);
 
  private:
-  std::map<FplSegment, std::string> seg_to_str = {
-      {FplSegment::DEP_RWY, "DEP RWY"},        
-      {FplSegment::SID, "SID"},
-      {FplSegment::SID_TRANS, "SID TRANS"},    
-      {FplSegment::ENRT, "ENROUTE"},
-      {FplSegment::STAR_TRANS, "STAR TRANS"},  
-      {FplSegment::STAR, "STAR"},
-      {FplSegment::APPCH_TRANS, "APPR TRANS"}, 
-      {FplSegment::APPCH, "APPR"}};
-
-  std::string cifp_dir_path;
+  path_type cifp_dir_path_;
 
   // WARNING: these do not lock flight plan mutex
 

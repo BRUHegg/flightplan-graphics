@@ -33,6 +33,8 @@ struct command_res_t {
 
 typedef void (*cmd_t)(command_res_t, std::vector<std::string>&);
 
+using flightplan_type = typename fms_core::FPLSys::flightplan_type;
+
 bool invoke(const std::string& cmd_name, 
   command_res_t cmd_resources, std::vector<std::string>& in);
 

@@ -12,7 +12,7 @@
    This class acts as a container that holds arinc424 legs.
 */
 
-#include "flightplan.hpp"
+#include "fpln_base.hpp"
 
 #include <iostream>
 
@@ -54,20 +54,17 @@ std::string get_leg_str(leg_t& leg) {
   return leg.leg_type + " " + leg.main_fix.id;
 }
 
-// FlightPlan class definitions:
+// FlightPlanBase class definitions:
 // Public member functions:
 
-FlightPlan::FlightPlan(std::shared_ptr<libnav::ArptDB> apt_db,
+FlightPlanBase::FlightPlanBase(std::shared_ptr<libnav::ArptDB> apt_db,
                        std::shared_ptr<libnav::NavaidDB> nav_db,
-                       std::string cifp_path)
-    : leg_list_(),
-      seg_list_(),
-      leg_data_stack_(N_FPL_LEG_CACHE_SZ),
-      seg_stack_(N_FPL_SEG_CACHE_SZ) {
-  arpt_db_ptr_ = apt_db;
-  navaid_db_ptr_ = nav_db;
+                       path_type cifp_path)
+    : arpt_db_ptr_{apt_db}, navaid_db_ptr_{nav_db}, 
+      leg_list_{}, seg_list_{},
+      leg_data_stack_{N_FPL_LEG_CACHE_SZ},
+      seg_stack_{N_FPL_SEG_CACHE_SZ}, cifp_dir_path_{cifp_path} {
 
-  cifp_dir_path = cifp_path;
   fix_airac_version_ = navaid_db_ptr_->get_navaid_cycle();
 
   fpl_refs_ = std::vector<fpl_ref_t>(N_FPL_REF_SZ, EmptyRef);
@@ -96,25 +93,21 @@ FlightPlan::FlightPlan(std::shared_ptr<libnav::ArptDB> apt_db,
   time_start_ = std::chrono::steady_clock::now();
 }
 
-double FlightPlan::get_id() const noexcept { 
-  std::shared_lock lk(fpl_mtx_);
+double FlightPlanBase::get_id() const noexcept { 
   return fpl_id_curr_; 
 }
 
-size_t FlightPlan::get_leg_list_sz() const noexcept { 
-  std::shared_lock lk(fpl_mtx_);
+size_t FlightPlanBase::get_leg_list_sz() const noexcept {
   return leg_list_.size; 
 }
 
-size_t FlightPlan::get_seg_list_sz() const noexcept { 
-  std::shared_lock lk(fpl_mtx_);
+size_t FlightPlanBase::get_seg_list_sz() const noexcept {
   return seg_list_.size; 
 }
 
-double FlightPlan::get_ll_seg(
+double FlightPlanBase::get_ll_seg(
     size_t start, size_t l, std::vector<list_node_ref_t<leg_list_data_t>>* out,
     int* act_idx_out) noexcept {
-  std::shared_lock lk(fpl_mtx_);
   *act_idx_out = -1;
 
   if (start >= leg_list_.size) {
@@ -150,9 +143,8 @@ double FlightPlan::get_ll_seg(
   return leg_list_.id;
 }
 
-double FlightPlan::get_sl_seg(size_t start, size_t l,
+double FlightPlanBase::get_sl_seg(size_t start, size_t l,
                   std::vector<list_node_ref_t<fpl_seg_t>>* out) noexcept {
-  std::shared_lock lk(fpl_mtx_);
   if (start >= seg_list_.size) {
     return -1;
   }
@@ -180,10 +172,9 @@ double FlightPlan::get_sl_seg(size_t start, size_t l,
   return seg_list_.id;
 }
 
-bool FlightPlan::is_active() const noexcept { return is_active_; }
+bool FlightPlanBase::is_active() const noexcept { return is_active_; }
 
-bool FlightPlan::can_activate() const noexcept {
-  std::shared_lock lk(fpl_mtx_);
+bool FlightPlanBase::can_activate() const noexcept {
   const leg_list_node_t* curr = &(leg_list_.head);
   curr = curr->next;
   if (curr->data.misc_data.is_rwy && curr != &(leg_list_.tail))
@@ -192,18 +183,15 @@ bool FlightPlan::can_activate() const noexcept {
   return false;
 }
 
-void FlightPlan::activate() {
-  std::unique_lock lk(fpl_mtx_);
+void FlightPlanBase::activate() {
   is_active_ = true;
 }
 
-void FlightPlan::deactivate() {
-  std::unique_lock lk(fpl_mtx_);
+void FlightPlanBase::deactivate() {
   is_active_ = false;
 }
 
-void FlightPlan::print_refs() const noexcept {
-  std::shared_lock lk(fpl_mtx_);
+void FlightPlanBase::print_refs() const noexcept {
   for (size_t i = 1; i < fpl_refs_.size(); i++) {
     std::cout << GetStrOf(FplSegment(i)) << " " << fpl_refs_[i].name
               << " ";
@@ -221,21 +209,25 @@ void FlightPlan::print_refs() const noexcept {
 
 // Protected member functions:
 
-fpl_ref_t& FlightPlan::get_ref_for(FplSegment segment) {
+fpl_ref_t& FlightPlanBase::get_ref_for(FplSegment segment) {
   return fpl_refs_.at(static_cast<std::size_t>(segment));
 }
 
-void FlightPlan::update_id() {
+const fpl_ref_t& FlightPlanBase::get_cref_for(FplSegment segment) const {
+  return fpl_refs_.at(static_cast<std::size_t>(segment));
+}
+
+void FlightPlanBase::update_id() {
   auto now = std::chrono::steady_clock::now();
   std::chrono::duration<double> dur = now - time_start_;
   fpl_id_curr_ = dur.count();
 }
 
-bool FlightPlan::legcmp(leg_t& leg1, leg_t& leg2) {
+bool FlightPlanBase::legcmp(leg_t& leg1, leg_t& leg2) {
   return leg1.main_fix == leg2.main_fix;
 }
 
-libnav::DbErr FlightPlan::set_arpt(std::string icao, libnav::Airport** ptr,
+libnav::DbErr FlightPlanBase::set_arpt(std::string icao, libnav::Airport** ptr,
                                    bool is_arr, libnav::arinc_leg_t* buf) {
   if (*ptr != nullptr && (*ptr)->icao_code == icao) {
     if (!is_arr) {
@@ -245,8 +237,8 @@ libnav::DbErr FlightPlan::set_arpt(std::string icao, libnav::Airport** ptr,
     return libnav::DbErr::ERR_NONE;
   }
   libnav::Airport* tmp =
-      new libnav::Airport(icao, arpt_db_ptr_, navaid_db_ptr_, cifp_dir_path, ".dat", true,
-                          APPR_PREF_MOD, buf);
+      new libnav::Airport(icao, arpt_db_ptr_, navaid_db_ptr_, cifp_dir_path_.Get(), 
+                          ".dat", true, APPR_PREF_MOD, buf);
   libnav::DbErr err_cd = tmp->err_code;
   if (err_cd != libnav::DbErr::SUCCESS &&
       err_cd != libnav::DbErr::PARTIAL_LOAD) {
@@ -263,7 +255,7 @@ libnav::DbErr FlightPlan::set_arpt(std::string icao, libnav::Airport** ptr,
   return err_cd;
 }
 
-void FlightPlan::delete_range(leg_list_node_t* start, leg_list_node_t* end) {
+void FlightPlanBase::delete_range(leg_list_node_t* start, leg_list_node_t* end) {
   delete_between(start, end);
 
   if (end != &leg_list_.tail) {
@@ -273,7 +265,7 @@ void FlightPlan::delete_range(leg_list_node_t* start, leg_list_node_t* end) {
   update_id();
 }
 
-void FlightPlan::delete_ref(FplSegment ref) {
+void FlightPlanBase::delete_ref(FplSegment ref) {
   size_t ref_idx = size_t(ref);
   seg_list_node_t* seg_ptr = fpl_refs_[ref_idx].ptr;
   fpl_refs_[ref_idx].name = "";
@@ -286,7 +278,7 @@ void FlightPlan::delete_ref(FplSegment ref) {
   }
 }
 
-void FlightPlan::delete_segment(seg_list_node_t* seg, bool leave_seg,
+void FlightPlanBase::delete_segment(seg_list_node_t* seg, bool leave_seg,
                                 bool add_disc, bool ignore_tail) {
   if (act_leg_ != nullptr && act_leg_->data.seg == seg) act_leg_ = nullptr;
 
@@ -318,7 +310,7 @@ void FlightPlan::delete_segment(seg_list_node_t* seg, bool leave_seg,
   update_id();
 }
 
-void FlightPlan::add_segment(std::vector<leg_t>& legs, FplSegment seg_tp,
+void FlightPlanBase::add_segment(std::vector<leg_t>& legs, FplSegment seg_tp,
                              std::string seg_name, seg_list_node_t* next,
                              bool is_direct) {
   if (!legs.size()) return;
@@ -350,7 +342,7 @@ void FlightPlan::add_segment(std::vector<leg_t>& legs, FplSegment seg_tp,
   }
 }
 
-void FlightPlan::add_arinc_leg(leg_list_node_t* next, seg_list_node_t* seg,
+void FlightPlanBase::add_arinc_leg(leg_list_node_t* next, seg_list_node_t* seg,
                                leg_t leg) {
   leg_list_data_t data = {};
   data.is_discon = false;
@@ -360,7 +352,7 @@ void FlightPlan::add_arinc_leg(leg_list_node_t* next, seg_list_node_t* seg,
   add_singl_leg(next, data);
 }
 
-void FlightPlan::add_discon(seg_list_node_t* next) {
+void FlightPlanBase::add_discon(seg_list_node_t* next) {
   seg_list_node_t* prev = next->prev;
   if (prev->data.is_discon || next->data.is_discon) return;
   leg_list_node_t* next_leg = prev->data.end->next;
@@ -387,7 +379,7 @@ void FlightPlan::add_discon(seg_list_node_t* next) {
   }
 }
 
-void FlightPlan::add_legs(leg_t start, std::vector<leg_t>& legs,
+void FlightPlanBase::add_legs(leg_t start, std::vector<leg_t>& legs,
                           FplSegment seg_tp, std::string seg_name,
                           seg_list_node_t* next) {
   if (seg_tp == FplSegment::NONE || 
@@ -438,7 +430,7 @@ void FlightPlan::add_legs(leg_t start, std::vector<leg_t>& legs,
   merge_seg(ins_seg->prev);
 }
 
-void FlightPlan::add_direct_leg(leg_t leg, leg_list_node_t* next_leg) {
+void FlightPlanBase::add_direct_leg(leg_t leg, leg_list_node_t* next_leg) {
   if (fpl_refs_[size_t(FplSegment::DEP_RWY)].ptr == nullptr) return;
   leg_list_node_t* prev_leg = next_leg->prev;
 
@@ -465,7 +457,7 @@ void FlightPlan::add_direct_leg(leg_t leg, leg_list_node_t* next_leg) {
   }
 }
 
-bool FlightPlan::delete_singl_leg(
+bool FlightPlanBase::delete_singl_leg(
     leg_list_node_t* leg)  // leg before/after discontinuity
 {
   if (leg->data.is_discon || leg->next == nullptr || leg->prev == nullptr)
@@ -483,7 +475,7 @@ bool FlightPlan::delete_singl_leg(
   return true;
 }
 
-void FlightPlan::reset_fpln(bool leave_dep_rwy) {
+void FlightPlanBase::reset_fpln(bool leave_dep_rwy) {
   seg_list_node_t* seg_start = &seg_list_.head;
 
   std::size_t dep_rwy_seg_idx = static_cast<std::size_t>(
@@ -512,9 +504,7 @@ void FlightPlan::reset_fpln(bool leave_dep_rwy) {
   update_id();
 }
 
-FlightPlan::~FlightPlan() {
-  std::unique_lock lk(fpl_mtx_);
-
+FlightPlanBase::~FlightPlanBase() {
   reset_fpln();
   leg_data_stack_.destroy();
   seg_stack_.destroy();
@@ -524,7 +514,7 @@ FlightPlan::~FlightPlan() {
 
 // Private member functions:
 
-void FlightPlan::delete_between(leg_list_node_t* start, leg_list_node_t* end) {
+void FlightPlanBase::delete_between(leg_list_node_t* start, leg_list_node_t* end) {
   leg_list_node_t* curr = start->next;
   leg_list_node_t* next = curr->next;
 
@@ -571,7 +561,7 @@ void FlightPlan::delete_between(leg_list_node_t* start, leg_list_node_t* end) {
   update_id();
 }
 
-void FlightPlan::add_singl_leg(leg_list_node_t* next, leg_list_data_t data) {
+void FlightPlanBase::add_singl_leg(leg_list_node_t* next, leg_list_data_t data) {
   assert(next != &(leg_list_.tail) || !data.is_discon);
   leg_list_node_t* leg_add = leg_data_stack_.get_new();
   if (leg_add != nullptr) {
@@ -581,7 +571,7 @@ void FlightPlan::add_singl_leg(leg_list_node_t* next, leg_list_data_t data) {
   }
 }
 
-seg_list_node_t* FlightPlan::get_insert_seg(FplSegment seg_tp,
+seg_list_node_t* FlightPlanBase::get_insert_seg(FplSegment seg_tp,
                                             seg_list_node_t** next_seg) {
   size_t ref_idx = size_t(seg_tp);
   seg_list_node_t* ins_seg;
@@ -622,7 +612,7 @@ seg_list_node_t* FlightPlan::get_insert_seg(FplSegment seg_tp,
   return ins_seg;
 }
 
-void FlightPlan::merge_seg(seg_list_node_t* tgt) {
+void FlightPlanBase::merge_seg(seg_list_node_t* tgt) {
   int i = 1;
   seg_list_node_t* curr = tgt->next;
   seg_list_node_t* next_disc = nullptr;  // Next discountinuity segment
@@ -653,7 +643,7 @@ void FlightPlan::merge_seg(seg_list_node_t* tgt) {
   }
 }
 
-seg_list_node_t* FlightPlan::subdivide(leg_list_node_t* prev_leg,
+seg_list_node_t* FlightPlanBase::subdivide(leg_list_node_t* prev_leg,
                                        leg_list_node_t* next_leg) {
   leg_list_node_t* prev_check = prev_leg;
   leg_list_node_t* next_check = next_leg;

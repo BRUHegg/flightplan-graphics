@@ -61,12 +61,12 @@ class Avionics {
   std::shared_ptr<FPLSys> fpl_sys;
   std::shared_ptr<fms_environment::EnvDataRefMap> env_map_ptr_;
 
-  std::string cifp_dir_path;
+  pathlib::Path cifp_dir_path;
 
   Avionics(pathlib::Path apt_dat, pathlib::Path custom_apt, pathlib::Path custom_rnw,
            pathlib::Path fix_data, pathlib::Path navaid_data, pathlib::Path awy_data,
            pathlib::Path hold_data, pathlib::Path cifp_path, pathlib::Path fpl_path) {
-    cifp_dir_path = cifp_path.Get();
+    cifp_dir_path = cifp_path;
 
     arpt_db_ptr =
         std::make_shared<libnav::ArptDB>(apt_dat.Get(), custom_apt.Get(), custom_rnw.Get());
@@ -111,7 +111,7 @@ class Avionics {
 
     fpl_sys = std::make_shared<FPLSys>(arpt_db_ptr, navaid_db_ptr, awy_db,
                                       env_map_ptr_,
-                                       cifp_dir_path, fpl_path.Get());
+                                       cifp_dir_path, fpl_path);
   }
 
   void update() { fpl_sys->update(); }

@@ -37,8 +37,8 @@ FPLSys::FPLSys(std::shared_ptr<libnav::ArptDB> arpt_db,
                std::shared_ptr<libnav::NavaidDB> navaid_db,
                std::shared_ptr<libnav::AwyDB> awy_db, 
                std::shared_ptr<fms_environment::EnvDataRefMap> env_map,
-               std::string cifp_path,
-               std::string fpl_path) : arpt_db_ptr_{arpt_db}, 
+               path_type cifp_path,
+               path_type fpl_path) : arpt_db_ptr_{arpt_db}, 
                navaid_db_ptr_{navaid_db}, awy_db_ptr_{awy_db},
                env_map_ptr_{env_map}, cifp_dir_path_{cifp_path},
                fpl_dir_{fpl_path} {
@@ -47,7 +47,7 @@ FPLSys::FPLSys(std::shared_ptr<libnav::ArptDB> arpt_db,
   fpl_dir_ = fpl_path;
 
   for (size_t i = 0; i < N_FPL_SYS_RTES; i++) {
-    std::shared_ptr<FplnInt> tmp = std::make_shared<FplnInt>(
+    std::shared_ptr<flightplan_type> tmp = std::make_shared<flightplan_type>(
         arpt_db_ptr_, navaid_db_ptr_, awy_db_ptr_, cifp_dir_path_);
     fpl_vec_.push_back(tmp);
   }
@@ -86,7 +86,7 @@ FPLSys::FPLSys(std::shared_ptr<libnav::ArptDB> arpt_db,
 
 std::size_t FPLSys::get_cnt_flplns() const noexcept { return fpl_vec_.size(); }
 
-std::shared_ptr<FplnInt> FPLSys::get_fpln_ptr(
+std::shared_ptr<FPLSys::flightplan_type> FPLSys::get_fpln_ptr(
     std::size_t fpln_idx) const noexcept {
   std::shared_lock lk(main_mutex_);
   assert(fpln_idx < fpl_vec_.size());
@@ -105,7 +105,7 @@ std::shared_ptr<libnav::NavaidDB> FPLSys::get_navaid_db_ptr() const noexcept {
   return navaid_db_ptr_;
 }
 
-std::string FPLSys::get_fpln_dir() const noexcept { return fpl_dir_; }
+FPLSys::path_type FPLSys::get_fpln_dir() const noexcept { return fpl_dir_; }
 
 std::pair<std::size_t, double> FPLSys::get_sel_leg(bool rt) const noexcept {
   std::shared_lock lk(main_mutex_);

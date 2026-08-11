@@ -616,7 +616,7 @@ std::string CDU::load_rte() {
   std::string arr_nm = fpln_->get_arr_icao();
 
   if (dep_nm != "" && arr_nm != "") {
-    std::string file_nm = fpl_sys_->get_fpln_dir() + dep_nm + arr_nm;
+    std::string file_nm = (fpl_sys_->get_fpln_dir() + (dep_nm + arr_nm)).Get();
     libnav::DbErr err = fpln_->load_from_fms(file_nm, false);
     if (err != libnav::DbErr::SUCCESS) {
       return INVALID_RTE_UPLINK_MSG;
@@ -631,7 +631,7 @@ std::string CDU::save_rte() {
   std::string arr_nm = fpln_->get_arr_icao();
 
   if (dep_nm != "" && arr_nm != "") {
-    std::string out_nm = fpl_sys_->get_fpln_dir() + dep_nm + arr_nm;
+    std::string out_nm = (fpl_sys_->get_fpln_dir() + (dep_nm + arr_nm)).Get();
     fpln_->save_to_fms(out_nm);
   }
 
@@ -894,7 +894,7 @@ std::string CDU::get_small_heading() const noexcept {
 }
 
 void CDU::set_procs(fms_core::ProcType ptp, bool is_arr, bool rte2) {
-  std::shared_ptr<fms_core::FplnInt> c_fpl = m_rte1_ptr_;
+  std::shared_ptr<flightplan_type> c_fpl = m_rte1_ptr_;
   if (rte2) {
     c_fpl = m_rte2_ptr_;
   }
@@ -941,7 +941,7 @@ void CDU::set_procs(fms_core::ProcType ptp, bool is_arr, bool rte2) {
 
 void CDU::set_fpl_proc(int event, fms_core::ProcType ptp, bool is_arr,
                        bool rte2) {
-  std::shared_ptr<fms_core::FplnInt> c_fpl = m_rte1_ptr_;
+  std::shared_ptr<flightplan_type> c_fpl = m_rte1_ptr_;
   if (rte2) {
     c_fpl = m_rte2_ptr_;
   }
@@ -973,7 +973,7 @@ void CDU::get_rte_dep_arr(cdu_scr_data_t& out, bool rte2) const noexcept {
   size_t v_idx = fms_core::RTE1_IDX;
   if (rte2) v_idx = fms_core::RTE2_IDX;
 
-  std::shared_ptr<fms_core::FplnInt> cr_fpln = fpl_sys_->get_fpln_ptr(v_idx);
+  std::shared_ptr<flightplan_type> cr_fpln = fpl_sys_->get_fpln_ptr(v_idx);
 
   std::string dep = cr_fpln->get_dep_icao();
   std::string arr = cr_fpln->get_arr_icao();
@@ -1026,7 +1026,7 @@ int CDU::get_n_rte_subpg() const noexcept {
 int CDU::get_n_dep_arr_subpg(bool rte2) noexcept {
   CDUPage c_dep_pg = CDUPage::DEP1;
   CDUPage c_arr_pg = CDUPage::ARR1;
-  std::shared_ptr<fms_core::FplnInt> c_fpl = m_rte1_ptr_;
+  std::shared_ptr<flightplan_type> c_fpl = m_rte1_ptr_;
   if (rte2) {
     c_dep_pg = CDUPage::DEP2;
     c_arr_pg = CDUPage::ARR2;
@@ -1141,9 +1141,9 @@ std::string CDU::handle_rte(int event_key, std::string scratchpad,
 }
 
 std::string CDU::handle_dep_arr(int event_key) {
-  std::shared_ptr<fms_core::FplnInt> rte1 =
+  std::shared_ptr<flightplan_type> rte1 =
       fpl_sys_->get_fpln_ptr(fms_core::RTE1_IDX);
-  std::shared_ptr<fms_core::FplnInt> rte2 = rte1;
+  std::shared_ptr<flightplan_type> rte2 = rte1;
   std::string dep1 = rte1->get_dep_icao();
   std::string arr1 = rte1->get_arr_icao();
   std::string dep2 = rte2->get_dep_icao();
@@ -1180,7 +1180,7 @@ std::string CDU::handle_dep(int event_key, bool rte2) {
   } else if (event_key && event_key < CDU_KEY_LSK_TOP + 5) {
     set_fpl_proc(event_key, fms_core::PROC_TYPE_SID, false, rte2);
   } else if (event_key >= CDU_KEY_RSK_TOP && event_key < CDU_KEY_RSK_TOP + 5) {
-    std::shared_ptr<fms_core::FplnInt> c_fpl = m_rte1_ptr_;
+    std::shared_ptr<flightplan_type> c_fpl = m_rte1_ptr_;
     if (rte2) {
       c_fpl = m_rte2_ptr_;
     }
@@ -1212,7 +1212,7 @@ std::string CDU::handle_arr(int event_key, bool rte2) {
     int start_idx = (curr_subpg_ - 1) * 5;
     int curr_idx = start_idx + event_key - CDU_KEY_RSK_TOP;
 
-    std::shared_ptr<fms_core::FplnInt> c_fpl = m_rte1_ptr_;
+    std::shared_ptr<flightplan_type> c_fpl = m_rte1_ptr_;
     if (rte2) {
       c_fpl = m_rte2_ptr_;
     }
@@ -1599,7 +1599,7 @@ void CDU::dep_arr_set_bottom(cdu_scr_data_t& out) const noexcept {
 }
 
 cdu_scr_data_t CDU::get_dep_page(bool rte2) const noexcept {
-  std::shared_ptr<fms_core::FplnInt> c_fpl = m_rte1_ptr_;
+  std::shared_ptr<flightplan_type> c_fpl = m_rte1_ptr_;
   if (rte2) {
     c_fpl = m_rte2_ptr_;
   }
@@ -1638,7 +1638,7 @@ cdu_scr_data_t CDU::get_dep_page(bool rte2) const noexcept {
 }
 
 cdu_scr_data_t CDU::get_arr_page(bool rte2) const noexcept {
-  std::shared_ptr<fms_core::FplnInt> c_fpl = m_rte1_ptr_;
+  std::shared_ptr<flightplan_type> c_fpl = m_rte1_ptr_;
   if (rte2) {
     c_fpl = m_rte2_ptr_;
   }

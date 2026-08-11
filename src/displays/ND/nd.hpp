@@ -137,6 +137,8 @@ struct efis_selection_t {
 
 class NDData {
  public:
+  using flightplan_type = typename fms_core::FPLSys::flightplan_type;
+
   NDData(std::shared_ptr<fms_core::FPLSys> fpl_sys);
 
   bool init();
@@ -217,7 +219,7 @@ class NDData {
  private:
   mutable std::shared_mutex main_mutex_;
 
-  std::vector<std::shared_ptr<fms_core::FplnInt>> fpl_vec_;
+  std::vector<std::shared_ptr<flightplan_type>> fpl_vec_;
   std::shared_ptr<fms_core::FPLSys> fpl_sys_ptr_;
 
   bool idx_proj_act_ = false;

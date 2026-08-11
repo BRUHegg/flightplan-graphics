@@ -22,9 +22,8 @@
 #include <unordered_map>
 
 #include "environment.hpp"
-#include "flightpln_int.hpp"
-
-#define UNUSED(x) (void)(x)
+#include "fpln_main.hpp"
+#include <util/pathlib.hpp>
 
 namespace fms_core {
 enum class RTECopySts { READY, COMPLETE, UNAVAIL };
@@ -73,16 +72,19 @@ struct fpln_data_t : fpln_info_t {
 
 class FPLSys {
  public:
+  using path_type = pathlib::Path;
+  using flightplan_type = FlightPlan;
+
   FPLSys(std::shared_ptr<libnav::ArptDB> arpt_db,
          std::shared_ptr<libnav::NavaidDB> navaid_db,
          std::shared_ptr<libnav::AwyDB> awy_db, 
          std::shared_ptr<fms_environment::EnvDataRefMap> env_map,
-         std::string cifp_path,
-         std::string fpl_path);
+         path_type cifp_path,
+         path_type fpl_path);
 
   std::size_t get_cnt_flplns() const noexcept;
 
-  std::shared_ptr<FplnInt> get_fpln_ptr(std::size_t fpln_idx) const noexcept;
+  std::shared_ptr<flightplan_type> get_fpln_ptr(std::size_t fpln_idx) const noexcept;
 
   std::shared_ptr<libnav::AwyDB> get_awy_db_ptr() const noexcept;
 
@@ -90,7 +92,7 @@ class FPLSys {
 
   std::shared_ptr<libnav::NavaidDB> get_navaid_db_ptr() const noexcept;
 
-  std::string get_fpln_dir() const noexcept;
+  path_type get_fpln_dir() const noexcept;
 
   std::pair<std::size_t, double> get_sel_leg(bool rt) const noexcept;
 
@@ -174,13 +176,13 @@ class FPLSys {
   std::shared_ptr<libnav::AwyDB> awy_db_ptr_;
   std::shared_ptr<fms_environment::EnvDataRefMap> env_map_ptr_;
 
-  std::vector<std::shared_ptr<FplnInt>> fpl_vec_;
+  std::vector<std::shared_ptr<flightplan_type>> fpl_vec_;
 
   std::pair<std::size_t, double> leg_sel_cdu_l_;
   std::pair<std::size_t, double> leg_sel_cdu_r_;
 
-  std::string cifp_dir_path_;
-  std::string fpl_dir_;
+  path_type cifp_dir_path_;
+  path_type fpl_dir_;
 
   mutable std::shared_mutex main_mutex_;
 
