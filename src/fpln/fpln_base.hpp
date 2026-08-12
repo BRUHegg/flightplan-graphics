@@ -151,8 +151,8 @@ class FlightPlanBase {
  public:
   using path_type = pathlib::Path;
 
-  FlightPlanBase(std::shared_ptr<libnav::ArptDB> apt_db,
-             std::shared_ptr<libnav::NavaidDB> nav_db, path_type cifp_path);
+  FlightPlanBase(util::OpaquePointer<libnav::ArptDB> apt_db,
+             util::OpaquePointer<libnav::NavaidDB> nav_db, path_type cifp_path);
 
   double get_id() const noexcept;
   MY_ATTR_SHARED(get_id)
@@ -213,11 +213,11 @@ class FlightPlanBase {
   bool is_active_ = false;
   int fix_airac_version_;
 
-  std::shared_ptr<libnav::ArptDB> arpt_db_ptr_;
-  std::shared_ptr<libnav::NavaidDB> navaid_db_ptr_;
+  util::OpaquePointer<libnav::ArptDB> arpt_db_ptr_;
+  util::OpaquePointer<libnav::NavaidDB> navaid_db_ptr_;
 
-  libnav::Airport* departure_ = nullptr;
-  libnav::Airport* arrival_ = nullptr;
+  const libnav::Airport* departure_ = nullptr;
+  const libnav::Airport* arrival_ = nullptr;
 
   libnav::arinc_leg_t* departure_legs_ = nullptr;
   libnav::arinc_leg_t* arrival_legs_ = nullptr;
@@ -244,7 +244,7 @@ class FlightPlanBase {
 
   bool legcmp(leg_t& leg1, leg_t& leg2);
 
-  libnav::DbErr set_arpt(std::string icao, libnav::Airport** ptr,
+  libnav::DbErr set_arpt(std::string icao, const libnav::Airport** ptr,
                          bool is_arr = false,
                          libnav::arinc_leg_t* buf = nullptr);
 

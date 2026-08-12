@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstddef>
+
 #include <mutex>
 #include <shared_mutex>
 #include <type_traits>
@@ -8,6 +10,7 @@
 namespace util {
 
 #define UNUSED(x) (void)(x)
+#define MY_ARRAY_SIZE(x) (sizeof(x) / sizeof(x[0]))
 
 template<typename T, bool is_shared>
 class LockWrapper final {
@@ -39,10 +42,64 @@ public:
 
 #define MY_MUTEX_WRAPPER_FUNC_BODY(obj, obj_type, func, mtx, ...) MY_SHARED_ATTR_LOCK(obj_type, func, mtx); return obj.func(__VA_ARGS__);
 
+template<typename T>
+struct array_data_t {
+  T* ptr;
+  std::size_t size;
+};
+
+using const_str_data_t = array_data_t<const char*>;
+
 struct enum_class_hash_t {
   template <typename T>
   size_t operator()(T t) const {
     return static_cast<size_t>(t);
+  }
+};
+
+template<typename T>
+class OpaquePointer final {
+  T* ptr_ = nullptr;
+public:
+  using pointer = T*;
+  using const_pointer = const T*;
+  using reference = T&;
+  using const_reference = const T&;
+
+  OpaquePointer() = default;
+
+  explicit OpaquePointer(T* ptr) : ptr_{ptr} {}
+
+  pointer get() noexcept {
+    return ptr_;
+  }
+
+  const_pointer get() const noexcept {
+    return ptr_;
+  }
+
+  pointer operator->() noexcept {
+    return ptr_;
+  }
+
+  const_pointer operator->() const noexcept {
+    return ptr_;
+  }
+
+  reference operator*() noexcept {
+    return *ptr_;
+  }
+
+  const_reference operator*() const noexcept {
+    return *ptr_;
+  }
+
+  reference operator[](std::size_t n) noexcept {
+    return *(ptr_ + n);
+  }
+
+  const_reference operator[](std::size_t n) const noexcept {
+    return *(ptr_ + n);
   }
 };
 };  // namespace util

@@ -12,13 +12,20 @@
 
 #include "nd.hpp"
 
-#include <cassert>
 #include <cstddef>
 
-#include <mutex>
-#include <shared_mutex>
-#include <unordered_map>
+#include <memory>
 #include <vector>
+#include <string>
+#include <shared_mutex>
+
+#include <displays/common/cairo_utils.hpp>
+#include <displays/common/texture_manager.hpp>
+#include <displays/common/font_names.hpp>
+#include <fpln/fpln_sys.hpp>
+#include <util/geom.hpp>
+#include <libnav/str_utils.hpp>
+#include <util/util.hpp>
 
 namespace {
 
@@ -131,9 +138,46 @@ const std::vector<fms_core::NDMode> ND_MDS = {fms_core::NDMode::MAP,
                                           fms_core::NDMode::PLAN};
 constexpr double RNG_DEC_1_NM = 2.5;
 constexpr double RNG_DEC_2_NM = 1.25;
+
+// Texture names:
+const char ND_WPT_INACT_NAME[] = "wpt_inact";
+const char ND_WPT_ACT_NAME[] = "wpt_act";
+const char ND_AIRPLANE_NAME[] = "airplane";
+const char ND_PLN_BACKGND_INNER_NAME[] = "pln_back_inner";
+const char ND_PLN_BACKGND_OUTER_NAME[] = "pln_back_outer";
+const char ND_MAP_BACKGND_NAME[] = "map_back";
+const char ND_MAP_HDG_NAME[] = "map_hdg";
+const char ND_MAP_AC_TRI_NAME[] = "map_ac_ico";
+const char ND_HTRK_BOX_NAME[] = "hdg_trk_box";
+const char ND_ARPT_NML_POI_NAME[] = "normal_arpt_sign";
+const char ND_ARPT_ALTN_POI_NAME[] = "altn_arpt_sign";
+const char ND_DME_POI_NAME[] = "dme";
+const char ND_VORDME_POI_NAME[] = "vordme";
+
+const char* ND_TEXTURE_ARRAY[] = {
+  ND_WPT_ACT_NAME,
+  ND_WPT_INACT_NAME,
+  ND_AIRPLANE_NAME,
+  ND_PLN_BACKGND_INNER_NAME,
+  ND_PLN_BACKGND_OUTER_NAME,
+  ND_MAP_BACKGND_NAME,
+  ND_MAP_AC_TRI_NAME,
+  ND_MAP_HDG_NAME,
+  ND_HTRK_BOX_NAME,
+  ND_ARPT_NML_POI_NAME,
+  ND_ARPT_ALTN_POI_NAME,
+  ND_VORDME_POI_NAME,
+  ND_DME_POI_NAME
+};
 }  // namespace
 
 namespace fms_displays {
+
+util::const_str_data_t GetNdTextureNames() {
+  return util::const_str_data_t{
+    .ptr = ND_TEXTURE_ARRAY, .size=MY_ARRAY_SIZE(ND_TEXTURE_ARRAY)};
+}
+
 bool poi_data_t::init_ptr(labeled_point_with_dist_t** ptr) {
   labeled_point_with_dist_t* p_new =
       new labeled_point_with_dist_t[N_EFIS_TYPE_CACHE_SZ];
@@ -172,11 +216,9 @@ bool labeled_point_with_dist_cmp_t::operator()(
 
 // map_poi_container_t definitions:
 map_poi_container_t::map_poi_container_t(
-    std::shared_ptr<libnav::ArptDB> arpt_ptr,
-    std::shared_ptr<libnav::NavaidDB> navaid_ptr) {
-  arpt_db_ptr = arpt_ptr;
-  navaid_db_ptr = navaid_ptr;
-}
+    util::OpaquePointer<libnav::ArptDB> arpt_ptr,
+    util::OpaquePointer<libnav::NavaidDB> navaid_ptr) : 
+    arpt_db_ptr{arpt_ptr}, navaid_db_ptr{navaid_ptr} {}
 
 void map_poi_container_t::set_add(
     std::set<labeled_point_with_dist_t, labeled_point_with_dist_cmp_t>& st,
@@ -326,11 +368,12 @@ void map_data_t::destroy() {
 
 // Public member functions:
 
-NDData::NDData(std::shared_ptr<fms_core::FPLSys> fpl_sys)
+NDData::NDData(fms_core::FPLSys* fpl_sys)
     : poi_data_(fpl_sys->get_arpt_db_ptr(), fpl_sys->get_navaid_db_ptr()) {
   fpl_sys_ptr_ = fpl_sys;
+  assert(MY_ARRAY_SIZE(fpl_vec_) == fpl_sys->get_cnt_flplns());
   for (std::size_t i = 0; i < fpl_sys->get_cnt_flplns(); ++i) {
-    fpl_vec_.push_back(fpl_sys->get_fpln_ptr(i));
+    fpl_vec_[i] = fpl_sys->get_fpln_ptr(i);
   }
 
   leg_data_ = std::vector<fms_core::nd_leg_data_t*>(fms_core::N_FPL_SYS_RTES);
@@ -849,34 +892,31 @@ void NDData::update_fpl(std::size_t idx) {
 
 // Public member functions:
 
-NDDisplay::NDDisplay(std::shared_ptr<NDData> data,
-                     std::shared_ptr<cairo_utils::texture_manager_t> mngr,
-                     cairo_font_face_t* ff, geom::vect2_t pos, geom::vect2_t sz,
+NDDisplay::NDDisplay(NDData* data, TextureManager* mngr,
+                    geom::vect2_t pos, geom::vect2_t sz,
                      size_t sd_idx) {
-  nd_data = data;
-  tex_mngr = mngr;
+  nd_data_ = data;
+  textures_.init(mngr);
 
-  font_face = ff;
+  scr_pos_ = pos;
+  size_ = sz;
 
-  scr_pos = pos;
-  size = sz;
+  side_idx_ = sd_idx;
 
-  side_idx = sd_idx;
-
-  is_trk_up = nd_data->get_th_up();
-  is_ctr = false;
-  has_tfc = false;
-  efis_sel = {};
-  rng = nd_data->get_range(side_idx);
+  is_trk_up_ = nd_data_->get_th_up();
+  is_ctr_ = false;
+  has_tfc_ = false;
+  efis_sel_ = {};
+  rng_ = nd_data_->get_range(side_idx_);
 }
 
 void NDDisplay::draw(cairo_t* cr) {
   update_mode();
-  rng = nd_data->get_range(side_idx);
+  rng_ = nd_data_->get_range(side_idx_);
   update_map_params();
-  hdg_data = nd_data->get_hdg_data();
+  hdg_data_ = nd_data_->get_hdg_data();
 
-  cairo_utils::draw_rect(cr, scr_pos, size, ND_BCKGRND_CLR);
+  cairo_utils::draw_rect(cr, scr_pos_, size_, ND_BCKGRND_CLR);
 
   draw_background(cr, true);
   draw_efis_filters(cr);
@@ -887,56 +927,86 @@ void NDDisplay::draw(cairo_t* cr) {
   draw_act_leg_info(cr);
   draw_spd_info(cr);
   draw_range(cr);
-  // cairo_utils::draw_circle(cr, scr_pos+map_ctr, 3, 3, cairo_utils::MAGENTA);
 }
 
 // Private member functions:
 
+void NDDisplay::nd_textures_t::init(TextureManager* tex_manager) {
+  wpt_inact = tex_manager->GetTexture(ND_WPT_INACT_NAME);
+  assert(wpt_inact != nullptr);
+  wpt_act = tex_manager->GetTexture(ND_WPT_ACT_NAME);
+  assert(wpt_act != nullptr);
+  airplane = tex_manager->GetTexture(ND_AIRPLANE_NAME);
+  assert(airplane != nullptr);
+  pln_back_inner = tex_manager->GetTexture(ND_PLN_BACKGND_INNER_NAME);
+  assert(pln_back_inner != nullptr);
+  pln_back_outer = tex_manager->GetTexture(ND_PLN_BACKGND_OUTER_NAME);
+  assert(pln_back_outer != nullptr);
+  map_back = tex_manager->GetTexture(ND_MAP_BACKGND_NAME);
+  assert(map_back != nullptr);
+  map_hdg = tex_manager->GetTexture(ND_MAP_HDG_NAME);
+  assert(map_hdg != nullptr);
+  map_ac_ico = tex_manager->GetTexture(ND_MAP_AC_TRI_NAME);
+  assert(map_ac_ico != nullptr);
+  hdg_trk_box = tex_manager->GetTexture(ND_HTRK_BOX_NAME);
+  assert(hdg_trk_box != nullptr);
+  normal_arpt_sign = tex_manager->GetTexture(ND_ARPT_NML_POI_NAME);
+  assert(normal_arpt_sign != nullptr);
+  altn_arpt_sign = tex_manager->GetTexture(ND_ARPT_ALTN_POI_NAME);
+  assert(altn_arpt_sign != nullptr);
+  dme = tex_manager->GetTexture(ND_DME_POI_NAME);
+  assert(dme != nullptr);
+  vordme = tex_manager->GetTexture(ND_VORDME_POI_NAME);
+  assert(vordme != nullptr);
+
+  font_face = tex_manager->GetFontData(fms_display_fonts::MAIN_FONT_NAME)->cairo_face;
+}
+
 void NDDisplay::update_mode() {
-  is_trk_up = nd_data->get_th_up();
-  std::pair<fms_core::NDMode, bool> md_dt = nd_data->get_mode(side_idx);
-  cr_md = md_dt.first;
-  is_ctr = md_dt.second;
-  efis_sel = nd_data->get_efis_sts_sd(side_idx);
+  is_trk_up_ = nd_data_->get_th_up();
+  std::pair<fms_core::NDMode, bool> md_dt = nd_data_->get_mode(side_idx_);
+  cr_md_ = md_dt.first;
+  is_ctr_ = md_dt.second;
+  efis_sel_ = nd_data_->get_efis_sts_sd(side_idx_);
 }
 
 void NDDisplay::update_map_params() {
-  if (cr_md == fms_core::NDMode::PLAN) {
-    curr_rng = rng / 2;
-    map_ctr = size.scmul(0.5);
-    map_ctr.y += size.y * ND_PRJ_CTR_V_OFFS_PLAN;
-  } else if (cr_md == fms_core::NDMode::MAP) {
-    curr_rng = rng;
-    map_ctr = size.scmul(0.5);
-    map_ctr.y += size.y * ND_PRJ_CTR_V_OFFS_MAP;
+  if (cr_md_ == fms_core::NDMode::PLAN) {
+    curr_rng_ = rng_ / 2;
+    map_ctr_ = size_.scmul(0.5);
+    map_ctr_.y += size_.y * ND_PRJ_CTR_V_OFFS_PLAN;
+  } else if (cr_md_ == fms_core::NDMode::MAP) {
+    curr_rng_ = rng_;
+    map_ctr_ = size_.scmul(0.5);
+    map_ctr_.y += size_.y * ND_PRJ_CTR_V_OFFS_MAP;
   }
-  scale_factor = size.scmul(ND_RNG_FULL_RES_COEFF[cr_md]).scdiv(curr_rng);
+  scale_factor_ = size_.scmul(ND_RNG_FULL_RES_COEFF[cr_md_]).scdiv(curr_rng_);
 }
 
 geom::vect2_t NDDisplay::get_screen_coords(geom::vect2_t src) {
   src.y *= -1;
-  geom::vect2_t out = src * scale_factor + map_ctr + scr_pos;
+  geom::vect2_t out = src * scale_factor_ + map_ctr_ + scr_pos_;
 
   return out;
 }
 
 void NDDisplay::draw_line_joint(cairo_t* cr, geom::line_joint_t lj,
                                 geom::vect3_t ln_clr) {
-  double radius_px = lj.turn_radius * scale_factor.x;
+  double radius_px = lj.turn_radius * scale_factor_.x;
   if (lj.tp == geom::JointType::CIRC_CIRC) {
     geom::vect2_t arc1_trans = get_screen_coords(lj.arc1.pos);
     geom::vect2_t arc2_trans = get_screen_coords(lj.arc2.pos);
 
     cairo_utils::draw_arc(cr, arc1_trans, radius_px, lj.arc1.ang_start_rad,
-                          lj.arc1.ang_end_rad, ND_FPL_LINE_THICK * size.x,
+                          lj.arc1.ang_end_rad, ND_FPL_LINE_THICK * size_.x,
                           ln_clr);
     cairo_utils::draw_arc(cr, arc2_trans, radius_px, lj.arc2.ang_start_rad,
-                          lj.arc2.ang_end_rad, ND_FPL_LINE_THICK * size.x,
+                          lj.arc2.ang_end_rad, ND_FPL_LINE_THICK * size_.x,
                           ln_clr);
   } else if (lj.tp == geom::JointType::CIRC) {
     geom::vect2_t arc1_trans = get_screen_coords(lj.arc1.pos);
     cairo_utils::draw_arc(cr, arc1_trans, radius_px, lj.arc1.ang_start_rad,
-                          lj.arc1.ang_end_rad, ND_FPL_LINE_THICK * size.x,
+                          lj.arc1.ang_end_rad, ND_FPL_LINE_THICK * size_.x,
                           ln_clr);
   }
 
@@ -944,16 +1014,16 @@ void NDDisplay::draw_line_joint(cairo_t* cr, geom::line_joint_t lj,
   geom::vect2_t e_trans = get_screen_coords(lj.line.end);
 
   cairo_utils::draw_line(cr, s_trans, e_trans, ln_clr,
-                         ND_FPL_LINE_THICK * size.x);
+                         ND_FPL_LINE_THICK * size_.x);
 }
 
 void NDDisplay::draw_flight_plan(cairo_t* cr, bool draw_labels,
                                  geom::vect3_t ln_clr, size_t idx) {
   leg_proj_t* buf;
-  size_t buf_size = nd_data->get_proj_legs(&buf, side_idx, idx);
+  size_t buf_size = nd_data_->get_proj_legs(&buf, side_idx_, idx);
   int act_leg_idx = -1;
   if (ln_clr == cairo_utils::MAGENTA)
-    act_leg_idx = nd_data->get_act_leg_idx(side_idx);
+    act_leg_idx = nd_data_->get_act_leg_idx(side_idx_);
 
   bool draw_dash = !draw_labels && ln_clr != cairo_utils::MAGENTA;
   if (draw_dash) {
@@ -981,14 +1051,14 @@ void NDDisplay::draw_flight_plan(cairo_t* cr, bool draw_labels,
           geom::vect2_t e_trans = get_screen_coords(end);
 
           cairo_utils::draw_line(cr, s_trans, e_trans, ln_clr,
-                                 ND_FPL_LINE_THICK * size.x);
+                                 ND_FPL_LINE_THICK * size_.x);
         }
       } else if (buf[i].end_nm.size() && draw_labels) {
         geom::vect2_t end_wpt = buf[i].end_wpt;
 
         geom::vect2_t ew_trans = get_screen_coords(end_wpt);
 
-        geom::vect2_t text_pos = ew_trans + size * FIX_NAME_OFFS;
+        geom::vect2_t text_pos = ew_trans + size_ * FIX_NAME_OFFS;
 
         std::string name_draw = buf[i].get_draw_nm();
 
@@ -1000,21 +1070,21 @@ void NDDisplay::draw_flight_plan(cairo_t* cr, bool draw_labels,
           tgt_color = cairo_utils::MAGENTA;
         }
 
-        cairo_utils::draw_left_text(cr, font_face, name_draw, text_pos,
+        cairo_utils::draw_left_text(cr, textures_.font_face, name_draw, text_pos,
                                     tgt_color, ND_WPT_FONT_SZ);
 
         if (!buf[i].is_rwy && buf[i].end_nm[0] != '(') {
-          geom::vect2_t scale = size.scmul(1 / WPT_SCALE_FACT);
+          geom::vect2_t scale = size_.scmul(1 / WPT_SCALE_FACT);
           if (is_active) {
-            cairo_utils::draw_image(cr, tex_mngr->data[WPT_ACT_NAME], ew_trans,
+            cairo_utils::draw_image(cr, textures_.wpt_act, ew_trans,
                                     scale, true);
           } else {
-            cairo_utils::draw_image(cr, tex_mngr->data[WPT_INACT_NAME],
+            cairo_utils::draw_image(cr, textures_.wpt_inact,
                                     ew_trans, scale, true);
           }
         } else if (!buf[i].is_rwy) {
-          cairo_utils::draw_circle(cr, ew_trans, size.x * PSEUDO_WPT_RADIUS_RAT,
-                                   size.x * PSEUDO_WPT_THICK_RAT, tgt_color);
+          cairo_utils::draw_circle(cr, ew_trans, size_.x * PSEUDO_WPT_RADIUS_RAT,
+                                   size_.x * PSEUDO_WPT_THICK_RAT, tgt_color);
         }
       }
     }
@@ -1040,9 +1110,9 @@ void NDDisplay::draw_ext_rwy_ctr_line(cairo_t* cr, leg_proj_t rnw_proj) {
   cairo_save(cr);
   cairo_set_dash(cr, RWY_EXT_CTR_LINE_DASH, N_RWY_DASHES, 1);
   cairo_utils::draw_line(cr, end1_trans, rwy_start_trans, cairo_utils::WHITE,
-                         RWY_SIDE_THICK * size.x);
+                         RWY_SIDE_THICK * size_.x);
   cairo_utils::draw_line(cr, end2_trans, rwy_end_trans, cairo_utils::WHITE,
-                         RWY_SIDE_THICK * size.x);
+                         RWY_SIDE_THICK * size_.x);
   cairo_restore(cr);
 }
 
@@ -1056,7 +1126,7 @@ void NDDisplay::draw_runway(cairo_t* cr, leg_proj_t rnw_proj) {
                                   start_trans.x - end_trans.x};
   r_proj_nml_vec = r_proj_nml_vec.get_unit();
 
-  double half_width = size.x * DEFAULT_RWY_WIDTH / 2;
+  double half_width = size_.x * DEFAULT_RWY_WIDTH / 2;
   geom::vect2_t l_side_start = start_trans + r_proj_nml_vec.scmul(half_width);
   geom::vect2_t l_side_end = end_trans + r_proj_nml_vec.scmul(half_width);
 
@@ -1065,28 +1135,28 @@ void NDDisplay::draw_runway(cairo_t* cr, leg_proj_t rnw_proj) {
   geom::vect2_t r_side_end = end_trans + r_proj_nml_vec.scmul(half_width * -1);
 
   cairo_utils::draw_line(cr, l_side_start, l_side_end, cairo_utils::WHITE,
-                         RWY_SIDE_THICK * size.x);
+                         RWY_SIDE_THICK * size_.x);
 
   cairo_utils::draw_line(cr, r_side_start, r_side_end, cairo_utils::WHITE,
-                         RWY_SIDE_THICK * size.x);
+                         RWY_SIDE_THICK * size_.x);
 }
 
 void NDDisplay::draw_runways(cairo_t* cr, size_t idx) {
   leg_proj_t* buf;
-  size_t buf_size = nd_data->get_proj_legs(&buf, side_idx, idx);
+  size_t buf_size = nd_data_->get_proj_legs(&buf, side_idx_, idx);
   UNUSED(buf_size);
 
-  if (nd_data->has_dep_rwy(idx)) {
+  if (nd_data_->has_dep_rwy(idx)) {
     draw_runway(cr, buf[DEP_RWY_PROJ_IDX]);
   }
 
-  if (nd_data->has_arr_rwy(idx)) {
+  if (nd_data_->has_arr_rwy(idx)) {
     draw_runway(cr, buf[ARR_RWY_PROJ_IDX]);
   }
 }
 
 void NDDisplay::draw_all_fplns(cairo_t* cr) {
-  std::vector<int> fpl_draw_seq = nd_data->get_rte_draw_seq(side_idx);
+  std::vector<int> fpl_draw_seq = nd_data_->get_rte_draw_seq(side_idx_);
   for (size_t i = 0; i < fms_core::N_FPL_SYS_RTES; i++) {
     if (fpl_draw_seq[i] == -1) continue;
     draw_runways(cr, fpl_draw_seq[i]);
@@ -1096,34 +1166,34 @@ void NDDisplay::draw_all_fplns(cairo_t* cr) {
 }
 
 void NDDisplay::draw_airplane(cairo_t* cr) {
-  geom::vect2_t wpt_scale = size.scmul(1 / WPT_SCALE_FACT);
-  if (cr_md == fms_core::NDMode::PLAN) {
+  geom::vect2_t wpt_scale = size_.scmul(1 / WPT_SCALE_FACT);
+  if (cr_md_ == fms_core::NDMode::PLAN) {
     geom::vect2_t pos;
-    bool do_drawing = nd_data->get_ac_pos(&pos, side_idx);
+    bool do_drawing = nd_data_->get_ac_pos(&pos, side_idx_);
     if (do_drawing) {
       geom::vect2_t pos_trans = get_screen_coords(pos);
-      cairo_utils::draw_rotated_image(cr, tex_mngr->data[AIRPLANE_NAME],
+      cairo_utils::draw_rotated_image(cr, textures_.airplane,
                                       pos_trans, wpt_scale,
-                                      hdg_data.brng_tru_rad);
+                                      hdg_data_.brng_tru_rad);
     }
   } else {
-    cairo_surface_t* tgt = tex_mngr->data[MAP_AC_TRI_NAME];
+    cairo_surface_t* tgt = textures_.map_ac_ico;
     geom::vect2_t sz =
         cairo_utils::get_surf_sz(tgt) * MAP_AC_TRI_SC * wpt_scale;
     geom::vect2_t sz_shift = {0, 0.5};
-    geom::vect2_t pos = scr_pos + map_ctr + sz * sz_shift;
+    geom::vect2_t pos = scr_pos_ + map_ctr_ + sz * sz_shift;
     cairo_utils::draw_image(cr, tgt, pos, MAP_AC_TRI_SC, true);
   }
 }
 
 void NDDisplay::draw_htrk(cairo_t* cr) {
   int rot_raw_deg =
-      -int(std::round(nd_data->get_hdg_trk() * geom::RAD_TO_DEG)) % 360;
+      -int(std::round(nd_data_->get_hdg_trk() * geom::RAD_TO_DEG)) % 360;
   int rot_deg = (rot_raw_deg + 360) % 360;
   std::string htk_txt = strutils::double_to_str(rot_deg, 0);
   htk_txt = std::string(3 - htk_txt.size(), '0') + htk_txt;
-  cairo_utils::draw_centered_text(cr, font_face, htk_txt,
-                                  scr_pos + size * MAP_HTK_TXT_POS,
+  cairo_utils::draw_centered_text(cr, textures_.font_face, htk_txt,
+                                  scr_pos_ + size_ * MAP_HTK_TXT_POS,
                                   cairo_utils::WHITE, MAP_HTRK_FONT_SZ);
 
   geom::vect2_t pos_htk =
@@ -1131,40 +1201,40 @@ void NDDisplay::draw_htrk(cairo_t* cr) {
   geom::vect2_t pos_tmg =
       geom::vect2_t{0.5 + MAP_HTRK_STG_TXT_LOFFS, MAP_HTRK_STG_TXT_VOFFS};
   std::string htk_st_txt = "";
-  if (is_trk_up)
+  if (is_trk_up_)
     htk_st_txt = ND_TRKUP;
   else
     htk_st_txt = ND_HDGUP;
-  cairo_utils::draw_centered_text(cr, font_face, htk_st_txt,
-                                  scr_pos + size * pos_htk, cairo_utils::GREEN,
+  cairo_utils::draw_centered_text(cr, textures_.font_face, htk_st_txt,
+                                  scr_pos_ + size_ * pos_htk, cairo_utils::GREEN,
                                   MAP_HTRK_STG_FONT_SZ);
-  cairo_utils::draw_centered_text(cr, font_face, "MAG",
-                                  scr_pos + size * pos_tmg, cairo_utils::GREEN,
+  cairo_utils::draw_centered_text(cr, textures_.font_face, "MAG",
+                                  scr_pos_ + size_ * pos_tmg, cairo_utils::GREEN,
                                   MAP_HTRK_STG_FONT_SZ);
 }
 
 void NDDisplay::draw_hdg_tri(cairo_t* cr) {
-  if (cr_md == fms_core::NDMode::MAP) {
+  if (cr_md_ == fms_core::NDMode::MAP) {
     double rot_rad = 0;
-    if (is_trk_up) rot_rad = -hdg_data.slip_rad;
-    geom::vect2_t wpt_scale = size.scmul(1 / WPT_SCALE_FACT);
+    if (is_trk_up_) rot_rad = -hdg_data_.slip_rad;
+    geom::vect2_t wpt_scale = size_.scmul(1 / WPT_SCALE_FACT);
     geom::vect2_t sc_act = wpt_scale * MAP_HDG_TRI_SC;
     geom::vect2_t tr_vec = {sin(rot_rad), cos(rot_rad)};
     geom::vect2_t pos =
-        scr_pos + map_ctr - tr_vec.scmul(size.x * MAP_HDG_TRI_VOFFS);
-    cairo_surface_t* tgt = tex_mngr->data[MAP_AC_TRI_NAME];
+        scr_pos_ + map_ctr_ - tr_vec.scmul(size_.x * MAP_HDG_TRI_VOFFS);
+    cairo_surface_t* tgt = textures_.map_ac_ico;
     cairo_utils::draw_rotated_image(cr, tgt, pos, sc_act, 1 / M_1_PI - rot_rad);
   }
 }
 
 void NDDisplay::draw_trk_line(cairo_t* cr, bool is_inn) {
   double rot_rad = 0;
-  if (!is_trk_up) rot_rad = -hdg_data.slip_rad;
-  geom::vect2_t dir = {size.x * sin(rot_rad), -size.x * cos(rot_rad)};
+  if (!is_trk_up_) rot_rad = -hdg_data_.slip_rad;
+  geom::vect2_t dir = {size_.x * sin(rot_rad), -size_.x * cos(rot_rad)};
   geom::vect2_t dir_nml = {dir.y, -dir.x};  // Facing right
-  geom::vect2_t ln_end_inn = map_ctr + dir.scmul(MAP_TRK_LN_LN_INN);
-  geom::vect2_t pos_start = map_ctr + scr_pos;
-  geom::vect2_t pos_end = ln_end_inn + scr_pos;
+  geom::vect2_t ln_end_inn = map_ctr_ + dir.scmul(MAP_TRK_LN_LN_INN);
+  geom::vect2_t pos_start = map_ctr_ + scr_pos_;
+  geom::vect2_t pos_end = ln_end_inn + scr_pos_;
   geom::vect3_t clr = cairo_utils::WHITE;
   if (!is_inn) {
     pos_start = pos_end + dir.scmul(MAP_TRK_LN_LN_OUT);
@@ -1176,55 +1246,55 @@ void NDDisplay::draw_trk_line(cairo_t* cr, bool is_inn) {
       geom::vect2_t l_end =
           pos_start + dir.scmul(cy) + dir_nml.scmul(MAP_TRK_DASH_OFFS);
       cairo_utils::draw_line(cr, l_strt, l_end, clr,
-                             ND_FPL_LINE_THICK * size.x);
+                             ND_FPL_LINE_THICK * size_.x);
     }
   }
   cairo_utils::draw_line(cr, pos_start, pos_end, clr,
-                         ND_FPL_LINE_THICK * size.x);
+                         ND_FPL_LINE_THICK * size_.x);
 }
 
 void NDDisplay::draw_tfc_arcs(cairo_t* cr) {
   for (int i = 1; i < N_MAP_TRK_DASH; i++) {
     double cr_radi =
-        size.x * (MAP_TRK_LN_LN_INN / double(N_MAP_TRK_DASH)) * double(i);
-    geom::vect2_t ctr_pos = map_ctr + scr_pos;
+        size_.x * (MAP_TRK_LN_LN_INN / double(N_MAP_TRK_DASH)) * double(i);
+    geom::vect2_t ctr_pos = map_ctr_ + scr_pos_;
     cairo_utils::draw_arc(cr, ctr_pos, cr_radi, ND_MAP_TFC_ARC_ANGLES[i].first,
                           ND_MAP_TFC_ARC_ANGLES[i].second,
-                          ND_FPL_LINE_THICK * size.x, cairo_utils::WHITE);
+                          ND_FPL_LINE_THICK * size_.x, cairo_utils::WHITE);
   }
 }
 
 void NDDisplay::draw_background(cairo_t* cr, bool draw_inner) {
   cairo_surface_t* back_surf;
 
-  if (cr_md == fms_core::NDMode::PLAN) {
+  if (cr_md_ == fms_core::NDMode::PLAN) {
     if (draw_inner)
-      back_surf = tex_mngr->data[PLN_BACKGND_INNER_NAME];
+      back_surf = textures_.pln_back_inner;
     else
-      back_surf = tex_mngr->data[PLN_BACKGND_OUTER_NAME];
-  } else if (cr_md == fms_core::NDMode::MAP) {
-    back_surf = tex_mngr->data[MAP_BACKGND_NAME];
+      back_surf = textures_.pln_back_outer;
+  } else if (cr_md_ == fms_core::NDMode::MAP) {
+    back_surf = textures_.map_back;
   }
 
-  if ((!draw_inner && cr_md == fms_core::NDMode::MAP) ||
-      cr_md == fms_core::NDMode::PLAN) {
-    geom::vect2_t scale_back = size / cairo_utils::get_surf_sz(back_surf);
-    cairo_utils::draw_image(cr, back_surf, scr_pos, scale_back, false);
+  if ((!draw_inner && cr_md_ == fms_core::NDMode::MAP) ||
+      cr_md_ == fms_core::NDMode::PLAN) {
+    geom::vect2_t scale_back = size_ / cairo_utils::get_surf_sz(back_surf);
+    cairo_utils::draw_image(cr, back_surf, scr_pos_, scale_back, false);
   }
 
-  if (cr_md == fms_core::NDMode::MAP) {
+  if (cr_md_ == fms_core::NDMode::MAP) {
     if (!draw_inner) {
-      cairo_surface_t* map_hdg_surf = tex_mngr->data[MAP_HDG_NAME];
+      cairo_surface_t* map_hdg_surf = textures_.map_hdg;
       geom::vect2_t scale_hdg =
-          (size / cairo_utils::get_surf_sz(map_hdg_surf)).scmul(1.41);
-      geom::vect2_t hdg_pos = scr_pos + map_ctr;
+          (size_ / cairo_utils::get_surf_sz(map_hdg_surf)).scmul(1.41);
+      geom::vect2_t hdg_pos = scr_pos_ + map_ctr_;
       cairo_utils::draw_rotated_image(cr, map_hdg_surf, hdg_pos, scale_hdg,
-                                      nd_data->get_hdg_trk());
-      cairo_surface_t* htrk_box = tex_mngr->data[HTRK_BOX_NAME];
+                                      nd_data_->get_hdg_trk());
+      cairo_surface_t* htrk_box = textures_.hdg_trk_box;
       geom::vect2_t box_sz = cairo_utils::get_surf_sz(htrk_box);
-      geom::vect2_t scale_box = (box_sz * size.scdiv(900)) * MAP_HTK_BOX_SC;
+      geom::vect2_t scale_box = (box_sz * size_.scdiv(900)) * MAP_HTK_BOX_SC;
       double hht = box_sz.y * 0.5 * scale_box.y;
-      geom::vect2_t box_pos = scr_pos + geom::vect2_t{size.x / 2, hht};
+      geom::vect2_t box_pos = scr_pos_ + geom::vect2_t{size_.x / 2, hht};
       cairo_utils::draw_image(cr, htrk_box, box_pos, scale_box, true);
       draw_htrk(cr);
       draw_hdg_tri(cr);
@@ -1236,30 +1306,30 @@ void NDDisplay::draw_background(cairo_t* cr, bool draw_inner) {
 }
 
 void NDDisplay::draw_act_leg_info(cairo_t* cr) {
-  fms_core::act_leg_info_t leg_info = nd_data->get_act_leg_info();
+  fms_core::act_leg_info_t leg_info = nd_data_->get_act_leg_info();
 
-  geom::vect2_t act_name_pos = scr_pos + size * ACT_LEG_NAME_OFFS;
-  geom::vect2_t act_time_pos = scr_pos + size * ACT_LEG_TIME_OFFS;
-  geom::vect2_t act_dist_pos = scr_pos + size * ACT_LEG_DIST_OFFS;
-  geom::vect2_t act_nm_pos = scr_pos + size * ACT_LEG_NM_OFFS;
+  geom::vect2_t act_name_pos = scr_pos_ + size_ * ACT_LEG_NAME_OFFS;
+  geom::vect2_t act_time_pos = scr_pos_ + size_ * ACT_LEG_TIME_OFFS;
+  geom::vect2_t act_dist_pos = scr_pos_ + size_ * ACT_LEG_DIST_OFFS;
+  geom::vect2_t act_nm_pos = scr_pos_ + size_ * ACT_LEG_NM_OFFS;
 
-  cairo_utils::draw_left_text(cr, font_face, leg_info.name, act_name_pos,
+  cairo_utils::draw_left_text(cr, textures_.font_face, leg_info.name, act_name_pos,
                               cairo_utils::MAGENTA, ND_ACT_INFO_MAIN_FONT_SZ);
 
-  cairo_utils::draw_left_text(cr, font_face, "------Z", act_time_pos,
+  cairo_utils::draw_left_text(cr, textures_.font_face, "------Z", act_time_pos,
                               cairo_utils::WHITE, ND_ACT_INFO_MAIN_FONT_SZ);
 
-  cairo_utils::draw_left_text(cr, font_face, leg_info.dist_nm, act_dist_pos,
+  cairo_utils::draw_left_text(cr, textures_.font_face, leg_info.dist_nm, act_dist_pos,
                               cairo_utils::WHITE, leg_info.dist_sz);
-  cairo_utils::draw_left_text(cr, font_face, "NM", act_nm_pos,
+  cairo_utils::draw_left_text(cr, textures_.font_face, "NM", act_nm_pos,
                               cairo_utils::WHITE, ND_ACT_INFO_DIST_FONT_SZ);
 }
 
 void NDDisplay::draw_spd_info(cairo_t* cr) {
-  fms_core::spd_info_t spd_info = nd_data->get_spd_data();
+  fms_core::spd_info_t spd_info = nd_data_->get_spd_data();
 
-  geom::vect2_t gs_text_pos = scr_pos + size * GS_TEXT_OFFS;
-  geom::vect2_t gs_pos = scr_pos + size * GS_OFFS;
+  geom::vect2_t gs_text_pos = scr_pos_ + size_ * GS_TEXT_OFFS;
+  geom::vect2_t gs_pos = scr_pos_ + size_ * GS_OFFS;
 
   double gs_sz = ND_SPD_BIG_FONT_SZ;
   if (spd_info.gs_kts > GS_THRESH_BIG_KTS) {
@@ -1268,20 +1338,20 @@ void NDDisplay::draw_spd_info(cairo_t* cr) {
 
   std::string gs_str = strutils::double_to_str(spd_info.gs_kts, 0);
 
-  cairo_utils::draw_left_text(cr, font_face, "GS", gs_text_pos,
+  cairo_utils::draw_left_text(cr, textures_.font_face, "GS", gs_text_pos,
                               cairo_utils::WHITE, ND_ACT_INFO_DIST_FONT_SZ);
-  cairo_utils::draw_right_text(cr, font_face, gs_str, gs_pos,
+  cairo_utils::draw_right_text(cr, textures_.font_face, gs_str, gs_pos,
                                cairo_utils::WHITE, gs_sz);
 
   if (spd_info.tas_kts >= TAS_DISPL_THRESH_KTS) {
-    geom::vect2_t tas_text_pos = scr_pos + size * TAS_TEXT_OFFS;
-    geom::vect2_t tas_pos = scr_pos + size * TAS_OFFS;
+    geom::vect2_t tas_text_pos = scr_pos_ + size_ * TAS_TEXT_OFFS;
+    geom::vect2_t tas_pos = scr_pos_ + size_ * TAS_OFFS;
 
     std::string tas_str = strutils::double_to_str(spd_info.tas_kts, 0);
 
-    cairo_utils::draw_left_text(cr, font_face, "TAS", tas_text_pos,
+    cairo_utils::draw_left_text(cr, textures_.font_face, "TAS", tas_text_pos,
                                 cairo_utils::WHITE, ND_ACT_INFO_DIST_FONT_SZ);
-    cairo_utils::draw_right_text(cr, font_face, tas_str, tas_pos,
+    cairo_utils::draw_right_text(cr, textures_.font_face, tas_str, tas_pos,
                                  cairo_utils::WHITE, ND_SPD_SMALL_FONT_SZ);
   }
 }
@@ -1289,50 +1359,50 @@ void NDDisplay::draw_spd_info(cairo_t* cr) {
 void NDDisplay::draw_range(cairo_t* cr) {
   uint8_t half_pr = 0, full_pr = 0;
 
-  if (curr_rng <= RNG_DEC_1_NM)  // Range can never be < 2.5
+  if (curr_rng_ <= RNG_DEC_1_NM)  // Range can never be < 2.5
     full_pr = 1;
-  std::string rng_full_str = strutils::double_to_str(curr_rng, full_pr);
+  std::string rng_full_str = strutils::double_to_str(curr_rng_, full_pr);
 
-  if (curr_rng / 2 <= RNG_DEC_2_NM)
+  if (curr_rng_ / 2 <= RNG_DEC_2_NM)
     half_pr = 2;
-  else if (curr_rng / 2 <= RNG_DEC_1_NM)
+  else if (curr_rng_ / 2 <= RNG_DEC_1_NM)
     half_pr = 1;
-  std::string rng_half_str = strutils::double_to_str(curr_rng / 2, half_pr);
+  std::string rng_half_str = strutils::double_to_str(curr_rng_ / 2, half_pr);
 
-  geom::vect2_t ctr_trans = map_ctr + scr_pos;
+  geom::vect2_t ctr_trans = map_ctr_ + scr_pos_;
 
   geom::vect2_t pos_1_dn = {ctr_trans.x,
-                            ctr_trans.y + curr_rng * scale_factor.y};
+                            ctr_trans.y + curr_rng_ * scale_factor_.y};
   geom::vect2_t pos_2_dn = {ctr_trans.x,
-                            ctr_trans.y + curr_rng * 0.5 * scale_factor.y};
+                            ctr_trans.y + curr_rng_ * 0.5 * scale_factor_.y};
   geom::vect2_t pos_1_up = {ctr_trans.x,
-                            ctr_trans.y - curr_rng * scale_factor.y};
+                            ctr_trans.y - curr_rng_ * scale_factor_.y};
   geom::vect2_t pos_2_up = {ctr_trans.x,
-                            ctr_trans.y - curr_rng * 0.5 * scale_factor.y};
+                            ctr_trans.y - curr_rng_ * 0.5 * scale_factor_.y};
 
-  if (cr_md == fms_core::NDMode::PLAN || is_ctr) {
-    cairo_utils::draw_centered_text(cr, font_face, rng_full_str, pos_1_dn,
+  if (cr_md_ == fms_core::NDMode::PLAN || is_ctr_) {
+    cairo_utils::draw_centered_text(cr, textures_.font_face, rng_full_str, pos_1_dn,
                                     cairo_utils::WHITE, ND_WPT_FONT_SZ);
-    cairo_utils::draw_centered_text(cr, font_face, rng_half_str, pos_2_dn,
+    cairo_utils::draw_centered_text(cr, textures_.font_face, rng_half_str, pos_2_dn,
                                     cairo_utils::WHITE, ND_WPT_FONT_SZ);
 
-    cairo_utils::draw_centered_text(cr, font_face, rng_full_str, pos_1_up,
+    cairo_utils::draw_centered_text(cr, textures_.font_face, rng_full_str, pos_1_up,
                                     cairo_utils::WHITE, ND_WPT_FONT_SZ);
-    cairo_utils::draw_centered_text(cr, font_face, rng_half_str, pos_2_up,
+    cairo_utils::draw_centered_text(cr, textures_.font_face, rng_half_str, pos_2_up,
                                     cairo_utils::WHITE, ND_WPT_FONT_SZ);
   } else {
-    geom::vect2_t offs = size * MAP_RNG_OFFS;
-    cairo_utils::draw_right_text(cr, font_face, rng_half_str, pos_2_up + offs,
+    geom::vect2_t offs = size_ * MAP_RNG_OFFS;
+    cairo_utils::draw_right_text(cr, textures_.font_face, rng_half_str, pos_2_up + offs,
                                  cairo_utils::WHITE, ND_WPT_FONT_SZ);
   }
 }
 
 void NDDisplay::draw_airports(cairo_t* cr) {
-  cairo_surface_t* surf_norm = tex_mngr->data[ARPT_NML_POI_NAME];
-  cairo_surface_t* surf_altn = tex_mngr->data[ARPT_ALTN_POI_NAME];
-  for (size_t i = 0; i < nd_data->get_num_poi_arpts(); i++) {
-    labeled_point_with_dist_t cr_point = nd_data->get_arpt(i);
-    if (cr_point.dist_ctr > curr_rng) {
+  cairo_surface_t* surf_norm = textures_.normal_arpt_sign;
+  cairo_surface_t* surf_altn = textures_.altn_arpt_sign;
+  for (size_t i = 0; i < nd_data_->get_num_poi_arpts(); i++) {
+    labeled_point_with_dist_t cr_point = nd_data_->get_arpt(i);
+    if (cr_point.dist_ctr > curr_rng_) {
       break;
     }
     if (i < N_EFIS_MAP_ALTN_APTS) {
@@ -1344,10 +1414,10 @@ void NDDisplay::draw_airports(cairo_t* cr) {
 }
 
 void NDDisplay::draw_vordmes(cairo_t* cr) {
-  cairo_surface_t* tgt_surf = tex_mngr->data[VORDME_POI_NAME];
-  for (size_t i = 0; i < nd_data->get_num_poi_vordmes(); i++) {
-    labeled_point_with_dist_t cr_point = nd_data->get_vordme(i);
-    if (cr_point.dist_ctr > curr_rng) {
+  cairo_surface_t* tgt_surf = textures_.vordme;
+  for (size_t i = 0; i < nd_data_->get_num_poi_vordmes(); i++) {
+    labeled_point_with_dist_t cr_point = nd_data_->get_vordme(i);
+    if (cr_point.dist_ctr > curr_rng_) {
       break;
     }
     draw_labeled_point(cr, tgt_surf, cr_point.point, EFIS_VHF_SC);
@@ -1355,10 +1425,10 @@ void NDDisplay::draw_vordmes(cairo_t* cr) {
 }
 
 void NDDisplay::draw_vors_dmes(cairo_t* cr) {
-  cairo_surface_t* tgt_surf = tex_mngr->data[DME_POI_NAME];
-  for (size_t i = 0; i < nd_data->get_num_poi_vhf_not_vordmes(); i++) {
-    labeled_point_with_dist_t cr_point = nd_data->get_vhf_not_vordme(i);
-    if (cr_point.dist_ctr > curr_rng) {
+  cairo_surface_t* tgt_surf = textures_.dme;
+  for (size_t i = 0; i < nd_data_->get_num_poi_vhf_not_vordmes(); i++) {
+    labeled_point_with_dist_t cr_point = nd_data_->get_vhf_not_vordme(i);
+    if (cr_point.dist_ctr > curr_rng_) {
       break;
     }
     draw_labeled_point(cr, tgt_surf, cr_point.point, EFIS_VHF_SC);
@@ -1366,11 +1436,11 @@ void NDDisplay::draw_vors_dmes(cairo_t* cr) {
 }
 
 void NDDisplay::draw_efis_filters(cairo_t* cr) {
-  if (cr_md == fms_core::NDMode::MAP) {
-    if (efis_sel.arpt_on) {
+  if (cr_md_ == fms_core::NDMode::MAP) {
+    if (efis_sel_.arpt_on) {
       draw_airports(cr);
     }
-    if (efis_sel.sta_on) {
+    if (efis_sel_.sta_on) {
       draw_vordmes(cr);
       draw_vors_dmes(cr);
     }
@@ -1381,12 +1451,12 @@ void NDDisplay::draw_labeled_point(cairo_t* cr, cairo_surface_t* img,
                                    labeled_point_t& src_point,
                                    double img_scale) {
   geom::vect2_t pos_local = get_screen_coords(src_point.pos);
-  geom::vect2_t scale_fact_vec = size.scmul(img_scale).scdiv(WPT_SCALE_FACT);
+  geom::vect2_t scale_fact_vec = size_.scmul(img_scale).scdiv(WPT_SCALE_FACT);
   geom::vect2_t img_sz = cairo_utils::get_surf_sz(img) * scale_fact_vec;
   geom::vect2_t pos_text = pos_local + img_sz.scmul(0.5);
-  double sc_fact_txt = size.x / WPT_SCALE_FACT;
+  double sc_fact_txt = size_.x / WPT_SCALE_FACT;
   cairo_utils::draw_image(cr, img, pos_local, scale_fact_vec, true);
-  cairo_utils::draw_left_text(cr, font_face, src_point.name, pos_text,
+  cairo_utils::draw_left_text(cr, textures_.font_face, src_point.name, pos_text,
                               cairo_utils::ND_CYAN,
                               EFIS_POI_NAME_FNT_SZ * sc_fact_txt);
 }

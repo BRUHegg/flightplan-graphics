@@ -36,34 +36,6 @@ constexpr geom::vect3_t RED = {1, 0, 0};
 constexpr geom::vect3_t GREEN = {0, 1, 0};
 constexpr geom::vect3_t BLUE = {0, 0, 1};
 
-const std::string DEFAULT_IMG_FORMAT = ".png";
-
-struct texture_manager_t {
-  std::map<std::string, cairo_surface_t*> data;
-
-  bool load(std::vector<std::string> tx_names, std::string path,
-            std::string format = DEFAULT_IMG_FORMAT) {
-    for (auto i : tx_names) {
-      std::string full_path = path + i + format;
-
-      cairo_surface_t* surf =
-          cairo_image_surface_create_from_png(full_path.c_str());
-
-      if (surf == nullptr) return false;
-
-      data[i] = surf;
-    }
-
-    return true;
-  }
-
-  void destroy() {
-    for (auto i : data) {
-      cairo_surface_destroy(i.second);
-    }
-  }
-};
-
 inline bool load_font(const std::string& font_path, FT_Library ft_lib,
                       FT_Face* font_face, cairo_font_face_t** cr_font) {
   FT_Error err = FT_New_Face(ft_lib, font_path.c_str(), 0, font_face);

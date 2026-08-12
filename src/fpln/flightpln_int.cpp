@@ -300,12 +300,10 @@ namespace fms_core {
 // FplnInt member functions:
 // Public functions:
 
-FplnInt::FplnInt(std::shared_ptr<libnav::ArptDB> apt_db,
-                 std::shared_ptr<libnav::NavaidDB> nav_db,
-                 std::shared_ptr<libnav::AwyDB> aw_db, pathlib::Path cifp_path)
-    : FlightPlanBase(apt_db, nav_db, cifp_path) {
-  awy_db_ = aw_db;
-  navaid_db_ = nav_db;
+FplnInt::FplnInt(util::OpaquePointer<libnav::ArptDB> apt_db,
+                 util::OpaquePointer<libnav::NavaidDB> nav_db,
+                 util::OpaquePointer<libnav::AwyDB> aw_db, pathlib::Path cifp_path)
+    : FlightPlanBase(apt_db, nav_db, cifp_path), awy_db_{aw_db}, navaid_db_{nav_db} {
   proc_db_.resize(N_PROC_DB_SZ);
 
   fpl_id_calc_ = 0;
@@ -325,7 +323,7 @@ FplnInt::FplnInt(std::shared_ptr<libnav::ArptDB> apt_db,
 void FplnInt::copy_from_other(FplnInt& other) {
   if (other.departure_ != nullptr) {
     if (departure_ == nullptr ||
-        departure_->icao_code != other.departure_->icao_code) {
+        departure_->get_icao() != other.departure_->get_icao()) {
       delete departure_;
       departure_ = nullptr;
       departure_ = new libnav::Airport(*other.departure_, departure_legs_);
@@ -334,7 +332,7 @@ void FplnInt::copy_from_other(FplnInt& other) {
   }
 
   if (other.arrival_ != nullptr) {
-    if (arrival_ == nullptr || arrival_->icao_code != other.arrival_->icao_code) {
+    if (arrival_ == nullptr || arrival_->get_icao() != other.arrival_->get_icao()) {
       delete arrival_;
       arrival_ = nullptr;
       arrival_ = new libnav::Airport(*other.arrival_);
@@ -377,7 +375,7 @@ libnav::DbErr FplnInt::load_from_fms(const std::string& file_nm, bool set_arpts)
   if (out != libnav::DbErr::SUCCESS) {
     reset_fpln();
   } else {
-    co_rte_nm_ = departure_->icao_code + arrival_->icao_code;
+    co_rte_nm_ = departure_->get_icao() + arrival_->get_icao();
   }
   return out;
 }
@@ -387,7 +385,7 @@ void FplnInt::save_to_fms(const std::string& file_nm, bool save_sid_star) const 
     return;
   }
 
-  co_rte_nm_ = departure_->icao_code + arrival_->icao_code;
+  co_rte_nm_ = departure_->get_icao() + arrival_->get_icao();
 
   std::ofstream out(file_nm + DFMS_FILE_POSTFIX, std::ofstream::out);
 
@@ -395,7 +393,7 @@ void FplnInt::save_to_fms(const std::string& file_nm, bool save_sid_star) const 
   std::string curr_cycle = std::to_string(navaid_db_->get_wpt_cycle());
   out << DFMS_AIRAC_CYCLE_NM + DFMS_COL_SEP + curr_cycle + "\n";
 
-  out << DFMS_DEP_NM << DFMS_COL_SEP << departure_->icao_code << "\n";
+  out << DFMS_DEP_NM << DFMS_COL_SEP << departure_->get_icao() << "\n";
   std::size_t dep_rwy_seg_idx = static_cast<std::size_t>(
     FplSegment::DEP_RWY);
   std::string dep_rwy = fpl_refs_[dep_rwy_seg_idx].name;
@@ -421,7 +419,7 @@ void FplnInt::save_to_fms(const std::string& file_nm, bool save_sid_star) const 
     }
   }
 
-  out << DFMS_ARR_NM << DFMS_COL_SEP << arrival_->icao_code << "\n";
+  out << DFMS_ARR_NM << DFMS_COL_SEP << arrival_->get_icao() << "\n";
 
   if (arr_rwy_ != "") {
     out << DFMS_ARR_RWY_NM << DFMS_COL_SEP << DFMS_RWY_PREFIX + arr_rwy_ << "\n";
@@ -462,7 +460,7 @@ std::string FplnInt::get_co_rte_nm() const noexcept {
 
 libnav::DbErr FplnInt::set_dep(std::string icao) {
   libnav::DbErr out = set_arpt(icao, &departure_, false, departure_legs_);
-  if (departure_ != nullptr && departure_->icao_code == icao &&
+  if (departure_ != nullptr && departure_->get_icao() == icao &&
       out != libnav::DbErr::ERR_NONE) {
     update_apt_dbs();
 
@@ -481,8 +479,8 @@ libnav::DbErr FplnInt::set_dep(std::string icao) {
   return out;
 }
 
-std::string FplnInt::get_dep_icao()  const noexcept {
-  if (departure_ != nullptr) return departure_->icao_code;
+std::string FplnInt::get_dep_icao() const noexcept {
+  if (departure_ != nullptr) return departure_->get_icao();
   return "";
 }
 
@@ -504,7 +502,7 @@ libnav::DbErr FplnInt::set_arr(std::string icao) {
 }
 
 std::string FplnInt::get_arr_icao() const noexcept {
-  if (arrival_ != nullptr) return arrival_->icao_code;
+  if (arrival_ != nullptr) return arrival_->get_icao();
   return "";
 }
 
@@ -568,7 +566,7 @@ bool FplnInt::set_dep_rwy(const std::string& rwy) {
     std::string curr_rwy = get_ref_for(FplSegment::DEP_RWY).name;
     if (rwy != curr_rwy) {
       int data_found =
-          arpt_db_ptr_->get_rnw_data(departure_->icao_code, rwy, &dep_rnw_data_);
+          arpt_db_ptr_->get_rnw_data(departure_->get_icao(), rwy, &dep_rnw_data_);
       has_dep_rnw_data_ = data_found;
       if (!data_found) {
         has_dep_rnw_data_ = false;
@@ -587,7 +585,7 @@ bool FplnInt::set_dep_rwy(const std::string& rwy) {
       libnav::waypoint_t rnw_wpt = {};
       rnw_wpt.id = rwy;
       rnw_wpt.data.pos = rwy_data.pos;
-      rnw_wpt.data.area_code = departure_->icao_code;
+      rnw_wpt.data.area_code = departure_->get_icao();
       rnw_wpt.data.type = libnav::NavaidType::RWY;
       ins_leg.set_main_fix(rnw_wpt);
 
@@ -626,7 +624,7 @@ bool FplnInt::set_arr_rwy(const std::string& rwy) {
   if (arr_rnw_.find(rwy) != arr_rnw_.end()) {
     if (arr_rwy_ != rwy) {
       int data_found =
-          arpt_db_ptr_->get_rnw_data(arrival_->icao_code, rwy, &arr_rnw_data_);
+          arpt_db_ptr_->get_rnw_data(arrival_->get_icao(), rwy, &arr_rnw_data_);
       has_arr_rnw_data_ = true;
       if (!data_found) {
         has_arr_rnw_data_ = false;
@@ -638,7 +636,7 @@ bool FplnInt::set_arr_rwy(const std::string& rwy) {
       libnav::arinc_rwy_data_t rwy_data = arr_rnw_[rwy];
       libnav::waypoint_t rwy_wpt = {arr_rwy_,
                                     {libnav::NavaidType::RWY, 0, rwy_data.pos,
-                                     arrival_->icao_code, "", nullptr}};
+                                     arrival_->get_icao(), "", nullptr}};
       leg_t rwy_leg{};
       rwy_leg.leg_type = "TF";
       rwy_leg.set_main_fix(rwy_wpt);
@@ -1207,9 +1205,9 @@ std::string FplnInt::get_dfms_enrt_leg(const leg_list_node_t* lg, bool force_dir
 
 // Non-static member functions:
 
-bool FplnInt::is_apt_valid(libnav::Airport* ptr) const {
+bool FplnInt::is_apt_valid(const libnav::Airport* ptr) const {
   if (ptr == nullptr) return false;
-  return arpt_db_ptr_->is_airport(ptr->icao_code);
+  return arpt_db_ptr_->is_airport(ptr->get_icao());
 }
 
 void FplnInt::update_act_leg() {
@@ -1311,7 +1309,7 @@ bool FplnInt::get_dfms_wpt(std::vector<std::string>& l_split,
 }
 
 std::string FplnInt::get_dfms_arpt_leg(bool is_arr) const {
-  libnav::Airport* ptr = departure_;
+  const libnav::Airport* ptr = departure_;
   std::string seg_nm = DFMS_DEP_NM;
 
   if (is_arr) {
@@ -1319,7 +1317,7 @@ std::string FplnInt::get_dfms_arpt_leg(bool is_arr) const {
     seg_nm = DFMS_ARR_NM;
   }
 
-  std::string icao_cd = ptr->icao_code;
+  std::string icao_cd = ptr->get_icao();
 
   double alt_restr = 0;
   double arpt_lat_deg = 0;
@@ -1721,7 +1719,7 @@ bool FplnInt::set_appch(std::string appch) {
     if (added) {
       arr_rwy_ = tmp_rwy;
       int data_found =
-          arpt_db_ptr_->get_rnw_data(arrival_->icao_code, arr_rwy_, &arr_rnw_data_);
+          arpt_db_ptr_->get_rnw_data(arrival_->get_icao(), arr_rwy_, &arr_rnw_data_);
       has_arr_rnw_data_ = true;
       if (!data_found) {
         has_arr_rnw_data_ = false;
@@ -1815,7 +1813,7 @@ bool FplnInt::set_proc_trans(ProcType tp, std::string trans, bool is_arr) {
 
     return false;
   }
-  libnav::Airport* apt = departure_;
+  const libnav::Airport* apt = departure_;
   if (is_arr) {
     apt = arrival_;
   }

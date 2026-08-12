@@ -5,9 +5,10 @@
 
 #include <cairo/cairo.h>
 
-#include <common/bytemap.hpp>
-#include <common/cairo_utils.hpp>
+#include <displays/common/bytemap.hpp>
+#include <displays/common/cairo_utils.hpp>
 #include <util/geom.hpp>
+#include <util/util.hpp>
 
 namespace {
 
@@ -17,16 +18,30 @@ constexpr geom::vect2_t EXEC_LT_POS = {0.793, 0.582 * 0.964};
 constexpr geom::vect2_t EXEC_LT_SZ = {0.08 * 1.2 * 0.75,
                                       0.7 * 0.08 * 1.08 * 0.37 * 0.5};
 constexpr geom::vect3_t EXEC_LT_CLR = {0.955, 0.906, 0.269};
+
+// Texture names:
+const char CDU_WIDGET_TEXTURE_NAME[] = "cdu";
+
+const char* CDU_WIDGET_TEXTURE_ARRAY[] = {
+  CDU_WIDGET_TEXTURE_NAME
+};
 } // namespace
 
 namespace fms_displays {
 
+util::const_str_data_t GetCduWidgetTextureNames() {
+  return util::const_str_data_t{
+    .ptr=CDU_WIDGET_TEXTURE_ARRAY, .size=MY_ARRAY_SIZE(CDU_WIDGET_TEXTURE_ARRAY)};
+}
+
 CDUWidget::CDUWidget(geom::vect2_t pos, geom::vect2_t sz, 
-             std::shared_ptr<cairo_utils::texture_manager_t> tm,
-             std::shared_ptr<CDU> cdu, std::shared_ptr<CDUDisplay> cdu_displ, 
-             byteutils::Bytemap* bm) : tex_mngr_{tm}, cdu_displ_{cdu_displ},
+             TextureManager* tm, CDU* cdu, CDUDisplay* cdu_displ, 
+             byteutils::Bytemap* bm) : cdu_displ_{cdu_displ},
              cdu_ptr_{cdu}, key_map_{bm}, screen_pos_{pos}, size_{sz} {
-  texture_size_ = cairo_utils::get_surf_sz(tex_mngr_->data[CDU_TEXTURE_NAME]);
+  cdu_texture_ = tm->GetTexture(CDU_WIDGET_TEXTURE_NAME);
+  assert(cdu_texture_ != nullptr);
+  
+  texture_size_ = cairo_utils::get_surf_sz(cdu_texture_);
   texture_scale_ = size_ / texture_size_;
 
   last_press_tp_ = std::chrono::steady_clock::now();
@@ -50,7 +65,7 @@ void CDUWidget::on_click(geom::vect2_t pos) {
 }
 
 void CDUWidget::draw(cairo_t* cr) {
-  cairo_utils::draw_image(cr, tex_mngr_->data[CDU_TEXTURE_NAME], screen_pos_,
+  cairo_utils::draw_image(cr, cdu_texture_, screen_pos_,
                           texture_scale_, false);
 
   bool dr_exc = cdu_ptr_->get_exec_lt();

@@ -48,9 +48,9 @@ struct alt_cstr_t {
 
 class FplnInt : public FlightPlanBase {
  public:
-  FplnInt(std::shared_ptr<libnav::ArptDB> apt_db,
-          std::shared_ptr<libnav::NavaidDB> nav_db,
-          std::shared_ptr<libnav::AwyDB> aw_db, pathlib::Path cifp_path);
+  FplnInt(util::OpaquePointer<libnav::ArptDB> apt_db,
+          util::OpaquePointer<libnav::NavaidDB> nav_db,
+          util::OpaquePointer<libnav::AwyDB> aw_db, pathlib::Path cifp_path);
 
   // Functions for copying data from 1 flightplan to another:
 
@@ -184,8 +184,8 @@ class FplnInt : public FlightPlanBase {
   bool appr_is_rwy_;
 
   std::vector<libnav::str_umap_t> proc_db_;
-  std::shared_ptr<libnav::AwyDB> awy_db_;
-  std::shared_ptr<libnav::NavaidDB> navaid_db_;
+  util::OpaquePointer<libnav::AwyDB> awy_db_;
+  util::OpaquePointer<libnav::NavaidDB> navaid_db_;
 
   libnav::arinc_rwy_db_t dep_rnw_, arr_rnw_;
   bool has_dep_rnw_data_, has_arr_rnw_data_;
@@ -222,7 +222,7 @@ class FplnInt : public FlightPlanBase {
 
   // Non-static member functions:
 
-  bool is_apt_valid(libnav::Airport* ptr) const;
+  bool is_apt_valid(const libnav::Airport* ptr) const;
 
   void update_act_leg();
 

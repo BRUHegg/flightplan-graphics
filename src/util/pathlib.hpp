@@ -6,7 +6,9 @@
 
 namespace pathlib {
 
-void SetDefaultPathSep(char x);
+void SetDefaultPathSep(char x) noexcept;
+
+char GetDefaultPathSep() noexcept;
 
 class Path final {
   char separator_;
@@ -14,6 +16,7 @@ class Path final {
   std::string extension_ = "";
   std::string entry_ = "";
   bool is_dir_ = true;
+  bool is_relative_ = true;
 
   void Init(const std::string& path, char path_sep);
 

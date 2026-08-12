@@ -49,11 +49,11 @@ TextureManager::TextureManager(const pathlib::Path& base, const nlohmann::json& 
   pathlib::Path tex_path = base + std::string{kTextureDirName};
   for(auto texture_data: names) {
     font_data_t c_data;
-    std::string base_str = font_path.Get();
     std::string tex_name = texture_data["name"];
     std::string file_name = texture_data["file_name"];
+    std::string base_str = (font_path + file_name).Get();
     if(texture_data["type"] == std::string{kFontType}) {
-      bool res = cairo_utils::load_font(base_str + file_name,
+      bool res = cairo_utils::load_font(base_str,
         *ft_lib, &c_data.ft_face, &c_data.cairo_face);
       if(res) { 
         fonts_[tex_name] = c_data;

@@ -5,31 +5,33 @@
 
 #include <cairo/cairo.h>
 
-#include <common/bytemap.hpp>
-#include <common/cairo_utils.hpp>
+#include <displays/common/bytemap.hpp>
+#include <displays/common/cairo_utils.hpp>
+#include <displays/common/texture_manager.hpp>
 #include <util/geom.hpp>
+#include <util/util.hpp>
 
 #include "cdu.hpp"
 
 namespace fms_displays {
 
-const std::string CDU_TEXTURE_NAME = "cdu";
+util::const_str_data_t GetCduWidgetTextureNames();
 
-class CDUWidget {
+class CDUWidget final {
 public:
   CDUWidget(geom::vect2_t pos, geom::vect2_t sz, 
-             std::shared_ptr<cairo_utils::texture_manager_t> tm,
-             std::shared_ptr<CDU> cdu, std::shared_ptr<CDUDisplay> cdu_displ, 
+             TextureManager* tm,
+             CDU* cdu, CDUDisplay* cdu_displ, 
              byteutils::Bytemap* bm);
 
   void on_click(geom::vect2_t pos);
 
   void draw(cairo_t* cr);
 private:
-  std::shared_ptr<cairo_utils::texture_manager_t> tex_mngr_;
+  cairo_surface_t* cdu_texture_;
 
-  std::shared_ptr<CDUDisplay> cdu_displ_;
-  std::shared_ptr<CDU> cdu_ptr_;
+  CDUDisplay* cdu_displ_;
+  CDU* cdu_ptr_;
   byteutils::Bytemap* key_map_;
 
   geom::vect2_t screen_pos_;  // position of the CDU texture on the screen

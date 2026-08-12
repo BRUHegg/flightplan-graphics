@@ -3,18 +3,29 @@
 #include <cstdint>
 #include <string>
 
+#if IBM
+#define MY_PATH_SEP '\\'
+#else
+#define MY_PATH_SEP '/'
+#endif
+
 namespace {
 
-char glob_default_path_sep = '/';
+char glob_default_path_sep = MY_PATH_SEP;
 } // namespace
 
 namespace pathlib {
 
-void SetDefaultPathSep(char x) {
+void SetDefaultPathSep(char x) noexcept {
   glob_default_path_sep = x;
 }
 
+char GetDefaultPathSep() noexcept {
+  return glob_default_path_sep;
+}
+
 void Path::Init(const std::string& path, char path_sep) {
+  is_relative_ = false;
   std::int64_t i = path.length();
   if (!i) {
     return;
@@ -80,7 +91,12 @@ std::string Path::GetEntry() const noexcept { return entry_; }
 bool Path::IsDirectory() const noexcept { return is_dir_; }
 
 std::string Path::Get() const noexcept {
-  std::string res = path_ + std::string(1, separator_) + entry_;
+  std::string res;
+  if(is_relative_ && path_ == "")  {
+    res = entry_;
+  } else {
+    res = path_ + std::string(1, separator_) + entry_;
+  }
   if (!is_dir_) {
     res += "." + extension_;
   }
@@ -89,10 +105,15 @@ std::string Path::Get() const noexcept {
 
 Path operator+(const Path& path, const std::string& str) {
   Path tmp{path};
-  if (!path.IsDirectory()) {
+  if (!path.IsDirectory() || str.find(path.separator_) != std::string::npos) {
     return tmp;
   }
-  tmp.path_ += std::string(1, path.separator_) + path.entry_;
+  if(path.is_relative_ && path.path_ == "") {
+    tmp.path_ = path.entry_;
+  } else {
+    tmp.path_ += std::string(1, path.separator_) + path.entry_;
+  }
+  
   tmp.SetEntry(str);
   return tmp;
 }

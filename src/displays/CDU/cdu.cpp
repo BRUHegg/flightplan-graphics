@@ -4,10 +4,14 @@
 
 #include <mutex>
 #include <shared_mutex>
+#include <string>
+
+#include <displays/common/font_names.hpp>
+#include <displays/common/texture_manager.hpp>
 #include <fpln/flightpln_int.hpp>
 #include <libnav/cifp_parser.hpp>
-#include <string>
 #include <util/geom.hpp>
+#include <util/util.hpp>
 
 namespace {
 
@@ -144,9 +148,28 @@ const std::string SEL = "SEL";
 const std::string MOD = "MOD";
 const std::string RTE_COPY = "RTE COPY";
 const std::string COMPLETE = "COMPLETE";
+
+// Texture names:
+const char CDU_WHITE_TEXT_NAME[] = "cdu_big_white";
+const char CDU_GREEN_TEXT_NAME[] = "cdu_big_green";
+const char CDU_CYAN_TEXT_NAME[] = "cdu_big_cyan";
+const char CDU_MAGENTA_TEXT_NAME[] = "cdu_big_magenta";
+
+const char* CDU_TEXTURE_ARRAY[] = {
+  CDU_WHITE_TEXT_NAME,
+  CDU_GREEN_TEXT_NAME,
+  CDU_CYAN_TEXT_NAME,
+  CDU_MAGENTA_TEXT_NAME
+};
 }  // namespace
 
 namespace fms_displays {
+
+util::const_str_data_t GetCduTextureNames() {
+  return util::const_str_data_t{
+    .ptr=CDU_TEXTURE_ARRAY, .size=MY_ARRAY_SIZE(CDU_TEXTURE_ARRAY)};
+}
+
 // cdu_scr_data_t definitions:
 
 cdu_scr_data_t::cdu_scr_data_t() {
@@ -157,7 +180,7 @@ cdu_scr_data_t::cdu_scr_data_t() {
 // CDU definitions:
 // Public member functions:
 
-CDU::CDU(std::shared_ptr<fms_core::FPLSys> fs, size_t sd_idx) {
+CDU::CDU(fms_core::FPLSys* fs, size_t sd_idx) {
   act_sd_idx_ = sd_idx;
 
   fpl_sys_ = fs;
@@ -1784,17 +1807,13 @@ cdu_scr_data_t CDU::get_legs_page() const noexcept {
 // Public member functions:
 
 CDUDisplay::CDUDisplay(geom::vect2_t pos, geom::vect2_t sz,
-                       cairo_font_face_t* ff,
-                       std::shared_ptr<cairo_utils::texture_manager_t> tm,
-                       std::shared_ptr<CDU> cdu) {
+                       TextureManager* tm, CDU* cdu) {
   screen_pos_ = pos;
   size_ = sz;
   display_pos_ = screen_pos_ + size_ * DISPLAY_OFFS;
   display_size_ = size_ * DISPLAY_SZ;
 
-  font_face = ff;
-
-  tex_mngr_ = tm;
+  textures_.init(tm);
   cdu_ptr_ = cdu;
 
   scratchpad_ = std::string(size_t(N_CDU_DATA_COLS), ' ');
@@ -1815,6 +1834,19 @@ void CDUDisplay::draw(cairo_t* cr) {
 }
 
 // Private member functions:
+
+void CDUDisplay::cdu_textures_t::init(TextureManager* tm) {
+  cdu_big_white = tm->GetTexture(CDU_WHITE_TEXT_NAME);
+  assert(cdu_big_white != nullptr);
+  cdu_big_green = tm->GetTexture(CDU_GREEN_TEXT_NAME);
+  assert(cdu_big_green != nullptr);
+  cdu_big_cyan = tm->GetTexture(CDU_CYAN_TEXT_NAME);
+  assert(cdu_big_cyan != nullptr);
+  cdu_big_magenta = tm->GetTexture(CDU_MAGENTA_TEXT_NAME);
+  assert(cdu_big_magenta != nullptr);
+
+  main_font_face = tm->GetFontData(fms_display_fonts::MAIN_FONT_NAME)->cairo_face;
+}
 
 void CDUDisplay::handle_event(event_type event) noexcept {
   if (event && (event < CDU_KEY_A || event == CDU_KEY_EXEC)) {
@@ -1954,23 +1986,23 @@ bool CDUDisplay::chr_is_big(char c) {
   return true;
 }
 
-cairo_surface_t* CDUDisplay::get_font_sfc(CDUColor cl) {
-  cairo_surface_t* font_sfc;
+CDUDisplay::texture_type CDUDisplay::get_font_sfc(CDUColor cl) {
+  texture_type font_sfc;
   if (cl == CDUColor::GREEN)
-    font_sfc = tex_mngr_->data[CDU_GREEN_TEXT_NAME];
+    font_sfc = textures_.cdu_big_green;
   else if (cl == CDUColor::CYAN)
-    font_sfc = tex_mngr_->data[CDU_CYAN_TEXT_NAME];
+    font_sfc = textures_.cdu_big_cyan;
   else if (cl == CDUColor::MAGENTA)
-    font_sfc = tex_mngr_->data[CDU_MAGENTA_TEXT_NAME];
+    font_sfc = textures_.cdu_big_magenta;
   else
-    font_sfc = tex_mngr_->data[CDU_WHITE_TEXT_NAME];
+    font_sfc = textures_.cdu_big_white;
 
   return font_sfc;
 }
 
 void CDUDisplay::draw_cdu_letter(cairo_t* cr, char c, geom::vect2_t pos,
                                  geom::vect2_t scale,
-                                 cairo_surface_t* font_sfc) {
+                                 texture_type font_sfc) {
   if (scale.x == 0 || scale.y == 0) return;
 
   int idx = get_cdu_letter_idx(c);
@@ -1987,7 +2019,7 @@ void CDUDisplay::draw_cdu_letter(cairo_t* cr, char c, geom::vect2_t pos,
   cairo_restore(cr);
 }
 
-void CDUDisplay::draw_cdu_line(cairo_t* cr, std::string& s, geom::vect2_t pos,
+void CDUDisplay::draw_cdu_line(cairo_t* cr, const std::string& s, geom::vect2_t pos,
                                double l_intv_px, std::string sts,
                                geom::vect2_t scale, CDUColor clr) {
   if (sts != "") assert(sts.size() >= s.size());

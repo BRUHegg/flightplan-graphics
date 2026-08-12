@@ -57,8 +57,8 @@ std::string get_leg_str(leg_t& leg) {
 // FlightPlanBase class definitions:
 // Public member functions:
 
-FlightPlanBase::FlightPlanBase(std::shared_ptr<libnav::ArptDB> apt_db,
-                       std::shared_ptr<libnav::NavaidDB> nav_db,
+FlightPlanBase::FlightPlanBase(util::OpaquePointer<libnav::ArptDB> apt_db,
+                       util::OpaquePointer<libnav::NavaidDB> nav_db,
                        path_type cifp_path)
     : arpt_db_ptr_{apt_db}, navaid_db_ptr_{nav_db}, 
       leg_list_{}, seg_list_{},
@@ -227,19 +227,20 @@ bool FlightPlanBase::legcmp(leg_t& leg1, leg_t& leg2) {
   return leg1.main_fix == leg2.main_fix;
 }
 
-libnav::DbErr FlightPlanBase::set_arpt(std::string icao, libnav::Airport** ptr,
+libnav::DbErr FlightPlanBase::set_arpt(std::string icao, const libnav::Airport** ptr,
                                    bool is_arr, libnav::arinc_leg_t* buf) {
-  if (*ptr != nullptr && (*ptr)->icao_code == icao) {
+  if (*ptr != nullptr && (*ptr)->get_icao() == icao) {
     if (!is_arr) {
       reset_fpln(is_arr);
       return libnav::DbErr::SUCCESS;
     }
     return libnav::DbErr::ERR_NONE;
   }
-  libnav::Airport* tmp =
-      new libnav::Airport(icao, arpt_db_ptr_, navaid_db_ptr_, cifp_dir_path_.Get(), 
-                          ".dat", true, APPR_PREF_MOD, buf);
-  libnav::DbErr err_cd = tmp->err_code;
+  const libnav::Airport* tmp =
+      new libnav::Airport(icao, arpt_db_ptr_.get(), navaid_db_ptr_.get(), 
+                          cifp_dir_path_.Get(), ".dat", true, APPR_PREF_MOD, 
+                          buf);
+  libnav::DbErr err_cd = tmp->get_err();
   if (err_cd != libnav::DbErr::SUCCESS &&
       err_cd != libnav::DbErr::PARTIAL_LOAD) {
     delete tmp;

@@ -15,9 +15,9 @@
 
 namespace fms_core {
 
-FlightPlan::FlightPlan(std::shared_ptr<libnav::ArptDB> apt_db,
-                       std::shared_ptr<libnav::NavaidDB> nav_db,
-                       std::shared_ptr<libnav::AwyDB> aw_db,
+FlightPlan::FlightPlan(util::OpaquePointer<libnav::ArptDB> apt_db,
+                       util::OpaquePointer<libnav::NavaidDB> nav_db,
+                       util::OpaquePointer<libnav::AwyDB> aw_db,
                        pathlib::Path cifp_path)
     : fpln_{apt_db, nav_db, aw_db, cifp_path} {}
 

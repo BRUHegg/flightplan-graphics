@@ -25,12 +25,14 @@
 #include <fpln/environment.hpp>
 #include <displays/CDU/cdu.hpp>
 #include <displays/CDU/cdu_widget.hpp>
+#include <displays/common/font_names.hpp>
 #include <displays/common/texture_manager.hpp>
 #include <displays/ND/nd.hpp>
 #include <fpln/fpl_cmds.hpp>
 #include <fpln/fpln_sys.hpp>
 #include <util/json_require.hpp>
 #include <util/pathlib.hpp>
+#include <util/util.hpp>
 
 namespace fms_core {
 const std::string CMD_FILE_NM = "cmds.txt";
@@ -42,7 +44,7 @@ const std::string PREFS_FPL_DIR = "FPLDIR";
 
 const std::string BOEING_FONT_NAME = "BoeingFont.ttf";
 const std::pair<std::string, std::string> CDU_BYTEMAP_NAME = {
-    "cdu_key_map", fms_displays::CDU_TEXTURE_NAME};
+    "cdu_key_map", "cdu"};
 const std::string TEXTURES_PATH = "textures/";
 
 constexpr double WND_HEIGHT = 900;
@@ -63,7 +65,7 @@ class Avionics {
   std::shared_ptr<libnav::AwyDB> awy_db;
   std::shared_ptr<libnav::HoldDB> hold_db;
 
-  std::shared_ptr<FPLSys> fpl_sys;
+  FPLSys* fpl_sys;
   std::shared_ptr<fms_environment::EnvDataRefMap> env_map_ptr_;
 
   pathlib::Path cifp_dir_path;
@@ -114,15 +116,15 @@ class Avionics {
       std::make_shared<fms_environment::EnvDataRefMap>(
         fms_environment::kBaseVariables);
 
-    fpl_sys = std::make_shared<FPLSys>(arpt_db_ptr, navaid_db_ptr, awy_db,
+    fpl_sys = new FPLSys{arpt_db_ptr, navaid_db_ptr, awy_db,
                                       env_map_ptr_,
-                                       cifp_dir_path, fpl_path);
+                                       cifp_dir_path, fpl_path};
   }
 
   void update() { fpl_sys->update(); }
 
   ~Avionics() {
-    fpl_sys.reset();
+    delete fpl_sys;
     env_map_ptr_.reset();
     hold_db.reset();
     awy_db.reset();
@@ -133,23 +135,40 @@ class Avionics {
 };
 
 class CMDInterface {
+  fms_displays::TextureManager* tex_manager_;
  public:
   std::shared_ptr<Avionics> avncs;
-  std::shared_ptr<cairo_utils::texture_manager_t> tex_mngr;
-  std::shared_ptr<fms_displays::NDData> nd_data;
-  std::shared_ptr<fms_displays::NDDisplay> nd_display;
-  std::shared_ptr<fms_displays::CDU> cdu_l;
-  std::shared_ptr<fms_displays::CDUDisplay> cdu_display_l;
-  std::shared_ptr<fms_displays::CDUWidget> cdu_widget_l;
+  fms_displays::NDData* nd_data;
+  fms_displays::NDDisplay* nd_display;
+  fms_displays::CDU* cdu_l;
+  fms_displays::CDUDisplay* cdu_display_l;
+  fms_displays::CDUWidget* cdu_widget_l;
 
   byteutils::bytemap_manager_t byte_mngr;
 
   CMDInterface() {
-
+    FT_Init_FreeType(&lib);
     pre_exec = {};
 
-    if(!json_data_.init(pathlib::Path{"config.json"}, GetJsonConfigTree())) {
+    pathlib::Path config_path = pathlib::Path{} + "config.json";
+    if(!json_data_.init(config_path, GetJsonConfigTree())) {
       throw std::logic_error{"There was a problem loading config.json"};
+    }
+    tex_manager_ = new fms_displays::TextureManager{
+      pathlib::Path{}, json_data_.tex_names, &lib};
+    if(!check_texture_manager(tex_manager_, fms_displays::GetCduTextureNames())) {
+      throw std::logic_error{"Not all cdu textures loaded"};
+    }
+    if(!check_texture_manager(tex_manager_, fms_displays::GetCduWidgetTextureNames())) {
+      throw std::logic_error{"Not all cdu widget textures loaded"};
+    }
+    if(!check_texture_manager(tex_manager_, fms_displays::GetNdTextureNames())) {
+      throw std::logic_error{"Not all nd textures loaded"};
+    }
+    util::const_str_data_t font_names{
+      .ptr=fms_display_fonts::FONT_NAMES, .size=MY_ARRAY_SIZE(fms_display_fonts::FONT_NAMES)};
+    if(!check_texture_manager(tex_manager_, font_names)) {
+      throw std::logic_error{"Not all fonts loaded"};
     }
     fetch_prefs_data();
     get_paths_from_user();
@@ -189,7 +208,7 @@ class CMDInterface {
   }
 
   void main_loop() {
-    while (1) {
+    while (true) {
       std::string in_raw;
       std::cout << ">> ";
       std::getline(std::cin, in_raw);
@@ -218,7 +237,7 @@ class CMDInterface {
           return false;
         }
         tex_names = js["textures"];
-      }catch (const nlohmann::json::parse_error& e) {
+      } catch (const nlohmann::json::parse_error& e) {
         return false;
       }
       return true;
@@ -245,6 +264,18 @@ class CMDInterface {
     auto p7 = tr.Add(p6, "type", nlohmann::json::value_t::string, false, true);
     p7.SetPredicate(fms_displays::TextureManager::CheckTextureType, true);
     return tr;
+  }
+
+  static bool check_texture_manager(
+    fms_displays::TextureManager* manager, 
+    util::const_str_data_t tex_names) {
+    for(std::size_t i = 0; i < tex_names.size; ++i) {
+      if(manager->GetTexture(tex_names.ptr[i]) == nullptr && 
+        !(manager->GetFontData(tex_names.ptr[i]))) {
+        return false;
+      }
+    }
+    return true;
   }
 
   void fetch_prefs_data() {
@@ -334,61 +365,12 @@ class CMDInterface {
     }
   }
 
-  void load_fonts() {
-    FT_Init_FreeType(&lib);
-
-    bool font_loaded = false;
-    if (libnav::does_file_exist(BOEING_FONT_NAME)) {
-      font_loaded = cairo_utils::load_font(BOEING_FONT_NAME, lib, &font,
-                                           &boeing_font_face);
-    } else {
-      std::cout << "Font file " << BOEING_FONT_NAME << " was not found.\n";
-    }
-
-    if (!font_loaded) {
-      std::cout << "Failed to load font: " << BOEING_FONT_NAME
-                << " . Aborting\n";
-      exit(0);
-    }
-  }
-
-  void load_textures() {
-    std::vector<std::string> tgt_names = {
-        fms_displays::WPT_ACT_NAME,
-        fms_displays::WPT_INACT_NAME,
-        fms_displays::AIRPLANE_NAME,
-        fms_displays::PLN_BACKGND_INNER_NAME,
-        fms_displays::PLN_BACKGND_OUTER_NAME,
-        fms_displays::MAP_BACKGND_NAME,
-        fms_displays::MAP_AC_TRI_NAME,
-        fms_displays::MAP_HDG_NAME,
-        fms_displays::HTRK_BOX_NAME,
-        fms_displays::ARPT_NML_POI_NAME,
-        fms_displays::ARPT_ALTN_POI_NAME,
-        fms_displays::VORDME_POI_NAME,
-        fms_displays::DME_POI_NAME,
-
-        fms_displays::CDU_TEXTURE_NAME,
-        fms_displays::CDU_WHITE_TEXT_NAME,
-        fms_displays::CDU_GREEN_TEXT_NAME,
-        fms_displays::CDU_CYAN_TEXT_NAME,
-        fms_displays::CDU_MAGENTA_TEXT_NAME};
-
-    tex_mngr = std::make_shared<cairo_utils::texture_manager_t>();
-
-    if (!tex_mngr->load(tgt_names, TEXTURES_PATH)) {
-      std::cout << "Failed to load textures. Aborting\n";
-      tex_mngr->destroy();
-      exit(0);
-    }
-  }
-
   void load_bytemaps() {
     std::vector<std::pair<std::string, std::string>> tgt = {CDU_BYTEMAP_NAME};
 
     for (size_t i = 0; i < tgt.size(); i++) {
       geom::vect2_t tex_sz =
-          cairo_utils::get_surf_sz(tex_mngr->data[tgt[i].second]);
+          cairo_utils::get_surf_sz(tex_manager_->GetTexture(tgt[i].second));
       bool added = byte_mngr.add_bytemap(TEXTURES_PATH, tgt[i].first,
                                          size_t(tex_sz.x), size_t(tex_sz.y));
       if (!added) {
@@ -399,8 +381,6 @@ class CMDInterface {
   }
 
   void create_avionics() {
-    load_fonts();
-    load_textures();
     load_bytemaps();
 
     avncs = std::make_shared<Avionics>(
@@ -410,18 +390,18 @@ class CMDInterface {
         earth_nav_path + "earth_awy.dat", earth_nav_path + "earth_hold.dat",
         earth_nav_path + "CIFP", fpl_dir);
 
-    nd_data = std::make_shared<fms_displays::NDData>(avncs->fpl_sys);
+    nd_data = new fms_displays::NDData{avncs->fpl_sys};
     if (!nd_data->init()) {
       throw "Failed to allocate nd_data\n";
     }
-    nd_display = std::make_shared<fms_displays::NDDisplay>(
-        nd_data, tex_mngr, boeing_font_face, ND_POS, ND_SZ, 0);
-    cdu_l = std::make_shared<fms_displays::CDU>(avncs->fpl_sys, 0);
+    nd_display = new fms_displays::NDDisplay{
+        nd_data, tex_manager_, ND_POS, ND_SZ, 0};
+    cdu_l = new fms_displays::CDU{avncs->fpl_sys, 0};
     byteutils::Bytemap* cdu_map = byte_mngr.get_bytemap(CDU_BYTEMAP_NAME.first);
-    cdu_display_l = std::make_shared<fms_displays::CDUDisplay>(
-        CDU_L_POS, CDU_L_SZ, boeing_font_face, tex_mngr, cdu_l);
-    cdu_widget_l = std::make_shared<fms_displays::CDUWidget>(
-      CDU_L_POS, CDU_L_SZ, tex_mngr, cdu_l, cdu_display_l, cdu_map);
+    cdu_display_l = new fms_displays::CDUDisplay{
+        CDU_L_POS, CDU_L_SZ, tex_manager_, cdu_l};
+    cdu_widget_l = new fms_displays::CDUWidget{
+      CDU_L_POS, CDU_L_SZ, tex_manager_, cdu_l, cdu_display_l, cdu_map};
 
     std::cout << "Avionics loaded\n";
   }

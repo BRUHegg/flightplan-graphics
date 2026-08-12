@@ -8,18 +8,23 @@
 #include <stack>
 #include <string>
 
-#include <common/bytemap.hpp>
-#include <common/cairo_utils.hpp>
+#include <displays/common/bytemap.hpp>
+#include <displays/common/cairo_utils.hpp>
+#include <displays/common/texture_manager.hpp>
 #include <fpln/fpln_sys.hpp>
 #include <fpln/flightpln_int.hpp>
 #include <libnav/cifp_parser.hpp>
 #include <util/geom.hpp>
+#include <util/util.hpp>
 
 #ifdef FPL_DEBUG
 #include <iostream>
 #endif
 
 namespace fms_displays {
+
+util::const_str_data_t GetCduTextureNames();
+
 enum class CDUPage {
   RTE,
   DEP_ARR_INTRO,
@@ -42,10 +47,6 @@ enum class CDUPage {
 };
 
 constexpr double CDU_TEXTURE_ASPECT_RATIO = (488.0 / 751.0);
-const std::string CDU_WHITE_TEXT_NAME = "cdu_big_white";
-const std::string CDU_GREEN_TEXT_NAME = "cdu_big_green";
-const std::string CDU_CYAN_TEXT_NAME = "cdu_big_cyan";
-const std::string CDU_MAGENTA_TEXT_NAME = "cdu_big_magenta";
 
 enum class CDUColor { WHITE, GREEN, CYAN, MAGENTA };
 
@@ -65,11 +66,11 @@ struct cdu_scr_data_t {
   cdu_scr_data_t();
 };
 
-class CDU {
+class CDU final {
  public:
   using flightplan_type = typename fms_core::FPLSys::flightplan_type;
 
-  CDU(std::shared_ptr<fms_core::FPLSys> fs, size_t sd_idx);
+  CDU(fms_core::FPLSys* fs, size_t sd_idx);
 
   void update() noexcept;
 
@@ -85,7 +86,7 @@ class CDU {
 
   std::size_t act_sd_idx_;
 
-  std::shared_ptr<fms_core::FPLSys> fpl_sys_;
+  fms_core::FPLSys* fpl_sys_;
   std::shared_ptr<flightplan_type> fpln_;
   std::shared_ptr<flightplan_type> m_rte1_ptr_;
   std::shared_ptr<flightplan_type> m_rte2_ptr_;
@@ -338,19 +339,30 @@ class CDU {
   cdu_scr_data_t get_legs_page() const noexcept;
 };
 
-class CDUDisplay {
+class CDUDisplay final {
  public:
   using event_type = int;
+  using texture_type = typename TextureManager::texture_t;
 
-  CDUDisplay(geom::vect2_t pos, geom::vect2_t sz, cairo_font_face_t* ff,
-             std::shared_ptr<cairo_utils::texture_manager_t> tm,
-             std::shared_ptr<CDU> cdu);
+  CDUDisplay(geom::vect2_t pos, geom::vect2_t sz, 
+             TextureManager* tm, CDU* cdu);
 
   void on_event(event_type event);
 
   void draw(cairo_t* cr);
 
  private:
+  struct cdu_textures_t {
+    texture_type cdu_big_white;
+    texture_type cdu_big_green;
+    texture_type cdu_big_cyan;
+    texture_type cdu_big_magenta;
+
+    cairo_font_face_t* main_font_face;
+
+    void init(TextureManager* tm);
+  };
+
   mutable std::mutex main_mutex_;
   std::queue<event_type> events_;
 
@@ -359,10 +371,8 @@ class CDUDisplay {
   geom::vect2_t display_pos_;  // position of the CDU display on the screen
   geom::vect2_t display_size_;
 
-  cairo_font_face_t* font_face;
-
-  std::shared_ptr<cairo_utils::texture_manager_t> tex_mngr_;
-  std::shared_ptr<CDU> cdu_ptr_;
+  cdu_textures_t textures_;
+  CDU* cdu_ptr_;
 
   std::string scratchpad_;
   size_t scratch_curr_;
@@ -387,12 +397,12 @@ class CDUDisplay {
 
   static bool chr_is_big(char c);
 
-  cairo_surface_t* get_font_sfc(CDUColor cl);
+  texture_type get_font_sfc(CDUColor cl);
 
   void draw_cdu_letter(cairo_t* cr, char c, geom::vect2_t pos,
-                       geom::vect2_t scale, cairo_surface_t* font_sfc);
+                       geom::vect2_t scale, texture_type font_sfc);
 
-  void draw_cdu_line(cairo_t* cr, std::string& s, geom::vect2_t pos,
+  void draw_cdu_line(cairo_t* cr, const std::string& s, geom::vect2_t pos,
                      double l_intv_px, std::string sts = "",
                      geom::vect2_t scale = {}, CDUColor clr = CDUColor::WHITE);
 

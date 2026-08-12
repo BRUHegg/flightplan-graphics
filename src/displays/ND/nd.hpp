@@ -19,29 +19,18 @@
 #include <string>
 #include <shared_mutex>
 
-#include <common/cairo_utils.hpp>
+#include <displays/common/cairo_utils.hpp>
+#include <displays/common/texture_manager.hpp>
 #include <fpln/fpln_sys.hpp>
 #include <util/geom.hpp>
 #include <libnav/str_utils.hpp>
 #include <util/util.hpp>
 
 namespace fms_displays {
-enum class PoiType { AIRPORT, WAYPOINT, VOR_ILS_DME, VHF_NOT_VORDME };
 
-// Texture names(for use with texture manager)
-const std::string WPT_INACT_NAME = "wpt_inact";
-const std::string WPT_ACT_NAME = "wpt_act";
-const std::string AIRPLANE_NAME = "airplane";
-const std::string PLN_BACKGND_INNER_NAME = "pln_back_inner";
-const std::string PLN_BACKGND_OUTER_NAME = "pln_back_outer";
-const std::string MAP_BACKGND_NAME = "map_back";
-const std::string MAP_HDG_NAME = "map_hdg";
-const std::string MAP_AC_TRI_NAME = "map_ac_ico";
-const std::string HTRK_BOX_NAME = "hdg_trk_box";
-const std::string ARPT_NML_POI_NAME = "normal_arpt_sign";
-const std::string ARPT_ALTN_POI_NAME = "altn_arpt_sign";
-const std::string DME_POI_NAME = "dme";
-const std::string VORDME_POI_NAME = "vordme";
+util::const_str_data_t GetNdTextureNames();
+
+enum class PoiType { AIRPORT, WAYPOINT, VOR_ILS_DME, VHF_NOT_VORDME };
 
 struct nd_util_idx_t {
   std::size_t sd_idx = 0;
@@ -81,11 +70,11 @@ struct poi_data_t {
 };
 
 struct map_poi_container_t : poi_data_t {
-  std::shared_ptr<libnav::ArptDB> arpt_db_ptr;
-  std::shared_ptr<libnav::NavaidDB> navaid_db_ptr;
+  util::OpaquePointer<libnav::ArptDB> arpt_db_ptr;
+  util::OpaquePointer<libnav::NavaidDB> navaid_db_ptr;
 
-  map_poi_container_t(std::shared_ptr<libnav::ArptDB> arpt_ptr,
-                      std::shared_ptr<libnav::NavaidDB> navaid_ptr);
+  map_poi_container_t(util::OpaquePointer<libnav::ArptDB> arpt_ptr,
+                      util::OpaquePointer<libnav::NavaidDB> navaid_ptr);
 
   void set_add(
       std::set<labeled_point_with_dist_t, labeled_point_with_dist_cmp_t>& st,
@@ -135,11 +124,11 @@ struct efis_selection_t {
   bool sta_on = false;
 };
 
-class NDData {
+class NDData final {
  public:
   using flightplan_type = typename fms_core::FPLSys::flightplan_type;
 
-  NDData(std::shared_ptr<fms_core::FPLSys> fpl_sys);
+  NDData(fms_core::FPLSys* fpl_sys);
 
   bool init();
 
@@ -219,8 +208,8 @@ class NDData {
  private:
   mutable std::shared_mutex main_mutex_;
 
-  std::vector<std::shared_ptr<flightplan_type>> fpl_vec_;
-  std::shared_ptr<fms_core::FPLSys> fpl_sys_ptr_;
+  util::OpaquePointer<flightplan_type> fpl_vec_[fms_core::N_FPL_SYS_RTES];
+  fms_core::FPLSys* fpl_sys_ptr_;
 
   bool idx_proj_act_ = false;
   poi_data_t pois_projected_[2];
@@ -281,33 +270,52 @@ class NDData {
   void update_fpl(std::size_t dt_idx);
 };
 
-class NDDisplay {
+class NDDisplay final {
  public:
-  NDDisplay(std::shared_ptr<NDData> data,
-            std::shared_ptr<cairo_utils::texture_manager_t> mngr,
-            cairo_font_face_t* ff, geom::vect2_t pos, geom::vect2_t sz,
+  using texture_type = typename TextureManager::texture_t;
+
+  NDDisplay(NDData* data, TextureManager* mngr,
+            geom::vect2_t pos, geom::vect2_t sz,
             size_t sd_idx);
 
   void draw(cairo_t* cr);
 
  private:
-  std::shared_ptr<NDData> nd_data;
-  std::shared_ptr<cairo_utils::texture_manager_t> tex_mngr;
+  struct nd_textures_t {
+    texture_type wpt_inact;
+    texture_type wpt_act;
+    texture_type airplane;
+    texture_type pln_back_inner;
+    texture_type pln_back_outer;
+    texture_type map_back;
+    texture_type map_hdg;
+    texture_type map_ac_ico;
+    texture_type hdg_trk_box;
+    texture_type normal_arpt_sign;
+    texture_type altn_arpt_sign;
+    texture_type dme;
+    texture_type vordme;
+    cairo_font_face_t* font_face;
 
-  bool is_trk_up;
-  fms_core::NDMode cr_md;
-  bool is_ctr, has_tfc;
-  efis_selection_t efis_sel;
+    void init(TextureManager* tex_manager);
+  };
 
-  cairo_font_face_t* font_face;
+  NDData* nd_data_;
 
-  geom::vect2_t scr_pos;
-  geom::vect2_t size;
-  geom::vect2_t map_ctr, scale_factor;
-  fms_core::hdg_info_t hdg_data;
-  double rng, curr_rng;
+  bool is_trk_up_;
+  fms_core::NDMode cr_md_;
+  bool is_ctr_, has_tfc_;
+  efis_selection_t efis_sel_;
 
-  size_t side_idx;
+  nd_textures_t textures_;
+
+  geom::vect2_t scr_pos_;
+  geom::vect2_t size_;
+  geom::vect2_t map_ctr_, scale_factor_;
+  fms_core::hdg_info_t hdg_data_;
+  double rng_, curr_rng_;
+
+  size_t side_idx_;
 
   void update_mode();
 

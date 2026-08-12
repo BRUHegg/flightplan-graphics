@@ -24,6 +24,7 @@
 #include "environment.hpp"
 #include "fpln_main.hpp"
 #include <util/pathlib.hpp>
+#include <util/util.hpp>
 
 namespace fms_core {
 enum class RTECopySts { READY, COMPLETE, UNAVAIL };
@@ -70,27 +71,27 @@ struct fpln_data_t : fpln_info_t {
   std::vector<list_node_ref_t<leg_list_data_t>> leg_list;
 };
 
-class FPLSys {
+class FPLSys final {
  public:
   using path_type = pathlib::Path;
   using flightplan_type = FlightPlan;
 
-  FPLSys(std::shared_ptr<libnav::ArptDB> arpt_db,
-         std::shared_ptr<libnav::NavaidDB> navaid_db,
-         std::shared_ptr<libnav::AwyDB> awy_db, 
+  FPLSys(util::OpaquePointer<libnav::ArptDB> arpt_db,
+         util::OpaquePointer<libnav::NavaidDB> navaid_db,
+         util::OpaquePointer<libnav::AwyDB> awy_db, 
          std::shared_ptr<fms_environment::EnvDataRefMap> env_map,
          path_type cifp_path,
          path_type fpl_path);
 
   std::size_t get_cnt_flplns() const noexcept;
 
-  std::shared_ptr<flightplan_type> get_fpln_ptr(std::size_t fpln_idx) const noexcept;
+  util::OpaquePointer<flightplan_type> get_fpln_ptr(std::size_t fpln_idx) const noexcept;
 
-  std::shared_ptr<libnav::AwyDB> get_awy_db_ptr() const noexcept;
+  util::OpaquePointer<libnav::AwyDB> get_awy_db_ptr() const noexcept;
 
-  std::shared_ptr<libnav::ArptDB> get_arpt_db_ptr() const noexcept;
+  util::OpaquePointer<libnav::ArptDB> get_arpt_db_ptr() const noexcept;
 
-  std::shared_ptr<libnav::NavaidDB> get_navaid_db_ptr() const noexcept;
+  util::OpaquePointer<libnav::NavaidDB> get_navaid_db_ptr() const noexcept;
 
   path_type get_fpln_dir() const noexcept;
 
@@ -151,6 +152,8 @@ class FPLSys {
 
   void update();
 
+  ~FPLSys();
+
  private:
   // These are used by commands
   struct pos_data_t {
@@ -171,12 +174,12 @@ class FPLSys {
 
   std::unordered_map<fms_environment::val_ref_t, double*> double_values_;
 
-  std::shared_ptr<libnav::ArptDB> arpt_db_ptr_;
-  std::shared_ptr<libnav::NavaidDB> navaid_db_ptr_;
-  std::shared_ptr<libnav::AwyDB> awy_db_ptr_;
+  util::OpaquePointer<libnav::ArptDB> arpt_db_ptr_;
+  util::OpaquePointer<libnav::NavaidDB> navaid_db_ptr_;
+  util::OpaquePointer<libnav::AwyDB> awy_db_ptr_;
   std::shared_ptr<fms_environment::EnvDataRefMap> env_map_ptr_;
 
-  std::vector<std::shared_ptr<flightplan_type>> fpl_vec_;
+  flightplan_type* fpl_vec_[N_FPL_SYS_RTES];
 
   std::pair<std::size_t, double> leg_sel_cdu_l_;
   std::pair<std::size_t, double> leg_sel_cdu_r_;

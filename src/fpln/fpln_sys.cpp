@@ -22,20 +22,16 @@
 #include <shared_mutex>
 
 #include "environment.hpp"
-
-namespace {
-
-
-} // namespace
+#include <util/util.hpp>
 
 namespace fms_core {
 // FPLSys member function definitions:
 
 // Public member functions:
 
-FPLSys::FPLSys(std::shared_ptr<libnav::ArptDB> arpt_db,
-               std::shared_ptr<libnav::NavaidDB> navaid_db,
-               std::shared_ptr<libnav::AwyDB> awy_db, 
+FPLSys::FPLSys(util::OpaquePointer<libnav::ArptDB> arpt_db,
+               util::OpaquePointer<libnav::NavaidDB> navaid_db,
+               util::OpaquePointer<libnav::AwyDB> awy_db, 
                std::shared_ptr<fms_environment::EnvDataRefMap> env_map,
                path_type cifp_path,
                path_type fpl_path) : arpt_db_ptr_{arpt_db}, 
@@ -47,9 +43,8 @@ FPLSys::FPLSys(std::shared_ptr<libnav::ArptDB> arpt_db,
   fpl_dir_ = fpl_path;
 
   for (size_t i = 0; i < N_FPL_SYS_RTES; i++) {
-    std::shared_ptr<flightplan_type> tmp = std::make_shared<flightplan_type>(
-        arpt_db_ptr_, navaid_db_ptr_, awy_db_ptr_, cifp_dir_path_);
-    fpl_vec_.push_back(tmp);
+    fpl_vec_[i] = new flightplan_type{
+      arpt_db_ptr_, navaid_db_ptr_, awy_db_ptr_, cifp_dir_path_};
   }
 
   leg_sel_cdu_l_ = {0, 0};
@@ -84,24 +79,24 @@ FPLSys::FPLSys(std::shared_ptr<libnav::ArptDB> arpt_db,
   update_hot_env_vars();
 }
 
-std::size_t FPLSys::get_cnt_flplns() const noexcept { return fpl_vec_.size(); }
+std::size_t FPLSys::get_cnt_flplns() const noexcept { MY_ARRAY_SIZE(fpl_vec_); }
 
-std::shared_ptr<FPLSys::flightplan_type> FPLSys::get_fpln_ptr(
+util::OpaquePointer<FPLSys::flightplan_type> FPLSys::get_fpln_ptr(
     std::size_t fpln_idx) const noexcept {
   std::shared_lock lk(main_mutex_);
-  assert(fpln_idx < fpl_vec_.size());
-  return fpl_vec_[fpln_idx];
+  assert(fpln_idx < MY_ARRAY_SIZE(fpl_vec_));
+  return util::OpaquePointer{fpl_vec_[fpln_idx]};
 }
 
-std::shared_ptr<libnav::AwyDB> FPLSys::get_awy_db_ptr() const noexcept {
+util::OpaquePointer<libnav::AwyDB> FPLSys::get_awy_db_ptr() const noexcept {
   return awy_db_ptr_;
 }
 
-std::shared_ptr<libnav::ArptDB> FPLSys::get_arpt_db_ptr() const noexcept {
+util::OpaquePointer<libnav::ArptDB> FPLSys::get_arpt_db_ptr() const noexcept {
   return arpt_db_ptr_;
 }
 
-std::shared_ptr<libnav::NavaidDB> FPLSys::get_navaid_db_ptr() const noexcept {
+util::OpaquePointer<libnav::NavaidDB> FPLSys::get_navaid_db_ptr() const noexcept {
   return navaid_db_ptr_;
 }
 
@@ -432,6 +427,12 @@ void FPLSys::update() {
       !execute_status_) {
     act_rte_idx_ = N_FPL_SYS_RTES;
     act_rte_id_ = -1;
+  }
+}
+
+FPLSys::~FPLSys() {
+  for(std::size_t i = 0; i < MY_ARRAY_SIZE(fpl_vec_); ++i) {
+    delete fpl_vec_[i];
   }
 }
 

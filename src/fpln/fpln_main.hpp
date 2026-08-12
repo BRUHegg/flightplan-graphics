@@ -12,6 +12,7 @@
 #include "fpln_base.hpp"
 #include "flightpln_int.hpp"
 #include <util/pathlib.hpp>
+#include <util/util.hpp>
 
 namespace fms_core {
 
@@ -19,9 +20,9 @@ class FlightPlan final {
   mutable std::shared_mutex main_mutex_;
   FplnInt fpln_;
 public:
-  FlightPlan(std::shared_ptr<libnav::ArptDB> apt_db,
-          std::shared_ptr<libnav::NavaidDB> nav_db,
-          std::shared_ptr<libnav::AwyDB> aw_db, pathlib::Path cifp_path);
+  FlightPlan(util::OpaquePointer<libnav::ArptDB> apt_db,
+          util::OpaquePointer<libnav::NavaidDB> nav_db,
+          util::OpaquePointer<libnav::AwyDB> aw_db, pathlib::Path cifp_path);
 
   double get_id() const noexcept;
 
