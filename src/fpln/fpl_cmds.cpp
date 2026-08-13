@@ -135,7 +135,7 @@ void load_fpln(command_res_t cmd_resources, std::vector<std::string>& in) {
 
   size_t c_idx = get_cmd_fpln_idx(cmd_resources);
 
-  std::shared_ptr<flightplan_type> curr_fpln =
+  util::OpaquePointer<flightplan_type> curr_fpln =
       cmd_resources.fpl_sys->get_fpln_ptr(c_idx);
   std::string dep_nm = curr_fpln->get_dep_icao();
   std::string arr_nm = curr_fpln->get_arr_icao();
@@ -159,7 +159,7 @@ void save_fpln(command_res_t cmd_resources, std::vector<std::string>& in) {
 
   size_t c_idx = get_cmd_fpln_idx(cmd_resources);
 
-  std::shared_ptr<flightplan_type> curr_fpln =
+  util::OpaquePointer<flightplan_type> curr_fpln =
       cmd_resources.fpl_sys->get_fpln_ptr(c_idx);
   std::string dep_nm = curr_fpln->get_dep_icao();
   std::string arr_nm = curr_fpln->get_arr_icao();
@@ -198,7 +198,7 @@ void fplinfo(command_res_t cmd_resources, std::vector<std::string>& in) {
   }
 
   size_t c_idx = get_cmd_fpln_idx(cmd_resources);
-  std::shared_ptr<flightplan_type> curr_fpln =
+  util::OpaquePointer<flightplan_type> curr_fpln =
       cmd_resources.fpl_sys->get_fpln_ptr(c_idx);
 
   std::cout << "Departure: " << curr_fpln->get_dep_icao() << "\n";
@@ -214,7 +214,7 @@ void set_fpl_dep(command_res_t cmd_resources, std::vector<std::string>& in) {
   }
 
   size_t c_idx = get_cmd_fpln_idx(cmd_resources);
-  std::shared_ptr<flightplan_type> curr_fpln =
+  util::OpaquePointer<flightplan_type> curr_fpln =
       cmd_resources.fpl_sys->get_fpln_ptr(c_idx);
 
   libnav::DbErr err = curr_fpln->set_dep(in[0]);
@@ -232,7 +232,7 @@ void set_fpl_arr(command_res_t cmd_resources, std::vector<std::string>& in) {
   }
 
   size_t c_idx = get_cmd_fpln_idx(cmd_resources);
-  std::shared_ptr<flightplan_type> curr_fpl =
+  util::OpaquePointer<flightplan_type> curr_fpl =
       cmd_resources.fpl_sys->get_fpln_ptr(c_idx);
 
   libnav::DbErr err = curr_fpl->set_arr(in[0]);
@@ -250,7 +250,7 @@ void set_dep_rwy(command_res_t cmd_resources, std::vector<std::string>& in) {
   }
 
   size_t c_idx = get_cmd_fpln_idx(cmd_resources);
-  std::shared_ptr<flightplan_type> curr_fpl =
+  util::OpaquePointer<flightplan_type> curr_fpl =
       cmd_resources.fpl_sys->get_fpln_ptr(c_idx);
 
   bool rwy_set = curr_fpl->set_dep_rwy(in[0]);
@@ -267,7 +267,7 @@ void set_arr_rwy(command_res_t cmd_resources, std::vector<std::string>& in) {
   }
 
   size_t c_idx = get_cmd_fpln_idx(cmd_resources);
-  std::shared_ptr<flightplan_type> curr_fpl =
+  util::OpaquePointer<flightplan_type> curr_fpl =
       cmd_resources.fpl_sys->get_fpln_ptr(c_idx);
 
   bool rwy_set = curr_fpl->set_arr_rwy(in[0]);
@@ -284,7 +284,7 @@ void get_dep_rwys(command_res_t cmd_resources, std::vector<std::string>& in) {
   }
 
   size_t c_idx = get_cmd_fpln_idx(cmd_resources);
-  std::shared_ptr<flightplan_type> curr_fpl =
+  util::OpaquePointer<flightplan_type> curr_fpl =
       cmd_resources.fpl_sys->get_fpln_ptr(c_idx);
 
   std::vector<std::string> rwys =
@@ -301,7 +301,7 @@ void get_arr_rwys(command_res_t cmd_resources, std::vector<std::string>& in) {
   }
 
   size_t c_idx = get_cmd_fpln_idx(cmd_resources);
-  std::shared_ptr<flightplan_type> curr_fpl =
+  util::OpaquePointer<flightplan_type> curr_fpl =
       cmd_resources.fpl_sys->get_fpln_ptr(c_idx);
 
   std::vector<std::string> rwys = curr_fpl->get_arr_rwys();
@@ -325,7 +325,7 @@ void get_proc(command_res_t cmd_resources, std::vector<std::string>& in) {
   }
 
   size_t c_idx = get_cmd_fpln_idx(cmd_resources);
-  std::shared_ptr<flightplan_type> curr_fpl =
+  util::OpaquePointer<flightplan_type> curr_fpl =
       cmd_resources.fpl_sys->get_fpln_ptr(c_idx);
 
   bool is_arr = in[1] != "DEP";
@@ -355,7 +355,7 @@ void set_proc(command_res_t cmd_resources, std::vector<std::string>& in) {
   }
 
   size_t c_idx = get_cmd_fpln_idx(cmd_resources);
-  std::shared_ptr<flightplan_type> curr_fpl =
+  util::OpaquePointer<flightplan_type> curr_fpl =
       cmd_resources.fpl_sys->get_fpln_ptr(c_idx);
 
   int tmp = strutils::stoi_with_strip(in[0]);
@@ -438,7 +438,7 @@ void add_via(command_res_t cmd_resources, std::vector<std::string>& in) {
 
   size_t c_idx = get_cmd_fpln_idx(cmd_resources);
   fms_core::fpln_info_t f_inf = cmd_resources.fpl_sys->get_fpl_info(c_idx);
-  std::shared_ptr<flightplan_type> curr_fpl =
+  util::OpaquePointer<flightplan_type> curr_fpl =
       cmd_resources.fpl_sys->get_fpln_ptr(c_idx);
 
   size_t idx = size_t(strutils::stoi_with_strip(in[0]));
@@ -465,7 +465,7 @@ void delete_via(command_res_t cmd_resources, std::vector<std::string>& in) {
 
   size_t c_idx = get_cmd_fpln_idx(cmd_resources);
   fms_core::fpln_info_t f_inf = cmd_resources.fpl_sys->get_fpl_info(c_idx);
-  std::shared_ptr<flightplan_type> curr_fpl =
+  util::OpaquePointer<flightplan_type> curr_fpl =
       cmd_resources.fpl_sys->get_fpln_ptr(c_idx);
 
   size_t idx = size_t(strutils::stoi_with_strip(in[0]));
@@ -493,7 +493,7 @@ void add_to(command_res_t cmd_resources, std::vector<std::string>& in) {
 
   size_t c_idx = get_cmd_fpln_idx(cmd_resources);
   fms_core::fpln_info_t f_inf = cmd_resources.fpl_sys->get_fpl_info(c_idx);
-  std::shared_ptr<flightplan_type> curr_fpl =
+  util::OpaquePointer<flightplan_type> curr_fpl =
       cmd_resources.fpl_sys->get_fpln_ptr(c_idx);
 
   std::vector<libnav::waypoint_entry_t> wpt_entr;
@@ -534,7 +534,7 @@ inline void delete_to(command_res_t cmd_resources,
 
   size_t c_idx = get_cmd_fpln_idx(cmd_resources);
   fms_core::fpln_info_t f_inf = cmd_resources.fpl_sys->get_fpl_info(c_idx);
-  std::shared_ptr<flightplan_type> curr_fpl =
+  util::OpaquePointer<flightplan_type> curr_fpl =
       cmd_resources.fpl_sys->get_fpln_ptr(c_idx);
 
   size_t idx = size_t(strutils::stoi_with_strip(in[0]));
@@ -563,7 +563,7 @@ inline void legs_set(command_res_t cmd_resources,
 
   size_t c_idx = get_cmd_fpln_idx(cmd_resources);
   fms_core::fpln_info_t f_inf = cmd_resources.fpl_sys->get_fpl_info(c_idx);
-  std::shared_ptr<flightplan_type> curr_fpl =
+  util::OpaquePointer<flightplan_type> curr_fpl =
       cmd_resources.fpl_sys->get_fpln_ptr(c_idx);
 
   if (in[2] == "R") return;
@@ -636,7 +636,7 @@ void delete_leg(command_res_t cmd_resources, std::vector<std::string>& in) {
   }
 
   size_t c_idx = get_cmd_fpln_idx(cmd_resources);
-  std::shared_ptr<flightplan_type> curr_fpl =
+  util::OpaquePointer<flightplan_type> curr_fpl =
       cmd_resources.fpl_sys->get_fpln_ptr(c_idx);
   fms_core::fpln_info_t f_inf = cmd_resources.fpl_sys->get_fpl_info(c_idx);
 
@@ -686,7 +686,7 @@ void print_refs(command_res_t cmd_resources, std::vector<std::string>& in) {
   }
 
   size_t c_idx = get_cmd_fpln_idx(cmd_resources);
-  std::shared_ptr<flightplan_type> curr_fpl =
+  util::OpaquePointer<flightplan_type> curr_fpl =
       cmd_resources.fpl_sys->get_fpln_ptr(c_idx);
   curr_fpl->print_refs();
 }

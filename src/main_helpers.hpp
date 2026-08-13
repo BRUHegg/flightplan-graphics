@@ -35,6 +35,7 @@
 #include <util/util.hpp>
 
 namespace fms_core {
+
 const std::string CMD_FILE_NM = "cmds.txt";
 const std::string PREFS_FILE_NM = "prefs.txt";
 
@@ -59,11 +60,11 @@ constexpr geom::vect2_t CDU_L_SZ = {CDU_WIDTH, WND_HEIGHT};
 
 class Avionics {
  public:
-  std::shared_ptr<libnav::ArptDB> arpt_db_ptr;
-  std::shared_ptr<libnav::NavaidDB> navaid_db_ptr;
+  libnav::ArptDB* arpt_db_ptr;
+  libnav::NavaidDB* navaid_db_ptr;
 
-  std::shared_ptr<libnav::AwyDB> awy_db;
-  std::shared_ptr<libnav::HoldDB> hold_db;
+  libnav::AwyDB* awy_db;
+  libnav::HoldDB* hold_db;
 
   FPLSys* fpl_sys;
   std::shared_ptr<fms_environment::EnvDataRefMap> env_map_ptr_;
@@ -76,10 +77,10 @@ class Avionics {
     cifp_dir_path = cifp_path;
 
     arpt_db_ptr =
-        std::make_shared<libnav::ArptDB>(apt_dat.Get(), custom_apt.Get(), custom_rnw.Get());
-    navaid_db_ptr = std::make_shared<libnav::NavaidDB>(fix_data.Get(), navaid_data.Get());
-    awy_db = std::make_shared<libnav::AwyDB>(awy_data.Get());
-    hold_db = std::make_shared<libnav::HoldDB>(hold_data.Get());
+        new libnav::ArptDB{apt_dat.Get(), custom_apt.Get(), custom_rnw.Get()};
+    navaid_db_ptr = new libnav::NavaidDB{fix_data.Get(), navaid_data.Get()};
+    awy_db = new libnav::AwyDB{awy_data.Get()};
+    hold_db = new libnav::HoldDB{hold_data.Get()};
 
     libnav::DbErr err_arpt = arpt_db_ptr->get_err();
     libnav::DbErr err_wpt = navaid_db_ptr->get_wpt_err();
@@ -116,9 +117,10 @@ class Avionics {
       std::make_shared<fms_environment::EnvDataRefMap>(
         fms_environment::kBaseVariables);
 
-    fpl_sys = new FPLSys{arpt_db_ptr, navaid_db_ptr, awy_db,
-                                      env_map_ptr_,
-                                       cifp_dir_path, fpl_path};
+    fpl_sys = new FPLSys{util::OpaquePointer<libnav::ArptDB>{arpt_db_ptr}, 
+                        util::OpaquePointer<libnav::NavaidDB>{navaid_db_ptr}, 
+                        util::OpaquePointer<libnav::AwyDB>{awy_db}, 
+                        env_map_ptr_, cifp_dir_path, fpl_path};
   }
 
   void update() { fpl_sys->update(); }
@@ -126,11 +128,10 @@ class Avionics {
   ~Avionics() {
     delete fpl_sys;
     env_map_ptr_.reset();
-    hold_db.reset();
-    awy_db.reset();
-    navaid_db_ptr.reset();
-    navaid_db_ptr.reset();
-    arpt_db_ptr.reset();
+    delete hold_db;
+    delete awy_db;
+    delete navaid_db_ptr;
+    delete arpt_db_ptr;
   }
 };
 

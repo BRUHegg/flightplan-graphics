@@ -97,7 +97,7 @@ libnav::DbErr FlightPlan::set_arr(std::string icao){
     MY_MUTEX_WRAPPER_FUNC_BODY(fpln_, FplnInt, set_arr, main_mutex_,
                                icao)}
 
-std::string FlightPlan::get_arr_icao(){
+std::string FlightPlan::get_arr_icao() const noexcept {
     MY_MUTEX_WRAPPER_FUNC_BODY(fpln_, FplnInt, get_arr_icao, main_mutex_)}
 
 // Runway functions:
@@ -117,7 +117,7 @@ bool FlightPlan::set_dep_rwy(const std::string& rwy){
     MY_MUTEX_WRAPPER_FUNC_BODY(fpln_, FplnInt, set_dep_rwy, main_mutex_,
                                rwy)}
 
-std::string FlightPlan::get_dep_rwy() {
+std::string FlightPlan::get_dep_rwy() const noexcept {
   MY_MUTEX_WRAPPER_FUNC_BODY(fpln_, FplnInt, get_dep_rwy, main_mutex_)
 }
 
@@ -130,29 +130,29 @@ bool FlightPlan::set_arr_rwy(std::string& rwy){
     MY_MUTEX_WRAPPER_FUNC_BODY(fpln_, FplnInt, set_arr_rwy, main_mutex_,
                                rwy)}
 
-std::string FlightPlan::get_arr_rwy() const {
+std::string FlightPlan::get_arr_rwy() const noexcept {
   MY_MUTEX_WRAPPER_FUNC_BODY(fpln_, FplnInt, get_arr_rwy, main_mutex_)
 }
 
-bool FlightPlan::get_arr_rwy_data(libnav::runway_entry_t* out){
+bool FlightPlan::get_arr_rwy_data(libnav::runway_entry_t* out) {
     MY_MUTEX_WRAPPER_FUNC_BODY(fpln_, FplnInt, get_arr_rwy_data, main_mutex_,
                                out)}
 
 // Airport procedure functions:
 
-std::string FlightPlan::get_curr_proc(ProcType tp, bool trans){
+std::string FlightPlan::get_curr_proc(ProcType tp, bool trans) const noexcept {
     MY_MUTEX_WRAPPER_FUNC_BODY(fpln_, FplnInt, get_curr_proc, main_mutex_,
                                tp, trans)}
 
 std::vector<std::string> FlightPlan::get_arpt_proc(ProcType tp,
                                                    bool is_arr,
                                                    bool filter_rwy,
-                                                   bool filter_proc){
+                                                   bool filter_proc) const noexcept{
     MY_MUTEX_WRAPPER_FUNC_BODY(fpln_, FplnInt, get_arpt_proc, main_mutex_,
                                tp, is_arr, filter_rwy, filter_proc)}
 
 std::vector<std::string> FlightPlan::get_arpt_proc_trans(
-    ProcType tp, bool is_rwy, bool is_arr, bool incl_none) {
+    ProcType tp, bool is_rwy, bool is_arr, bool incl_none) const noexcept {
   MY_MUTEX_WRAPPER_FUNC_BODY(fpln_, FplnInt, get_arpt_proc_trans, main_mutex_,
                              tp, is_rwy, is_arr, incl_none)
 }

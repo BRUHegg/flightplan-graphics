@@ -79,7 +79,9 @@ FPLSys::FPLSys(util::OpaquePointer<libnav::ArptDB> arpt_db,
   update_hot_env_vars();
 }
 
-std::size_t FPLSys::get_cnt_flplns() const noexcept { MY_ARRAY_SIZE(fpl_vec_); }
+std::size_t FPLSys::get_cnt_flplns() const noexcept { 
+  return MY_ARRAY_SIZE(fpl_vec_); 
+}
 
 util::OpaquePointer<FPLSys::flightplan_type> FPLSys::get_fpln_ptr(
     std::size_t fpln_idx) const noexcept {

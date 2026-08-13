@@ -63,13 +63,13 @@ public:
 
   // Airport functions:
 
-  libnav::DbErr set_dep(std::string icao); // needs impl
+  libnav::DbErr set_dep(std::string icao);
 
   std::string get_dep_icao() const noexcept;
 
-  libnav::DbErr set_arr(std::string icao); // needs impl
+  libnav::DbErr set_arr(std::string icao);
 
-  std::string get_arr_icao();
+  std::string get_arr_icao() const noexcept;
 
   // Runway functions:
 
@@ -80,41 +80,41 @@ public:
                                         bool filter_star = false,
                                         bool is_arr = true) const noexcept;
 
-  bool set_dep_rwy(const std::string& rwy); // needs impl
+  bool set_dep_rwy(const std::string& rwy);
 
-  std::string get_dep_rwy();
+  std::string get_dep_rwy() const noexcept;
 
   bool get_dep_rwy_data(libnav::runway_entry_t* out);
 
-  bool set_arr_rwy(std::string& rwy); // needs impl
+  bool set_arr_rwy(std::string& rwy);
 
-  std::string get_arr_rwy() const;
+  std::string get_arr_rwy()  const noexcept;
 
   bool get_arr_rwy_data(libnav::runway_entry_t* out);
 
   // Airport procedure functions:
 
-  std::string get_curr_proc(ProcType tp, bool trans = false);
+  std::string get_curr_proc(ProcType tp, bool trans = false) const noexcept;
 
   std::vector<std::string> get_arpt_proc(ProcType tp, bool is_arr = false,
                                          bool filter_rwy = false,
-                                         bool filter_proc = false);
+                                         bool filter_proc = false) const noexcept;
 
   std::vector<std::string> get_arpt_proc_trans(ProcType tp, bool is_rwy = false,
                                                bool is_arr = false,
-                                               bool incl_none = true);
+                                               bool incl_none = true) const noexcept;
 
-  bool set_arpt_proc(ProcType tp, std::string proc_nm, bool is_arr = false); // needs impl
+  bool set_arpt_proc(ProcType tp, std::string proc_nm, bool is_arr = false);
 
-  bool set_arpt_proc_trans(ProcType tp, std::string trans, bool is_arr = false); // needs impl
+  bool set_arpt_proc_trans(ProcType tp, std::string trans, bool is_arr = false);
 
   // Enroute:
 
-  bool add_enrt_seg(timed_ptr_t<seg_list_node_t> next, std::string name); //Needs impl
+  bool add_enrt_seg(timed_ptr_t<seg_list_node_t> next, std::string name);
 
   // End MUST be an airway id
 
-  bool awy_insert_str(timed_ptr_t<seg_list_node_t> next, std::string end_id); //Needs impl
+  bool awy_insert_str(timed_ptr_t<seg_list_node_t> next, std::string end_id);
 
   bool awy_insert(timed_ptr_t<seg_list_node_t> next, libnav::waypoint_t end);
 

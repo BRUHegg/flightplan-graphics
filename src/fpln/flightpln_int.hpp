@@ -107,7 +107,7 @@ class FplnInt : public FlightPlanBase {
   bool set_arr_rwy(const std::string& rwy);
   MY_ATTR_UNIQUE(set_arr_rwy)
 
-  std::string get_arr_rwy() const;
+  std::string get_arr_rwy() const noexcept;
   MY_ATTR_SHARED(get_arr_rwy)
 
   bool get_arr_rwy_data(libnav::runway_entry_t* out);

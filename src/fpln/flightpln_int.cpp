@@ -658,7 +658,7 @@ bool FplnInt::set_arr_rwy(const std::string& rwy) {
   return false;
 }
 
-std::string FplnInt::get_arr_rwy() const {
+std::string FplnInt::get_arr_rwy() const noexcept {
   return arr_rwy_;
 }
 

@@ -87,10 +87,10 @@ class CDU final {
   std::size_t act_sd_idx_;
 
   fms_core::FPLSys* fpl_sys_;
-  std::shared_ptr<flightplan_type> fpln_;
-  std::shared_ptr<flightplan_type> m_rte1_ptr_;
-  std::shared_ptr<flightplan_type> m_rte2_ptr_;
-  std::shared_ptr<flightplan_type> m_act_ptr_;
+  util::OpaquePointer<flightplan_type> fpln_;
+  util::OpaquePointer<flightplan_type> m_rte1_ptr_;
+  util::OpaquePointer<flightplan_type> m_rte2_ptr_;
+  util::OpaquePointer<flightplan_type> m_act_ptr_;
   std::size_t sel_fpl_idx_;  // [0;3]
   std::size_t act_fpl_idx_;  // [0;3]
 
