@@ -70,7 +70,7 @@ class CDU final {
  public:
   using flightplan_type = typename fms_core::FPLSys::flightplan_type;
 
-  CDU(fms_core::FPLSys* fs, size_t sd_idx);
+  CDU(util::OpaquePointer<fms_core::FPLSys> fs, size_t sd_idx);
 
   void update() noexcept;
 
@@ -86,7 +86,7 @@ class CDU final {
 
   std::size_t act_sd_idx_;
 
-  fms_core::FPLSys* fpl_sys_;
+  util::OpaquePointer<fms_core::FPLSys> fpl_sys_;
   util::OpaquePointer<flightplan_type> fpln_;
   util::OpaquePointer<flightplan_type> m_rte1_ptr_;
   util::OpaquePointer<flightplan_type> m_rte2_ptr_;
@@ -345,7 +345,8 @@ class CDUDisplay final {
   using texture_type = typename TextureManager::texture_t;
 
   CDUDisplay(geom::vect2_t pos, geom::vect2_t sz, 
-             TextureManager* tm, CDU* cdu);
+             util::OpaquePointer<TextureManager> tm, 
+             util::OpaquePointer<CDU> cdu);
 
   void on_event(event_type event);
 
@@ -360,7 +361,7 @@ class CDUDisplay final {
 
     cairo_font_face_t* main_font_face;
 
-    void init(TextureManager* tm);
+    void init(util::OpaquePointer<TextureManager> tm);
   };
 
   mutable std::mutex main_mutex_;
@@ -372,7 +373,7 @@ class CDUDisplay final {
   geom::vect2_t display_size_;
 
   cdu_textures_t textures_;
-  CDU* cdu_ptr_;
+  util::OpaquePointer<CDU> cdu_ptr_;
 
   std::string scratchpad_;
   size_t scratch_curr_;

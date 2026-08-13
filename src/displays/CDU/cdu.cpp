@@ -180,7 +180,7 @@ cdu_scr_data_t::cdu_scr_data_t() {
 // CDU definitions:
 // Public member functions:
 
-CDU::CDU(fms_core::FPLSys* fs, size_t sd_idx) {
+CDU::CDU(util::OpaquePointer<fms_core::FPLSys> fs, size_t sd_idx) {
   act_sd_idx_ = sd_idx;
 
   fpl_sys_ = fs;
@@ -1807,7 +1807,8 @@ cdu_scr_data_t CDU::get_legs_page() const noexcept {
 // Public member functions:
 
 CDUDisplay::CDUDisplay(geom::vect2_t pos, geom::vect2_t sz,
-                       TextureManager* tm, CDU* cdu) {
+                       util::OpaquePointer<TextureManager> tm, 
+                       util::OpaquePointer<CDU> cdu) {
   screen_pos_ = pos;
   size_ = sz;
   display_pos_ = screen_pos_ + size_ * DISPLAY_OFFS;
@@ -1835,7 +1836,8 @@ void CDUDisplay::draw(cairo_t* cr) {
 
 // Private member functions:
 
-void CDUDisplay::cdu_textures_t::init(TextureManager* tm) {
+void CDUDisplay::cdu_textures_t::init(
+  util::OpaquePointer<TextureManager> tm) {
   cdu_big_white = tm->GetTexture(CDU_WHITE_TEXT_NAME);
   assert(cdu_big_white != nullptr);
   cdu_big_green = tm->GetTexture(CDU_GREEN_TEXT_NAME);

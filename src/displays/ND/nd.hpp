@@ -128,7 +128,7 @@ class NDData final {
  public:
   using flightplan_type = typename fms_core::FPLSys::flightplan_type;
 
-  NDData(fms_core::FPLSys* fpl_sys);
+  NDData(util::OpaquePointer<fms_core::FPLSys> fpl_sys);
 
   bool init();
 
@@ -209,7 +209,7 @@ class NDData final {
   mutable std::shared_mutex main_mutex_;
 
   util::OpaquePointer<flightplan_type> fpl_vec_[fms_core::N_FPL_SYS_RTES];
-  fms_core::FPLSys* fpl_sys_ptr_;
+  util::OpaquePointer<fms_core::FPLSys> fpl_sys_ptr_;
 
   bool idx_proj_act_ = false;
   poi_data_t pois_projected_[2];
@@ -274,7 +274,8 @@ class NDDisplay final {
  public:
   using texture_type = typename TextureManager::texture_t;
 
-  NDDisplay(NDData* data, TextureManager* mngr,
+  NDDisplay(util::OpaquePointer<NDData> data, 
+            util::OpaquePointer<TextureManager> mngr,
             geom::vect2_t pos, geom::vect2_t sz,
             size_t sd_idx);
 
@@ -297,14 +298,15 @@ class NDDisplay final {
     texture_type vordme;
     cairo_font_face_t* font_face;
 
-    void init(TextureManager* tex_manager);
+    void init(util::OpaquePointer<TextureManager> tex_manager);
   };
 
-  NDData* nd_data_;
+  util::OpaquePointer<NDData> nd_data_;
 
   bool is_trk_up_;
   fms_core::NDMode cr_md_;
-  bool is_ctr_, has_tfc_;
+  bool is_ctr_ = false; 
+  bool has_tfc_ = false;
   efis_selection_t efis_sel_;
 
   nd_textures_t textures_;

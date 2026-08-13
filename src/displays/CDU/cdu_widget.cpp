@@ -35,8 +35,10 @@ util::const_str_data_t GetCduWidgetTextureNames() {
 }
 
 CDUWidget::CDUWidget(geom::vect2_t pos, geom::vect2_t sz, 
-             TextureManager* tm, CDU* cdu, CDUDisplay* cdu_displ, 
-             byteutils::Bytemap* bm) : cdu_displ_{cdu_displ},
+             util::OpaquePointer<TextureManager> tm,
+             util::OpaquePointer<CDU> cdu, 
+             util::OpaquePointer<CDUDisplay> cdu_displ, 
+             util::OpaquePointer<byteutils::Bytemap> bm) : cdu_displ_{cdu_displ},
              cdu_ptr_{cdu}, key_map_{bm}, screen_pos_{pos}, size_{sz} {
   cdu_texture_ = tm->GetTexture(CDU_WIDGET_TEXTURE_NAME);
   assert(cdu_texture_ != nullptr);

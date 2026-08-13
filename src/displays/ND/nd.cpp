@@ -368,7 +368,7 @@ void map_data_t::destroy() {
 
 // Public member functions:
 
-NDData::NDData(fms_core::FPLSys* fpl_sys)
+NDData::NDData(util::OpaquePointer<fms_core::FPLSys> fpl_sys)
     : poi_data_(fpl_sys->get_arpt_db_ptr(), fpl_sys->get_navaid_db_ptr()) {
   fpl_sys_ptr_ = fpl_sys;
   assert(MY_ARRAY_SIZE(fpl_vec_) == fpl_sys->get_cnt_flplns());
@@ -892,20 +892,14 @@ void NDData::update_fpl(std::size_t idx) {
 
 // Public member functions:
 
-NDDisplay::NDDisplay(NDData* data, TextureManager* mngr,
+NDDisplay::NDDisplay(util::OpaquePointer<NDData> data, 
+                    util::OpaquePointer<TextureManager> mngr,
                     geom::vect2_t pos, geom::vect2_t sz,
-                     size_t sd_idx) {
-  nd_data_ = data;
+                    size_t sd_idx) : nd_data_{data}, scr_pos_{pos},
+                    size_{sz}, side_idx_{sd_idx} {
   textures_.init(mngr);
 
-  scr_pos_ = pos;
-  size_ = sz;
-
-  side_idx_ = sd_idx;
-
   is_trk_up_ = nd_data_->get_th_up();
-  is_ctr_ = false;
-  has_tfc_ = false;
   efis_sel_ = {};
   rng_ = nd_data_->get_range(side_idx_);
 }
@@ -931,7 +925,8 @@ void NDDisplay::draw(cairo_t* cr) {
 
 // Private member functions:
 
-void NDDisplay::nd_textures_t::init(TextureManager* tex_manager) {
+void NDDisplay::nd_textures_t::init(
+  util::OpaquePointer<TextureManager> tex_manager) {
   wpt_inact = tex_manager->GetTexture(ND_WPT_INACT_NAME);
   assert(wpt_inact != nullptr);
   wpt_act = tex_manager->GetTexture(ND_WPT_ACT_NAME);

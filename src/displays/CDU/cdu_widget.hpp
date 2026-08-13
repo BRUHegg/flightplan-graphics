@@ -20,9 +20,10 @@ util::const_str_data_t GetCduWidgetTextureNames();
 class CDUWidget final {
 public:
   CDUWidget(geom::vect2_t pos, geom::vect2_t sz, 
-             TextureManager* tm,
-             CDU* cdu, CDUDisplay* cdu_displ, 
-             byteutils::Bytemap* bm);
+             util::OpaquePointer<TextureManager> tm,
+             util::OpaquePointer<CDU> cdu, 
+             util::OpaquePointer<CDUDisplay> cdu_displ, 
+             util::OpaquePointer<byteutils::Bytemap> bm);
 
   void on_click(geom::vect2_t pos);
 
@@ -30,9 +31,9 @@ public:
 private:
   cairo_surface_t* cdu_texture_;
 
-  CDUDisplay* cdu_displ_;
-  CDU* cdu_ptr_;
-  byteutils::Bytemap* key_map_;
+  util::OpaquePointer<CDUDisplay> cdu_displ_;
+  util::OpaquePointer<CDU> cdu_ptr_;
+  util::OpaquePointer<byteutils::Bytemap> key_map_;
 
   geom::vect2_t screen_pos_;  // position of the CDU texture on the screen
   geom::vect2_t size_;

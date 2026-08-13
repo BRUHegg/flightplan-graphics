@@ -391,18 +391,22 @@ class CMDInterface {
         earth_nav_path + "earth_awy.dat", earth_nav_path + "earth_hold.dat",
         earth_nav_path + "CIFP", fpl_dir);
 
-    nd_data = new fms_displays::NDData{avncs->fpl_sys};
+    nd_data = new fms_displays::NDData{util::OpaquePointer{avncs->fpl_sys}};
     if (!nd_data->init()) {
       throw "Failed to allocate nd_data\n";
     }
     nd_display = new fms_displays::NDDisplay{
-        nd_data, tex_manager_, ND_POS, ND_SZ, 0};
-    cdu_l = new fms_displays::CDU{avncs->fpl_sys, 0};
+        util::OpaquePointer{nd_data}, util::OpaquePointer{tex_manager_}, 
+        ND_POS, ND_SZ, 0};
+    cdu_l = new fms_displays::CDU{util::OpaquePointer{avncs->fpl_sys}, 0};
     byteutils::Bytemap* cdu_map = byte_mngr.get_bytemap(CDU_BYTEMAP_NAME.first);
     cdu_display_l = new fms_displays::CDUDisplay{
-        CDU_L_POS, CDU_L_SZ, tex_manager_, cdu_l};
+        CDU_L_POS, CDU_L_SZ, util::OpaquePointer{tex_manager_}, 
+        util::OpaquePointer{cdu_l}};
     cdu_widget_l = new fms_displays::CDUWidget{
-      CDU_L_POS, CDU_L_SZ, tex_manager_, cdu_l, cdu_display_l, cdu_map};
+      CDU_L_POS, CDU_L_SZ, util::OpaquePointer{tex_manager_}, 
+      util::OpaquePointer{cdu_l}, util::OpaquePointer{cdu_display_l}, 
+      util::OpaquePointer{cdu_map}};
 
     std::cout << "Avionics loaded\n";
   }
