@@ -28,7 +28,7 @@ namespace fms_commands {
 
 struct command_res_t {
   fms_core::FPLSys* fpl_sys;
-  std::shared_ptr<fms_environment::EnvDataRefMap> env_map;
+  fms_environment::EnvDataRefMap* env_map;
 };
 
 typedef void (*cmd_t)(command_res_t, std::vector<std::string>&);

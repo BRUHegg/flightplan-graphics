@@ -32,7 +32,7 @@ namespace fms_core {
 FPLSys::FPLSys(util::OpaquePointer<libnav::ArptDB> arpt_db,
                util::OpaquePointer<libnav::NavaidDB> navaid_db,
                util::OpaquePointer<libnav::AwyDB> awy_db, 
-               std::shared_ptr<fms_environment::EnvDataRefMap> env_map,
+               util::OpaquePointer<fms_environment::EnvDataRefMap> env_map,
                path_type cifp_path,
                path_type fpl_path) : arpt_db_ptr_{arpt_db}, 
                navaid_db_ptr_{navaid_db}, awy_db_ptr_{awy_db},

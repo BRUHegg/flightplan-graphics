@@ -67,7 +67,7 @@ class Avionics {
   libnav::HoldDB* hold_db;
 
   FPLSys* fpl_sys;
-  std::shared_ptr<fms_environment::EnvDataRefMap> env_map_ptr_;
+  fms_environment::EnvDataRefMap* env_map_ptr_;
 
   pathlib::Path cifp_dir_path;
 
@@ -114,20 +114,20 @@ class Avionics {
     }
 
     env_map_ptr_ = 
-      std::make_shared<fms_environment::EnvDataRefMap>(
-        fms_environment::kBaseVariables);
+      new fms_environment::EnvDataRefMap{fms_environment::kBaseVariables};
 
     fpl_sys = new FPLSys{util::OpaquePointer<libnav::ArptDB>{arpt_db_ptr}, 
                         util::OpaquePointer<libnav::NavaidDB>{navaid_db_ptr}, 
                         util::OpaquePointer<libnav::AwyDB>{awy_db}, 
-                        env_map_ptr_, cifp_dir_path, fpl_path};
+                        util::OpaquePointer{env_map_ptr_}, 
+                        cifp_dir_path, fpl_path};
   }
 
   void update() { fpl_sys->update(); }
 
   ~Avionics() {
     delete fpl_sys;
-    env_map_ptr_.reset();
+    delete env_map_ptr_;
     delete hold_db;
     delete awy_db;
     delete navaid_db_ptr;

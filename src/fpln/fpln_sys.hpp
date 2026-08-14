@@ -79,7 +79,7 @@ class FPLSys final {
   FPLSys(util::OpaquePointer<libnav::ArptDB> arpt_db,
          util::OpaquePointer<libnav::NavaidDB> navaid_db,
          util::OpaquePointer<libnav::AwyDB> awy_db, 
-         std::shared_ptr<fms_environment::EnvDataRefMap> env_map,
+         util::OpaquePointer<fms_environment::EnvDataRefMap> env_map,
          path_type cifp_path,
          path_type fpl_path);
 
@@ -177,7 +177,7 @@ class FPLSys final {
   util::OpaquePointer<libnav::ArptDB> arpt_db_ptr_;
   util::OpaquePointer<libnav::NavaidDB> navaid_db_ptr_;
   util::OpaquePointer<libnav::AwyDB> awy_db_ptr_;
-  std::shared_ptr<fms_environment::EnvDataRefMap> env_map_ptr_;
+  util::OpaquePointer<fms_environment::EnvDataRefMap> env_map_ptr_;
 
   flightplan_type* fpl_vec_[N_FPL_SYS_RTES];
 
