@@ -178,6 +178,65 @@ class CMDInterface {
     pre_execute_cmds();
   }
 
+  void set_nd_mode(fms_core::NDMode md, std::size_t side_idx) {
+    avncs->env_map_ptr_->Set<std::int64_t>(fms_environment::ND_MODE, 
+      static_cast<std::int64_t>(md), side_idx);
+  }
+
+  void increment_nd_range(std::size_t side_idx) {
+    auto curr_idx = (avncs->env_map_ptr_->Get<std::int64_t>(
+      fms_environment::ND_RANGE_IDX, side_idx));
+    if(curr_idx) {
+      std::size_t next = static_cast<std::size_t>(*curr_idx);
+      if(next + 1 < fms_displays::ND_RANGES_NM.size()) {
+        next++;
+      }
+      avncs->env_map_ptr_->Set<std::int64_t>(fms_environment::ND_RANGE_IDX, 
+        static_cast<std::int64_t>(next), side_idx);
+    }
+  }
+
+  void decrement_nd_range(std::size_t side_idx) {
+    auto curr_idx = (avncs->env_map_ptr_->Get<std::int64_t>(
+      fms_environment::ND_RANGE_IDX, side_idx));
+    if(curr_idx) {
+      std::size_t next = static_cast<std::size_t>(*curr_idx);
+      if(next > 0) {
+        next--;
+      }
+      avncs->env_map_ptr_->Set<std::int64_t>(fms_environment::ND_RANGE_IDX, 
+        static_cast<std::int64_t>(next), side_idx);
+    }
+  }
+
+  void switch_trk_hdg_up() {
+    auto val = avncs->env_map_ptr_->Get<bool>(fms_environment::ND_IS_TRACK_UP);
+    if(val) {
+      bool tgt = !(*val);
+      avncs->env_map_ptr_->Set<bool>(fms_environment::ND_IS_TRACK_UP, tgt);
+    }
+  }
+
+  void toggle_apt_efis_filter(std::size_t side_idx) {
+    auto val = avncs->env_map_ptr_->Get<bool>(
+      fms_environment::ND_EFIS_AIRPORT_ON, side_idx);
+    if(val) {
+      bool tgt = !(*val);
+      avncs->env_map_ptr_->Set<bool>(fms_environment::ND_EFIS_AIRPORT_ON, 
+        tgt, side_idx);
+    }
+  }
+
+  void toggle_sta_efis_filter(std::size_t side_idx) {
+    auto val = avncs->env_map_ptr_->Get<bool>(
+      fms_environment::ND_EFIS_STATION_ON, side_idx);
+    if(val) {
+      bool tgt = !(*val);
+      avncs->env_map_ptr_->Set<bool>(fms_environment::ND_EFIS_STATION_ON, 
+        tgt, side_idx);
+    }
+  }
+
   void execute_cmd(std::string in_raw) {
     std::string in_proc = strutils::strip(in_raw, ' ');
 
@@ -391,7 +450,8 @@ class CMDInterface {
         earth_nav_path + "earth_awy.dat", earth_nav_path + "earth_hold.dat",
         earth_nav_path + "CIFP", fpl_dir);
 
-    nd_data = new fms_displays::NDData{util::OpaquePointer{avncs->fpl_sys}};
+    nd_data = new fms_displays::NDData{util::OpaquePointer{avncs->fpl_sys},
+      util::OpaquePointer{avncs->env_map_ptr_}};
     if (!nd_data->init()) {
       throw "Failed to allocate nd_data\n";
     }
@@ -410,6 +470,8 @@ class CMDInterface {
 
     std::cout << "Avionics loaded\n";
   }
+
+  
 
   void pre_execute_cmds() {
     for (size_t i = 0; i < pre_exec.size(); i++) {

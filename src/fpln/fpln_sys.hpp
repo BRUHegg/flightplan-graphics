@@ -29,7 +29,7 @@
 namespace fms_core {
 enum class RTECopySts { READY, COMPLETE, UNAVAIL };
 
-enum class NDMode { APP, VOR, MAP, PLAN };
+enum class NDMode : int { APP = 0, VOR = 1, MAP = 2, PLAN = 3, MAX = 4 };
 
 constexpr NDMode DFLT_ND_MODE = NDMode::MAP;
 

@@ -31,19 +31,19 @@ gboolean keypress_handler(GtkWidget* widget, GdkEventKey* event,
   } else if (event->keyval == GDK_KEY_Left) {
     cmdint->avncs->fpl_sys->step_ctr(true, 0);
   } else if (event->keyval == GDK_KEY_Up) {
-    cmdint->nd_data->switch_range(false, 0);
+    cmdint->increment_nd_range(0);
   } else if (event->keyval == GDK_KEY_Down) {
-    cmdint->nd_data->switch_range(true, 0);
+    cmdint->decrement_nd_range(0);
   } else if (event->keyval == GDK_KEY_m || event->keyval == GDK_KEY_M) {
-    cmdint->nd_data->set_mode(0, fms_core::NDMode::MAP);
+    cmdint->set_nd_mode(fms_core::NDMode::MAP, 0);
   } else if (event->keyval == GDK_KEY_p || event->keyval == GDK_KEY_P) {
-    cmdint->nd_data->set_mode(0, fms_core::NDMode::PLAN);
+    cmdint->set_nd_mode(fms_core::NDMode::PLAN, 0);
   } else if (event->keyval == GDK_KEY_a || event->keyval == GDK_KEY_A) {
-    cmdint->nd_data->toggle_efis_arpt_sd(0);
+    cmdint->toggle_apt_efis_filter(0);
   } else if (event->keyval == GDK_KEY_s || event->keyval == GDK_KEY_S) {
-    cmdint->nd_data->toggle_efis_sta_sd(0);
+    cmdint->toggle_sta_efis_filter(0);
   } else if (event->keyval == GDK_KEY_z || event->keyval == GDK_KEY_Z) {
-    cmdint->nd_data->set_th_up();
+    cmdint->switch_trk_hdg_up();
   }
   return FALSE;
 }

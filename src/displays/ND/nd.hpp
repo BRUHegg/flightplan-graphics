@@ -14,19 +14,26 @@
 
 #include <cstddef>
 
+#include <bitset>
 #include <memory>
-#include <vector>
-#include <string>
 #include <shared_mutex>
+#include <string>
+#include <vector>
 
 #include <displays/common/cairo_utils.hpp>
 #include <displays/common/texture_manager.hpp>
+#include <fpln/environment.hpp>
 #include <fpln/fpln_sys.hpp>
-#include <util/geom.hpp>
 #include <libnav/str_utils.hpp>
+
+#include <util/geom.hpp>
 #include <util/util.hpp>
 
 namespace fms_displays {
+
+constexpr std::size_t N_ND_SDS =
+    fms_core::N_INTFCS;  // Essentially this is how many NDs we can have
+const std::vector<double> ND_RANGES_NM = {10, 20, 40, 80, 160, 320, 640};
 
 util::const_str_data_t GetNdTextureNames();
 
@@ -124,40 +131,29 @@ struct efis_selection_t {
   bool sta_on = false;
 };
 
+struct nd_config_t {
+  bool is_track_up = false;
+  bool efis_airport_on = false;
+  bool efis_station_on = false;
+  bool mode_is_ctr = false;
+  fms_core::NDMode mode = fms_core::NDMode::MAP;
+  std::bitset<fms_core::N_FPL_SYS_RTES> has_dep_rwy;
+  std::bitset<fms_core::N_FPL_SYS_RTES> has_arr_rwy;
+  std::size_t range_idx = 0;
+
+  nd_config_t();
+};
+
 class NDData final {
  public:
   using flightplan_type = typename fms_core::FPLSys::flightplan_type;
 
-  NDData(util::OpaquePointer<fms_core::FPLSys> fpl_sys);
+  NDData(util::OpaquePointer<fms_core::FPLSys> fpl_sys,
+         util::OpaquePointer<fms_environment::EnvDataRefMap> env_map);
 
   bool init();
 
-  /*
-      Function: set_th_up
-      @desc:
-      changes current track/heading up status. I.e. if we're heading up,
-      change to track up and vice versa.
-  */
-
-  void set_th_up();
-
-  /*
-      Function: set_th_up
-      @return:
-      true if track up.
-  */
-
-  bool get_th_up();
-
-  void toggle_efis_arpt_sd(size_t sd_idx);
-
-  void toggle_efis_sta_sd(size_t sd_idx);
-
-  efis_selection_t get_efis_sts_sd(size_t sd_idx);
-
-  void set_mode(size_t sd_idx, fms_core::NDMode md, bool set_ctr = false);
-
-  std::pair<fms_core::NDMode, bool> get_mode(size_t sd_idx) const;
+  nd_config_t get_config(std::size_t sd_idx) const noexcept;
 
   std::vector<int> get_rte_draw_seq(size_t sd_idx);
 
@@ -174,14 +170,6 @@ class NDData final {
   fms_core::spd_info_t get_spd_data();
 
   fms_core::act_leg_info_t get_act_leg_info();
-
-  bool has_dep_rwy(size_t idx);
-
-  bool has_arr_rwy(size_t idx);
-
-  void switch_range(bool down, size_t sd_idx);
-
-  double get_range(size_t sd_idx) const noexcept;
 
   // POI functions
 
@@ -208,21 +196,23 @@ class NDData final {
  private:
   mutable std::shared_mutex main_mutex_;
 
+  nd_config_t nd_configs_[N_ND_SDS];
+
+  util::OpaquePointer<fms_environment::EnvDataRefMap> env_map_;
+
   util::OpaquePointer<flightplan_type> fpl_vec_[fms_core::N_FPL_SYS_RTES];
   util::OpaquePointer<fms_core::FPLSys> fpl_sys_ptr_;
 
   bool idx_proj_act_ = false;
-  poi_data_t pois_projected_[2];
+  poi_data_t pois_projected_[N_ND_SDS];
   map_poi_container_t poi_data_;
-
-  bool trk_up_ = true;
 
   // Of size N_FPL_SYS_RTES
   std::vector<fms_core::nd_leg_data_t*> leg_data_;
   std::vector<size_t> leg_data_sz_;
 
   std::vector<double> fpl_id_last_;
-  std::vector<bool> has_dep_rwy_, has_arr_rwy_;
+  std::bitset<fms_core::N_FPL_SYS_RTES> has_dep_rwy_, has_arr_rwy_;
   std::vector<int> act_leg_idx_;
   // -1 if route is not to be drawn, index otherwise.
   // Routes are ordered by color. Refer to ND_RTE_CLRS.
@@ -233,12 +223,9 @@ class NDData final {
 
   std::vector<int> act_leg_idx_sd_;
   // Stored 1 per fo, 1 per cap
-  std::vector<std::pair<fms_core::NDMode, bool>> curr_modes_;
   std::vector<geom::vect2_t> ac_pos_projected_;
   std::vector<bool> ac_pos_ok_;
-  std::vector<size_t> range_index_;
   std::vector<geo::point> map_center_;
-  std::vector<efis_selection_t> efis_sel_;
 
   fms_core::hdg_info_t heading_data_;
   geo::point ac_pos_last_;
@@ -247,13 +234,17 @@ class NDData final {
 
   static nd_util_idx_t get_util_idx(std::size_t gn_idx) noexcept;
 
+  void update_configs() noexcept;
+
   double get_range_impl(std::size_t sd_idx) const noexcept;
 
   double get_cr_rot() const noexcept;
 
-  std::pair<geo::point, double> get_proj_params(std::size_t sd_idx) const noexcept;
+  std::pair<geo::point, double> get_proj_params(
+      std::size_t sd_idx) const noexcept;
 
-  bool in_view(geom::vect2_t start, geom::vect2_t end, std::size_t sd_idx) const noexcept;
+  bool in_view(geom::vect2_t start, geom::vect2_t end,
+               std::size_t sd_idx) const noexcept;
 
   void update_rte_draw_seq();
 
@@ -274,10 +265,9 @@ class NDDisplay final {
  public:
   using texture_type = typename TextureManager::texture_t;
 
-  NDDisplay(util::OpaquePointer<NDData> data, 
-            util::OpaquePointer<TextureManager> mngr,
-            geom::vect2_t pos, geom::vect2_t sz,
-            size_t sd_idx);
+  NDDisplay(util::OpaquePointer<NDData> data,
+            util::OpaquePointer<TextureManager> mngr, geom::vect2_t pos,
+            geom::vect2_t sz, size_t sd_idx);
 
   std::pair<double, double> GetDrawSize() const noexcept;
 
@@ -305,11 +295,8 @@ class NDDisplay final {
 
   util::OpaquePointer<NDData> nd_data_;
 
-  bool is_trk_up_;
-  fms_core::NDMode cr_md_;
-  bool is_ctr_ = false; 
+  nd_config_t config_;
   bool has_tfc_ = false;
-  efis_selection_t efis_sel_;
 
   nd_textures_t textures_;
 
@@ -320,8 +307,6 @@ class NDDisplay final {
   double rng_, curr_rng_;
 
   size_t side_idx_;
-
-  void update_mode();
 
   void update_map_params();
 
