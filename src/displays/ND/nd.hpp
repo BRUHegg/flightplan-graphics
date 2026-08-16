@@ -279,6 +279,8 @@ class NDDisplay final {
             geom::vect2_t pos, geom::vect2_t sz,
             size_t sd_idx);
 
+  std::pair<double, double> GetDrawSize() const noexcept;
+
   void draw(cairo_t* cr);
 
  private:

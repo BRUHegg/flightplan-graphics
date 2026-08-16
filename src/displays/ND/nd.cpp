@@ -904,6 +904,10 @@ NDDisplay::NDDisplay(util::OpaquePointer<NDData> data,
   rng_ = nd_data_->get_range(side_idx_);
 }
 
+std::pair<double, double> NDDisplay::GetDrawSize() const noexcept {
+  return {size_.x, size_.y};
+}
+
 void NDDisplay::draw(cairo_t* cr) {
   update_mode();
   rng_ = nd_data_->get_range(side_idx_);
