@@ -54,7 +54,7 @@ constexpr double CDU_WIDTH =
 constexpr double ND_WIDTH = WND_HEIGHT;
 constexpr double WND_WIDTH = CDU_WIDTH + ND_WIDTH;
 constexpr geom::vect2_t ND_POS = {CDU_WIDTH, 0};
-constexpr geom::vect2_t ND_SZ = {ND_WIDTH, ND_WIDTH};
+constexpr geom::vect2_t ND_SZ = {900, 900};
 constexpr geom::vect2_t CDU_L_POS = {0, 0};
 constexpr geom::vect2_t CDU_L_SZ = {CDU_WIDTH, WND_HEIGHT};
 
@@ -204,8 +204,8 @@ class CMDInterface {
 
   void update() {
     cdu_l->update();
-    avncs->update();
     nd_data->update();
+    avncs->update();
   }
 
   void main_loop() {

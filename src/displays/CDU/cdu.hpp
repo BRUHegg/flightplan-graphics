@@ -8,7 +8,6 @@
 #include <stack>
 #include <string>
 
-#include <displays/common/bytemap.hpp>
 #include <displays/common/cairo_utils.hpp>
 #include <displays/common/texture_manager.hpp>
 #include <fpln/fpln_sys.hpp>

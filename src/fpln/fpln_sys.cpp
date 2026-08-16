@@ -346,6 +346,7 @@ void FPLSys::rte_activate(size_t idx) {
   std::unique_lock lk(main_mutex_);
   if (!fpl_vec_[idx]->can_activate()) return;
   act_rte_idx_ = idx;
+  update_flight_plans();
 }
 
 void FPLSys::set_flt_nbr(std::string str) { flight_ident_ = str; }
@@ -377,6 +378,7 @@ void FPLSys::copy_act() {
     double id2 = fpl_vec_[RTE2_IDX]->get_id();
     copy_ids_[0] = id1;
     copy_ids_[1] = id2;
+    update_flight_plans();
   }
 }
 
@@ -386,6 +388,7 @@ void FPLSys::execute() {
     fpl_vec_[0]->copy_from_other(*fpl_vec_[act_rte_idx_]);
     execute_status_ = false;
     act_rte_id_ = fpl_vec_[act_rte_idx_]->get_id();
+    update_flight_plans();
   }
 }
 
@@ -399,13 +402,38 @@ void FPLSys::erase() {
     }
     fpl_vec_[act_rte_idx_]->copy_from_other(*fpl_vec_[0]);
     act_rte_id_ = fpl_vec_[act_rte_idx_]->get_id();
+    update_flight_plans();
   }
 }
 
 void FPLSys::update() {
   std::unique_lock lk(main_mutex_);
   update_hot_env_vars();
+  update_flight_plans();
+}
 
+FPLSys::~FPLSys() {
+  for(std::size_t i = 0; i < MY_ARRAY_SIZE(fpl_vec_); ++i) {
+    delete fpl_vec_[i];
+  }
+}
+
+// Private member functions:
+
+std::unordered_map<FPLSys::pos_data_t::str_type, double*> 
+  FPLSys::pos_data_t::get_val_pointers() {
+  std::unordered_map<FPLSys::pos_data_t::str_type, double*> res;
+  res[fms_environment::AC_LAT_DEG_VAR] = &ac_lat_deg;
+  res[fms_environment::AC_LON_DEG_VAR] = &ac_lon_deg;
+  res[fms_environment::AC_BRNG_TRU_DEG_VAR] = &ac_brng_deg;
+  res[fms_environment::AC_SLIP_DEG_VAR] = &ac_slip_deg;
+  res[fms_environment::AC_MAGVAR_DEG_VAR] = &ac_magvar_deg;
+  res[fms_environment::AC_GS_KTS_VAR] = &ac_gs_kts;
+  res[fms_environment::AC_TAS_KTS_VAR] = &ac_tas_kts;
+  return res;
+}
+
+void FPLSys::update_flight_plans() noexcept {
   for (size_t i = 0; i < N_FPL_SYS_RTES; i++) {
     bool cr_is_act = fpl_vec_[i]->is_active();
     if (!execute_status_) {
@@ -430,27 +458,6 @@ void FPLSys::update() {
     act_rte_idx_ = N_FPL_SYS_RTES;
     act_rte_id_ = -1;
   }
-}
-
-FPLSys::~FPLSys() {
-  for(std::size_t i = 0; i < MY_ARRAY_SIZE(fpl_vec_); ++i) {
-    delete fpl_vec_[i];
-  }
-}
-
-// Private member functions:
-
-std::unordered_map<FPLSys::pos_data_t::str_type, double*> 
-  FPLSys::pos_data_t::get_val_pointers() {
-  std::unordered_map<FPLSys::pos_data_t::str_type, double*> res;
-  res[fms_environment::AC_LAT_DEG_VAR] = &ac_lat_deg;
-  res[fms_environment::AC_LON_DEG_VAR] = &ac_lon_deg;
-  res[fms_environment::AC_BRNG_TRU_DEG_VAR] = &ac_brng_deg;
-  res[fms_environment::AC_SLIP_DEG_VAR] = &ac_slip_deg;
-  res[fms_environment::AC_MAGVAR_DEG_VAR] = &ac_magvar_deg;
-  res[fms_environment::AC_GS_KTS_VAR] = &ac_gs_kts;
-  res[fms_environment::AC_TAS_KTS_VAR] = &ac_tas_kts;
-  return res;
 }
 
 void FPLSys::update_seg_list(std::size_t idx) {

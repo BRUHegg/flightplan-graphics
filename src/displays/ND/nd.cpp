@@ -1065,8 +1065,9 @@ void NDDisplay::draw_flight_plan(cairo_t* cr, bool draw_labels,
           tgt_color = cairo_utils::MAGENTA;
         }
 
-        cairo_utils::draw_left_text(cr, textures_.font_face, name_draw, text_pos,
-                                    tgt_color, ND_WPT_FONT_SZ);
+        fms_display_fonts::draw_left_text(cr, textures_.font_face, name_draw, text_pos,
+                                    tgt_color, ND_WPT_FONT_SZ, size_, 
+                                    fms_display_fonts::kSmallTextSlope);
 
         if (!buf[i].is_rwy && buf[i].end_nm[0] != '(') {
           geom::vect2_t scale = size_.scmul(1 / WPT_SCALE_FACT);
@@ -1187,9 +1188,10 @@ void NDDisplay::draw_htrk(cairo_t* cr) {
   int rot_deg = (rot_raw_deg + 360) % 360;
   std::string htk_txt = strutils::double_to_str(rot_deg, 0);
   htk_txt = std::string(3 - htk_txt.size(), '0') + htk_txt;
-  cairo_utils::draw_centered_text(cr, textures_.font_face, htk_txt,
+  fms_display_fonts::draw_centered_text(cr, textures_.font_face, htk_txt,
                                   scr_pos_ + size_ * MAP_HTK_TXT_POS,
-                                  cairo_utils::WHITE, MAP_HTRK_FONT_SZ);
+                                  cairo_utils::WHITE, MAP_HTRK_FONT_SZ,
+                                  size_, fms_display_fonts::kLargeTextSlope);
 
   geom::vect2_t pos_htk =
       geom::vect2_t{0.5 - MAP_HTRK_STG_TXT_LOFFS, MAP_HTRK_STG_TXT_VOFFS};
@@ -1200,12 +1202,12 @@ void NDDisplay::draw_htrk(cairo_t* cr) {
     htk_st_txt = ND_TRKUP;
   else
     htk_st_txt = ND_HDGUP;
-  cairo_utils::draw_centered_text(cr, textures_.font_face, htk_st_txt,
+  fms_display_fonts::draw_centered_text(cr, textures_.font_face, htk_st_txt,
                                   scr_pos_ + size_ * pos_htk, cairo_utils::GREEN,
-                                  MAP_HTRK_STG_FONT_SZ);
-  cairo_utils::draw_centered_text(cr, textures_.font_face, "MAG",
+                                  MAP_HTRK_STG_FONT_SZ, size_);
+  fms_display_fonts::draw_centered_text(cr, textures_.font_face, "MAG",
                                   scr_pos_ + size_ * pos_tmg, cairo_utils::GREEN,
-                                  MAP_HTRK_STG_FONT_SZ);
+                                  MAP_HTRK_STG_FONT_SZ, size_);
 }
 
 void NDDisplay::draw_hdg_tri(cairo_t* cr) {
@@ -1308,16 +1310,20 @@ void NDDisplay::draw_act_leg_info(cairo_t* cr) {
   geom::vect2_t act_dist_pos = scr_pos_ + size_ * ACT_LEG_DIST_OFFS;
   geom::vect2_t act_nm_pos = scr_pos_ + size_ * ACT_LEG_NM_OFFS;
 
-  cairo_utils::draw_left_text(cr, textures_.font_face, leg_info.name, act_name_pos,
-                              cairo_utils::MAGENTA, ND_ACT_INFO_MAIN_FONT_SZ);
+  fms_display_fonts::draw_left_text(cr, textures_.font_face, leg_info.name, act_name_pos,
+                              cairo_utils::MAGENTA, ND_ACT_INFO_MAIN_FONT_SZ,
+                              size_, fms_display_fonts::kSmallTextSlope);
 
-  cairo_utils::draw_left_text(cr, textures_.font_face, "------Z", act_time_pos,
-                              cairo_utils::WHITE, ND_ACT_INFO_MAIN_FONT_SZ);
+  fms_display_fonts::draw_left_text(cr, textures_.font_face, "------Z", act_time_pos,
+                              cairo_utils::WHITE, ND_ACT_INFO_MAIN_FONT_SZ,
+                              size_, fms_display_fonts::kSmallTextSlope);
 
-  cairo_utils::draw_left_text(cr, textures_.font_face, leg_info.dist_nm, act_dist_pos,
-                              cairo_utils::WHITE, leg_info.dist_sz);
-  cairo_utils::draw_left_text(cr, textures_.font_face, "NM", act_nm_pos,
-                              cairo_utils::WHITE, ND_ACT_INFO_DIST_FONT_SZ);
+  fms_display_fonts::draw_left_text(cr, textures_.font_face, leg_info.dist_nm, act_dist_pos,
+                              cairo_utils::WHITE, leg_info.dist_sz,
+                              size_, fms_display_fonts::kSmallTextSlope);
+  fms_display_fonts::draw_left_text(cr, textures_.font_face, "NM", act_nm_pos,
+                              cairo_utils::WHITE, ND_ACT_INFO_DIST_FONT_SZ,
+                              size_, fms_display_fonts::kSmallTextSlope);
 }
 
 void NDDisplay::draw_spd_info(cairo_t* cr) {
@@ -1333,10 +1339,12 @@ void NDDisplay::draw_spd_info(cairo_t* cr) {
 
   std::string gs_str = strutils::double_to_str(spd_info.gs_kts, 0);
 
-  cairo_utils::draw_left_text(cr, textures_.font_face, "GS", gs_text_pos,
-                              cairo_utils::WHITE, ND_ACT_INFO_DIST_FONT_SZ);
-  cairo_utils::draw_right_text(cr, textures_.font_face, gs_str, gs_pos,
-                               cairo_utils::WHITE, gs_sz);
+  fms_display_fonts::draw_left_text(cr, textures_.font_face, "GS", gs_text_pos,
+                cairo_utils::WHITE, ND_ACT_INFO_DIST_FONT_SZ, size_,
+                fms_display_fonts::kSmallTextSlope);
+  fms_display_fonts::draw_right_text(cr, textures_.font_face, gs_str, gs_pos,
+                cairo_utils::WHITE, gs_sz, size_, 
+                fms_display_fonts::kSmallTextSlope);
 
   if (spd_info.tas_kts >= TAS_DISPL_THRESH_KTS) {
     geom::vect2_t tas_text_pos = scr_pos_ + size_ * TAS_TEXT_OFFS;
@@ -1344,10 +1352,12 @@ void NDDisplay::draw_spd_info(cairo_t* cr) {
 
     std::string tas_str = strutils::double_to_str(spd_info.tas_kts, 0);
 
-    cairo_utils::draw_left_text(cr, textures_.font_face, "TAS", tas_text_pos,
-                                cairo_utils::WHITE, ND_ACT_INFO_DIST_FONT_SZ);
-    cairo_utils::draw_right_text(cr, textures_.font_face, tas_str, tas_pos,
-                                 cairo_utils::WHITE, ND_SPD_SMALL_FONT_SZ);
+    fms_display_fonts::draw_left_text(cr, textures_.font_face, "TAS", tas_text_pos,
+                cairo_utils::WHITE, ND_ACT_INFO_DIST_FONT_SZ, size_,
+                fms_display_fonts::kSmallTextSlope);
+    fms_display_fonts::draw_right_text(cr, textures_.font_face, tas_str, tas_pos,
+                 cairo_utils::WHITE, ND_SPD_SMALL_FONT_SZ, size_,
+                fms_display_fonts::kSmallTextSlope);
   }
 }
 
@@ -1376,19 +1386,24 @@ void NDDisplay::draw_range(cairo_t* cr) {
                             ctr_trans.y - curr_rng_ * 0.5 * scale_factor_.y};
 
   if (cr_md_ == fms_core::NDMode::PLAN || is_ctr_) {
-    cairo_utils::draw_centered_text(cr, textures_.font_face, rng_full_str, pos_1_dn,
-                                    cairo_utils::WHITE, ND_WPT_FONT_SZ);
-    cairo_utils::draw_centered_text(cr, textures_.font_face, rng_half_str, pos_2_dn,
-                                    cairo_utils::WHITE, ND_WPT_FONT_SZ);
+    fms_display_fonts::draw_centered_text(cr, textures_.font_face, rng_full_str, pos_1_dn,
+                                    cairo_utils::WHITE, ND_WPT_FONT_SZ, size_
+                                    ,fms_display_fonts::kSmallTextSlope);
+    fms_display_fonts::draw_centered_text(cr, textures_.font_face, rng_half_str, pos_2_dn,
+                                    cairo_utils::WHITE, ND_WPT_FONT_SZ, size_
+                                    ,fms_display_fonts::kSmallTextSlope);
 
-    cairo_utils::draw_centered_text(cr, textures_.font_face, rng_full_str, pos_1_up,
-                                    cairo_utils::WHITE, ND_WPT_FONT_SZ);
-    cairo_utils::draw_centered_text(cr, textures_.font_face, rng_half_str, pos_2_up,
-                                    cairo_utils::WHITE, ND_WPT_FONT_SZ);
+    fms_display_fonts::draw_centered_text(cr, textures_.font_face, rng_full_str, pos_1_up,
+                                    cairo_utils::WHITE, ND_WPT_FONT_SZ, size_,
+                                    fms_display_fonts::kSmallTextSlope);
+    fms_display_fonts::draw_centered_text(cr, textures_.font_face, rng_half_str, pos_2_up,
+                                    cairo_utils::WHITE, ND_WPT_FONT_SZ, size_,
+                                    fms_display_fonts::kSmallTextSlope);
   } else {
     geom::vect2_t offs = size_ * MAP_RNG_OFFS;
-    cairo_utils::draw_right_text(cr, textures_.font_face, rng_half_str, pos_2_up + offs,
-                                 cairo_utils::WHITE, ND_WPT_FONT_SZ);
+    fms_display_fonts::draw_right_text(cr, textures_.font_face, rng_half_str, pos_2_up + offs,
+                                 cairo_utils::WHITE, ND_WPT_FONT_SZ, size_, 
+                                 fms_display_fonts::kSmallTextSlope);
   }
 }
 
@@ -1450,9 +1465,10 @@ void NDDisplay::draw_labeled_point(cairo_t* cr, cairo_surface_t* img,
   geom::vect2_t img_sz = cairo_utils::get_surf_sz(img) * scale_fact_vec;
   geom::vect2_t pos_text = pos_local + img_sz.scmul(0.5);
   double sc_fact_txt = size_.x / WPT_SCALE_FACT;
+  UNUSED(sc_fact_txt);
   cairo_utils::draw_image(cr, img, pos_local, scale_fact_vec, true);
-  cairo_utils::draw_left_text(cr, textures_.font_face, src_point.name, pos_text,
+  fms_display_fonts::draw_left_text(cr, textures_.font_face, src_point.name, pos_text,
                               cairo_utils::ND_CYAN,
-                              EFIS_POI_NAME_FNT_SZ * sc_fact_txt);
+                              EFIS_POI_NAME_FNT_SZ, size_);
 }
 }  // namespace fms_displays

@@ -203,6 +203,8 @@ class FPLSys final {
 
   bool execute_status_ = false;
 
+  void update_flight_plans() noexcept;
+
   void update_seg_list(std::size_t idx = 0);
 
   void update_leg_list(std::size_t idx = 0);
