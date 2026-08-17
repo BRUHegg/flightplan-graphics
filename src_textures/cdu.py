@@ -259,9 +259,9 @@ while 1:
     draw_btn(EXEC_BTN_X, EXEC_BTN_Y, EXEC_BTN_W, EXEC_BTN_H, btn_cnt, btn_labels[k][0],
                         btn_labels[k][1])
     
-    save_bytemap(cdu_key_map, int(WND_WIDTH), int(WND_HEIGHT))
-    break
-    if save_keys:
-        pg.image.save(screen, "cdu_keys.png")
-        break
+    #save_bytemap(cdu_key_map, int(WND_WIDTH), int(WND_HEIGHT))
+    #break
+    #if save_keys:
+    #    pg.image.save(screen, "cdu_keys.png")
+    #    break
     pg.display.update()
