@@ -135,6 +135,7 @@ struct nd_config_t {
   bool is_track_up = false;
   bool efis_airport_on = false;
   bool efis_station_on = false;
+  bool efis_waypoint_on = false;
   bool mode_is_ctr = false;
   fms_core::NDMode mode = fms_core::NDMode::MAP;
   std::bitset<fms_core::N_FPL_SYS_RTES> has_dep_rwy;
@@ -288,6 +289,7 @@ class NDDisplay final {
     texture_type altn_arpt_sign;
     texture_type dme;
     texture_type vordme;
+    texture_type waypoint;
     cairo_font_face_t* font_face;
 
     void init(util::OpaquePointer<TextureManager> tex_manager);
@@ -344,11 +346,13 @@ class NDDisplay final {
 
   void draw_range(cairo_t* cr);
 
-  void draw_airports(cairo_t* cr);
+  std::size_t draw_airports(cairo_t* cr);
 
-  void draw_vordmes(cairo_t* cr);
+  std::size_t draw_vordmes(cairo_t* cr);
 
-  void draw_vors_dmes(cairo_t* cr);
+  std::size_t draw_vors_dmes(cairo_t* cr);
+
+  std::size_t draw_waypoints(cairo_t* cr);
 
   void draw_efis_filters(cairo_t* cr);
 

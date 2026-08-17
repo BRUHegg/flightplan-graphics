@@ -51,13 +51,21 @@ struct vect2_t {
     return {x / num, y / num};
   }
 
-  vect2_t operator+(vect2_t const& other) { return {x + other.x, y + other.y}; }
+  friend vect2_t operator+(vect2_t const& a, vect2_t const& b) { 
+    return {a.x + b.x, a.y + b.y}; 
+  }
 
-  vect2_t operator-(vect2_t const& other) { return {x - other.x, y - other.y}; }
+  friend vect2_t operator-(vect2_t const& a, vect2_t const& b) { 
+    return {a.x - b.x, a.y - b.y}; 
+  }
 
-  vect2_t operator*(vect2_t const& other) { return {x * other.x, y * other.y}; }
+  friend vect2_t operator*(vect2_t const& a, vect2_t const& b) { 
+    return {a.x * b.x, a.y * b.y}; 
+  }
 
-  vect2_t operator/(vect2_t const& other) { return {x / other.x, y / other.y}; }
+  friend vect2_t operator/(vect2_t const& a, vect2_t const& b) { 
+    return {a.x / b.x, a.y / b.y}; 
+  }
 };
 
 struct vect3_t {

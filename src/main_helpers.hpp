@@ -54,7 +54,7 @@ constexpr double CDU_WIDTH =
 constexpr double ND_WIDTH = WND_HEIGHT;
 constexpr double WND_WIDTH = CDU_WIDTH + ND_WIDTH;
 constexpr geom::vect2_t ND_POS = {CDU_WIDTH, 0};
-constexpr geom::vect2_t ND_SZ = {900, 900};
+constexpr geom::vect2_t ND_SZ = {500, 500};
 constexpr geom::vect2_t CDU_L_POS = {0, 0};
 constexpr geom::vect2_t CDU_L_SZ = {CDU_WIDTH, WND_HEIGHT};
 
@@ -217,23 +217,11 @@ class CMDInterface {
     }
   }
 
-  void toggle_apt_efis_filter(std::size_t side_idx) {
-    auto val = avncs->env_map_ptr_->Get<bool>(
-      fms_environment::ND_EFIS_AIRPORT_ON, side_idx);
+  void toggle_bool_dr(const char* dr_name, std::size_t side_idx) {
+    auto val = avncs->env_map_ptr_->Get<bool>(dr_name, side_idx);
     if(val) {
       bool tgt = !(*val);
-      avncs->env_map_ptr_->Set<bool>(fms_environment::ND_EFIS_AIRPORT_ON, 
-        tgt, side_idx);
-    }
-  }
-
-  void toggle_sta_efis_filter(std::size_t side_idx) {
-    auto val = avncs->env_map_ptr_->Get<bool>(
-      fms_environment::ND_EFIS_STATION_ON, side_idx);
-    if(val) {
-      bool tgt = !(*val);
-      avncs->env_map_ptr_->Set<bool>(fms_environment::ND_EFIS_STATION_ON, 
-        tgt, side_idx);
+      avncs->env_map_ptr_->Set<bool>(dr_name, tgt, side_idx);
     }
   }
 
@@ -462,7 +450,7 @@ class CMDInterface {
     byteutils::Bytemap* cdu_map = byte_mngr.get_bytemap(CDU_BYTEMAP_NAME.first);
     cdu_display_l = new fms_displays::CDUDisplay{
         CDU_L_POS, CDU_L_SZ, util::OpaquePointer{tex_manager_}, 
-        util::OpaquePointer{cdu_l}};
+        util::OpaquePointer{cdu_l}, false};
     cdu_widget_l = new fms_displays::CDUWidget{
       CDU_L_POS, CDU_L_SZ, util::OpaquePointer{tex_manager_}, 
       util::OpaquePointer{cdu_l}, util::OpaquePointer{cdu_display_l}, 

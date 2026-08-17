@@ -21,6 +21,9 @@ const char AC_TAS_KTS_VAR[] = "ac_tas_kts";
 const char ND_IS_TRACK_UP[] = "nd_is_track_up";
 const char ND_EFIS_AIRPORT_ON[] = "nd_efis_airport_on";
 const char ND_EFIS_STATION_ON[] = "nd_efis_station_on";
+const char ND_EFIS_WAYPOINT_ON[] = "nd_efis_waypoint_on";
+const char AUTOPILOT_HDG_SEL_DEG[] = "ap_hdg_sel_deg";
+const char AUTOPILOT_HDG_IS_TRACK[] = "ap_hdg_is_track";
 const char ND_MODE[] = "nd_mode";
 const char ND_RANGE_IDX[] = "nd_range_idx";
 const char FPL_SEL[] = "fpl_sel";
@@ -59,11 +62,15 @@ const fms_environment::reference_desc_t kBaseVariables[] = {
      {AC_MAGVAR_DEG_VAR, AC_MAGVAR_DEF},
      {AC_GS_KTS_VAR, AC_GS_KTS_DEF},
      {AC_TAS_KTS_VAR, AC_TAS_KTS_DEF},
+     {AUTOPILOT_HDG_SEL_DEG, std::int64_t{340}},
+     {AUTOPILOT_HDG_IS_TRACK, false},
      {ND_IS_TRACK_UP, true},
      {std::string{ND_EFIS_AIRPORT_ON} + "_0", false},
      {std::string{ND_EFIS_AIRPORT_ON} + "_1", false},
      {std::string{ND_EFIS_STATION_ON} + "_0", false},
      {std::string{ND_EFIS_STATION_ON} + "_1", false},
+     {std::string{ND_EFIS_WAYPOINT_ON} + "_0", false},
+     {std::string{ND_EFIS_WAYPOINT_ON} + "_1", false},
      {std::string{ND_MODE} + "_0", std::int64_t{2}},
      {std::string{ND_MODE} + "_1", std::int64_t{2}},
      {std::string{ND_RANGE_IDX} + "_0", std::int64_t{0}},

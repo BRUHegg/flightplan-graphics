@@ -69,10 +69,10 @@ constexpr int N_FPLN_DASHES = sizeof(FPLN_LN_DASH) / sizeof(FPLN_LN_DASH[0]);
 constexpr int V_RTE_NOT_DRAWN = -1;
 
 constexpr double ND_WPT_FONT_SZ = 23;
-constexpr double ND_ACT_INFO_MAIN_FONT_SZ = 21;
-constexpr double ND_ACT_INFO_DIST_FONT_SZ = 19;
-constexpr double ND_SPD_BIG_FONT_SZ = 26;
-constexpr double ND_SPD_SMALL_FONT_SZ = 21;
+constexpr double ND_ACT_INFO_MAIN_FONT_SZ = 22;
+constexpr double ND_ACT_INFO_DIST_FONT_SZ = 20;
+constexpr double ND_SPD_BIG_FONT_SZ = 27;
+constexpr double ND_SPD_SMALL_FONT_SZ = 23;
 constexpr double GS_THRESH_BIG_KTS = 30;
 constexpr double TAS_DISPL_THRESH_KTS = 100;
 // Inverse of percentage of resolution that contributes to the scaling factor of
@@ -100,22 +100,24 @@ constexpr double MAP_HDG_TRI_VOFFS = 0.718;
 constexpr double EFIS_REFRESH_ABSD =
     0.012;  // Corresponds to a distance of about 20 nm
 constexpr double EFIS_POI_NAME_FNT_SZ = ND_WPT_FONT_SZ;
-constexpr double EFIS_ARPT_SC = 0.3;
+constexpr double EFIS_ARPT_SC = 0.32;
 constexpr double EFIS_VHF_SC = EFIS_ARPT_SC * 4.0 / 3.0;
+constexpr double EFIS_WAYPT_SC = EFIS_ARPT_SC;
+constexpr geom::vect2_t EFIS_POI_TEXT_OFFSET = {0.4, 0.4};
 // Route drawing
 constexpr geom::vect2_t FIX_NAME_OFFS = {0.02, 0.03};
 const std::vector<geom::vect3_t> ND_RTE_CLRS = {
     cairo_utils::WHITE, cairo_utils::MAGENTA, cairo_utils::ND_CYAN};
 // Active leg
-constexpr geom::vect2_t ACT_LEG_NAME_OFFS = {0.911, 0.03};
-constexpr geom::vect2_t ACT_LEG_TIME_OFFS = {0.911, 0.05};
-constexpr geom::vect2_t ACT_LEG_DIST_OFFS = {0.911, 0.07};
+constexpr geom::vect2_t ACT_LEG_NAME_OFFS = {0.89, 0.03};
+constexpr geom::vect2_t ACT_LEG_TIME_OFFS = {0.89, 0.05};
+constexpr geom::vect2_t ACT_LEG_DIST_OFFS = {0.89, 0.07};
 constexpr geom::vect2_t ACT_LEG_NM_OFFS = {0.96, 0.07};
 // Speed
-constexpr geom::vect2_t GS_OFFS = {0.061, 0.034};
-constexpr geom::vect2_t GS_TEXT_OFFS = {0.003, 0.034};
-constexpr geom::vect2_t TAS_OFFS = {0.15, 0.034};
-constexpr geom::vect2_t TAS_TEXT_OFFS = {0.079, 0.034};
+constexpr geom::vect2_t GS_OFFS = {0.072, 0.034};
+constexpr geom::vect2_t GS_TEXT_OFFS = {0.007, 0.034};
+constexpr geom::vect2_t TAS_OFFS = {0.177, 0.034};
+constexpr geom::vect2_t TAS_TEXT_OFFS = {0.099, 0.034};
 // General:
 constexpr geom::vect2_t MAP_AC_TRI_SC = {2, 2};
 constexpr geom::vect2_t MAP_HTK_BOX_SC = {0.034, 0.073};
@@ -151,6 +153,7 @@ const char ND_ARPT_NML_POI_NAME[] = "normal_arpt_sign";
 const char ND_ARPT_ALTN_POI_NAME[] = "altn_arpt_sign";
 const char ND_DME_POI_NAME[] = "dme";
 const char ND_VORDME_POI_NAME[] = "vordme";
+const char ND_WAYPOINT_POI_NAME[] = "waypoint";
 
 const char* ND_TEXTURE_ARRAY[] = {
   ND_WPT_ACT_NAME,
@@ -165,7 +168,8 @@ const char* ND_TEXTURE_ARRAY[] = {
   ND_ARPT_NML_POI_NAME,
   ND_ARPT_ALTN_POI_NAME,
   ND_VORDME_POI_NAME,
-  ND_DME_POI_NAME
+  ND_DME_POI_NAME,
+  ND_WAYPOINT_POI_NAME
 };
 
 #define MY_SET_OPT(dst, opt) if(opt) {dst = *opt;}
@@ -585,8 +589,11 @@ void NDData::update_configs() noexcept {
       fms_environment::ND_EFIS_AIRPORT_ON, i);
     auto has_sta_on = env_map_->Get<bool>(
       fms_environment::ND_EFIS_STATION_ON, i);
+    auto has_wpt_on = env_map_->Get<bool>(
+      fms_environment::ND_EFIS_WAYPOINT_ON, i);
     MY_SET_OPT(nd_configs_[i].efis_airport_on, has_arpt_on);
     MY_SET_OPT(nd_configs_[i].efis_station_on, has_sta_on);
+    MY_SET_OPT(nd_configs_[i].efis_waypoint_on, has_wpt_on);
     auto mode = env_map_->Get<std::int64_t>(
       fms_environment::ND_MODE, i);
     if(mode) {
@@ -934,6 +941,8 @@ void NDDisplay::nd_textures_t::init(
   assert(dme != nullptr);
   vordme = tex_manager->GetTexture(ND_VORDME_POI_NAME);
   assert(vordme != nullptr);
+  waypoint = tex_manager->GetTexture(ND_WAYPOINT_POI_NAME);
+  assert(waypoint != nullptr);
 
   font_face = tex_manager->GetFontData(fms_display_fonts::MAIN_FONT_NAME)->cairo_face;
 }
@@ -1149,11 +1158,12 @@ void NDDisplay::draw_airplane(cairo_t* cr) {
     }
   } else {
     cairo_surface_t* tgt = textures_.map_ac_ico;
+    geom::vect2_t act_scale = MAP_AC_TRI_SC * wpt_scale;
     geom::vect2_t sz =
-        cairo_utils::get_surf_sz(tgt) * MAP_AC_TRI_SC * wpt_scale;
+        cairo_utils::get_surf_sz(tgt) * act_scale;
     geom::vect2_t sz_shift = {0, 0.5};
     geom::vect2_t pos = scr_pos_ + map_ctr_ + sz * sz_shift;
-    cairo_utils::draw_image(cr, tgt, pos, MAP_AC_TRI_SC, true);
+    cairo_utils::draw_image(cr, tgt, pos, act_scale, true);
   }
 }
 
@@ -1188,7 +1198,7 @@ void NDDisplay::draw_htrk(cairo_t* cr) {
 void NDDisplay::draw_hdg_tri(cairo_t* cr) {
   if (config_.mode == fms_core::NDMode::MAP) {
     double rot_rad = 0;
-    if (config_.is_track_up) rot_rad = -hdg_data_.slip_rad;
+    if (config_.is_track_up) rot_rad = hdg_data_.slip_rad;
     geom::vect2_t wpt_scale = size_.scmul(1 / WPT_SCALE_FACT);
     geom::vect2_t sc_act = wpt_scale * MAP_HDG_TRI_SC;
     geom::vect2_t tr_vec = {sin(rot_rad), cos(rot_rad)};
@@ -1382,9 +1392,10 @@ void NDDisplay::draw_range(cairo_t* cr) {
   }
 }
 
-void NDDisplay::draw_airports(cairo_t* cr) {
+std::size_t NDDisplay::draw_airports(cairo_t* cr) {
   cairo_surface_t* surf_norm = textures_.normal_arpt_sign;
   cairo_surface_t* surf_altn = textures_.altn_arpt_sign;
+  std::size_t cnt = 0;
   for (size_t i = 0; i < nd_data_->get_num_poi_arpts(); i++) {
     labeled_point_with_dist_t cr_point = nd_data_->get_arpt(i);
     if (cr_point.dist_ctr > curr_rng_) {
@@ -1395,29 +1406,51 @@ void NDDisplay::draw_airports(cairo_t* cr) {
     } else {
       draw_labeled_point(cr, surf_norm, cr_point.point, EFIS_ARPT_SC);
     }
+    cnt++;
   }
+  return cnt;
 }
 
-void NDDisplay::draw_vordmes(cairo_t* cr) {
+std::size_t NDDisplay::draw_vordmes(cairo_t* cr) {
   cairo_surface_t* tgt_surf = textures_.vordme;
+  std::size_t cnt = 0;
   for (size_t i = 0; i < nd_data_->get_num_poi_vordmes(); i++) {
     labeled_point_with_dist_t cr_point = nd_data_->get_vordme(i);
     if (cr_point.dist_ctr > curr_rng_) {
       break;
     }
     draw_labeled_point(cr, tgt_surf, cr_point.point, EFIS_VHF_SC);
+    cnt++;
   }
+  return cnt;
 }
 
-void NDDisplay::draw_vors_dmes(cairo_t* cr) {
+std::size_t NDDisplay::draw_vors_dmes(cairo_t* cr) {
   cairo_surface_t* tgt_surf = textures_.dme;
+  std::size_t cnt = 0;
   for (size_t i = 0; i < nd_data_->get_num_poi_vhf_not_vordmes(); i++) {
     labeled_point_with_dist_t cr_point = nd_data_->get_vhf_not_vordme(i);
     if (cr_point.dist_ctr > curr_rng_) {
       break;
     }
     draw_labeled_point(cr, tgt_surf, cr_point.point, EFIS_VHF_SC);
+    cnt++;
   }
+  return cnt;
+}
+
+std::size_t NDDisplay::draw_waypoints(cairo_t* cr) {
+  cairo_surface_t* tgt_surf = textures_.waypoint;
+  std::size_t cnt = 0;
+  for (size_t i = 0; i < nd_data_->get_num_poi_waypts(); i++) {
+    labeled_point_with_dist_t cr_point = nd_data_->get_waypt(i);
+    if (cr_point.dist_ctr > curr_rng_) {
+      break;
+    }
+    draw_labeled_point(cr, tgt_surf, cr_point.point, EFIS_WAYPT_SC);
+    cnt++;
+  }
+  return cnt;
 }
 
 void NDDisplay::draw_efis_filters(cairo_t* cr) {
@@ -1429,6 +1462,9 @@ void NDDisplay::draw_efis_filters(cairo_t* cr) {
       draw_vordmes(cr);
       draw_vors_dmes(cr);
     }
+    if(config_.efis_waypoint_on) {
+      draw_waypoints(cr);
+    }
   }
 }
 
@@ -1438,12 +1474,11 @@ void NDDisplay::draw_labeled_point(cairo_t* cr, cairo_surface_t* img,
   geom::vect2_t pos_local = get_screen_coords(src_point.pos);
   geom::vect2_t scale_fact_vec = size_.scmul(img_scale).scdiv(WPT_SCALE_FACT);
   geom::vect2_t img_sz = cairo_utils::get_surf_sz(img) * scale_fact_vec;
-  geom::vect2_t pos_text = pos_local + img_sz.scmul(0.5);
-  double sc_fact_txt = size_.x / WPT_SCALE_FACT;
-  UNUSED(sc_fact_txt);
+  geom::vect2_t pos_text = pos_local + img_sz * EFIS_POI_TEXT_OFFSET;
   cairo_utils::draw_image(cr, img, pos_local, scale_fact_vec, true);
   fms_display_fonts::draw_left_text(cr, textures_.font_face, src_point.name, pos_text,
                               cairo_utils::ND_CYAN,
-                              EFIS_POI_NAME_FNT_SZ, size_);
+                              EFIS_POI_NAME_FNT_SZ, size_, 
+                              fms_display_fonts::kSmallTextSlope);
 }
 }  // namespace fms_displays

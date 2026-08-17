@@ -345,7 +345,9 @@ class CDUDisplay final {
 
   CDUDisplay(geom::vect2_t pos, geom::vect2_t sz, 
              util::OpaquePointer<TextureManager> tm, 
-             util::OpaquePointer<CDU> cdu);
+             util::OpaquePointer<CDU> cdu, bool is_free);
+
+  std::pair<double, double> GetDrawSize() const noexcept;
 
   void on_event(event_type event);
 
@@ -366,10 +368,9 @@ class CDUDisplay final {
   mutable std::mutex main_mutex_;
   std::queue<event_type> events_;
 
-  geom::vect2_t screen_pos_;  // position of the CDU texture on the screen
-  geom::vect2_t size_;
   geom::vect2_t display_pos_;  // position of the CDU display on the screen
   geom::vect2_t display_size_;
+  double scale_coeff_;
 
   cdu_textures_t textures_;
   util::OpaquePointer<CDU> cdu_ptr_;
