@@ -54,7 +54,7 @@ constexpr double CDU_WIDTH =
 constexpr double ND_WIDTH = WND_HEIGHT;
 constexpr double WND_WIDTH = CDU_WIDTH + ND_WIDTH;
 constexpr geom::vect2_t ND_POS = {CDU_WIDTH, 0};
-constexpr geom::vect2_t ND_SZ = {500, 500};
+constexpr geom::vect2_t ND_SZ = {900, 900};
 constexpr geom::vect2_t CDU_L_POS = {0, 0};
 constexpr geom::vect2_t CDU_L_SZ = {CDU_WIDTH, WND_HEIGHT};
 
@@ -179,41 +179,41 @@ class CMDInterface {
   }
 
   void set_nd_mode(fms_core::NDMode md, std::size_t side_idx) {
-    avncs->env_map_ptr_->Set<std::int64_t>(fms_environment::ND_MODE, 
+    avncs->env_map_ptr_->Set<std::int64_t>(fms_environment::ND_MODE_VAR, 
       static_cast<std::int64_t>(md), side_idx);
   }
 
   void increment_nd_range(std::size_t side_idx) {
     auto curr_idx = (avncs->env_map_ptr_->Get<std::int64_t>(
-      fms_environment::ND_RANGE_IDX, side_idx));
+      fms_environment::ND_RANGE_IDX_VAR, side_idx));
     if(curr_idx) {
       std::size_t next = static_cast<std::size_t>(*curr_idx);
       if(next + 1 < fms_displays::ND_RANGES_NM.size()) {
         next++;
       }
-      avncs->env_map_ptr_->Set<std::int64_t>(fms_environment::ND_RANGE_IDX, 
+      avncs->env_map_ptr_->Set<std::int64_t>(fms_environment::ND_RANGE_IDX_VAR, 
         static_cast<std::int64_t>(next), side_idx);
     }
   }
 
   void decrement_nd_range(std::size_t side_idx) {
     auto curr_idx = (avncs->env_map_ptr_->Get<std::int64_t>(
-      fms_environment::ND_RANGE_IDX, side_idx));
+      fms_environment::ND_RANGE_IDX_VAR, side_idx));
     if(curr_idx) {
       std::size_t next = static_cast<std::size_t>(*curr_idx);
       if(next > 0) {
         next--;
       }
-      avncs->env_map_ptr_->Set<std::int64_t>(fms_environment::ND_RANGE_IDX, 
+      avncs->env_map_ptr_->Set<std::int64_t>(fms_environment::ND_RANGE_IDX_VAR, 
         static_cast<std::int64_t>(next), side_idx);
     }
   }
 
   void switch_trk_hdg_up() {
-    auto val = avncs->env_map_ptr_->Get<bool>(fms_environment::ND_IS_TRACK_UP);
+    auto val = avncs->env_map_ptr_->Get<bool>(fms_environment::ND_IS_TRACK_UP_VAR);
     if(val) {
       bool tgt = !(*val);
-      avncs->env_map_ptr_->Set<bool>(fms_environment::ND_IS_TRACK_UP, tgt);
+      avncs->env_map_ptr_->Set<bool>(fms_environment::ND_IS_TRACK_UP_VAR, tgt);
     }
   }
 

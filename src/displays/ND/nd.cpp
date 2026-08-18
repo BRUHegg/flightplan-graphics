@@ -15,6 +15,7 @@
 #include <cstddef>
 
 #include <memory>
+#include <optional>
 #include <vector>
 #include <string>
 #include <shared_mutex>
@@ -96,6 +97,8 @@ constexpr double MAP_HTRK_STG_TXT_VOFFS = 0.033;
 constexpr double MAP_HTRK_STG_FONT_SZ = 38;
 constexpr double MAP_TRK_DASH_OFFS = 0.01;
 constexpr double MAP_HDG_TRI_VOFFS = 0.718;
+constexpr double MAP_HDG_DIAL_VOFFS = 0.704;
+constexpr double MAP_TRK_DIAL_VOFFS = 0.702;
 // EFIS filters:
 constexpr double EFIS_REFRESH_ABSD =
     0.012;  // Corresponds to a distance of about 20 nm
@@ -104,6 +107,15 @@ constexpr double EFIS_ARPT_SC = 0.32;
 constexpr double EFIS_VHF_SC = EFIS_ARPT_SC * 4.0 / 3.0;
 constexpr double EFIS_WAYPT_SC = EFIS_ARPT_SC;
 constexpr geom::vect2_t EFIS_POI_TEXT_OFFSET = {0.4, 0.4};
+constexpr geom::vect2_t EXCESS_DATA_MSG_POS = {0.07, 0.36};
+constexpr geom::vect2_t EXCESS_DATA_MSG_SCALE = {0.48, 0.48};
+constexpr std::size_t EXCESS_DATA_CNT_THRESH = 40;
+constexpr geom::vect2_t EFIS_ARPT_MODE_POS = {0.005, 0.57};
+constexpr geom::vect2_t EFIS_WPT_MODE_POS = {0, 0.593};
+constexpr geom::vect2_t EFIS_STA_MODE_POS = {0, 0.612};
+constexpr double EFIS_MODE_SCALE = 0.31;
+constexpr geom::vect2_t EFIS_MODES_BOUNDING_RECT_POS = {0.005, 0.58};
+constexpr geom::vect2_t EFIS_MODES_BOUNDING_RECT_SIZE = {0.07, 0.08};
 // Route drawing
 constexpr geom::vect2_t FIX_NAME_OFFS = {0.02, 0.03};
 const std::vector<geom::vect3_t> ND_RTE_CLRS = {
@@ -123,6 +135,8 @@ constexpr geom::vect2_t MAP_AC_TRI_SC = {2, 2};
 constexpr geom::vect2_t MAP_HTK_BOX_SC = {0.034, 0.073};
 constexpr geom::vect2_t MAP_HTK_TXT_POS = {0.5, 0.029};
 constexpr geom::vect2_t MAP_HDG_TRI_SC = {1, 0.8};
+constexpr geom::vect2_t MCP_HDG_DIAL_SC = {0.8, 0.66};
+constexpr geom::vect2_t MCP_TRK_DIAL_SC = {0.8, 0.66};
 constexpr geom::vect2_t MAP_RNG_OFFS = {-0.014, -0.012};
 
 constexpr geom::vect3_t ND_BCKGRND_CLR = cairo_utils::BLACK;
@@ -154,6 +168,13 @@ const char ND_ARPT_ALTN_POI_NAME[] = "altn_arpt_sign";
 const char ND_DME_POI_NAME[] = "dme";
 const char ND_VORDME_POI_NAME[] = "vordme";
 const char ND_WAYPOINT_POI_NAME[] = "waypoint";
+const char ND_EXCESS_DATA_MSG_NAME[] = "excess_data_msg";
+const char ND_AP_HDG_SEL_BOX_NAME[] = "hdg_sel_box";
+const char ND_AP_TRK_SEL_BOX_NAME[] = "trk_sel_box";
+const char ND_EFIS_ARPT_FILTER_NAME[] = "arpt_filter";
+const char ND_EFIS_STA_FILTER_NAME[] = "sta_filter";
+const char ND_EFIS_WPT_FILTER_NAME[] = "wpt_filter";
+const char ND_EFIS_TFC_FILTER_NAME[] = "tfc_filter";
 
 const char* ND_TEXTURE_ARRAY[] = {
   ND_WPT_ACT_NAME,
@@ -169,7 +190,14 @@ const char* ND_TEXTURE_ARRAY[] = {
   ND_ARPT_ALTN_POI_NAME,
   ND_VORDME_POI_NAME,
   ND_DME_POI_NAME,
-  ND_WAYPOINT_POI_NAME
+  ND_WAYPOINT_POI_NAME,
+  ND_EXCESS_DATA_MSG_NAME,
+  ND_AP_HDG_SEL_BOX_NAME,
+  ND_AP_TRK_SEL_BOX_NAME,
+  ND_EFIS_ARPT_FILTER_NAME,
+  ND_EFIS_STA_FILTER_NAME,
+  ND_EFIS_WPT_FILTER_NAME,
+  ND_EFIS_TFC_FILTER_NAME
 };
 
 #define MY_SET_OPT(dst, opt) if(opt) {dst = *opt;}
@@ -368,7 +396,7 @@ void map_data_t::destroy() {
   n_act_joints = 0;
 }
 
-nd_config_t::nd_config_t() {
+nd_global_config_t::nd_global_config_t() {
   has_dep_rwy.reset();
   has_arr_rwy.reset();
 }
@@ -436,7 +464,12 @@ bool NDData::init() {
   return true;
 }
 
-nd_config_t NDData::get_config(
+nd_global_config_t NDData::get_global_config() const noexcept {
+  std::shared_lock lk(main_mutex_);
+  return nd_all_config_;
+}
+
+nd_local_config_t NDData::get_local_config(
   std::size_t sd_idx) const noexcept {
   assert(sd_idx < N_ND_SDS);
   std::shared_lock lk(main_mutex_);
@@ -581,21 +614,33 @@ nd_util_idx_t NDData::get_util_idx(std::size_t gn_idx) noexcept {
 
 // Non-static member functions:
 
-void NDData::update_configs() noexcept {
-  auto track_all_up = env_map_->Get<bool>(fms_environment::ND_IS_TRACK_UP);
+void NDData::update_global_config() noexcept {
+  auto track_all_up = env_map_->Get<bool>(fms_environment::ND_IS_TRACK_UP_VAR);
+  MY_SET_OPT(nd_all_config_.is_track_up, track_all_up);
+  auto mcp_hdg_val = env_map_->Get<std::int64_t>(
+    fms_environment::AUTOPILOT_HDG_SEL_DEG_VAR);
+  MY_SET_OPT(nd_all_config_.hdg_sel_deg, mcp_hdg_val);
+  auto mcp_hdg_is_trk = env_map_->Get<bool>(fms_environment::AUTOPILOT_HDG_IS_TRACK_VAR);
+  MY_SET_OPT(nd_all_config_.hdg_sel_is_trk, mcp_hdg_is_trk);
+  auto hdg_ref_is_true = env_map_->Get<bool>(fms_environment::ND_HDG_IS_TRUE_VAR);
+  MY_SET_OPT(nd_all_config_.hdg_ref_true, hdg_ref_is_true);
+  nd_all_config_.has_dep_rwy = has_dep_rwy_;
+  nd_all_config_.has_arr_rwy = has_arr_rwy_;
+}
+
+void NDData::update_local_configs() noexcept {
   for(std::size_t i = 0; i < N_ND_SDS; ++i) {
-    MY_SET_OPT(nd_configs_[i].is_track_up, track_all_up)
     auto has_arpt_on = env_map_->Get<bool>(
-      fms_environment::ND_EFIS_AIRPORT_ON, i);
+      fms_environment::ND_EFIS_AIRPORT_ON_VAR, i);
     auto has_sta_on = env_map_->Get<bool>(
-      fms_environment::ND_EFIS_STATION_ON, i);
+      fms_environment::ND_EFIS_STATION_ON_VAR, i);
     auto has_wpt_on = env_map_->Get<bool>(
-      fms_environment::ND_EFIS_WAYPOINT_ON, i);
+      fms_environment::ND_EFIS_WAYPOINT_ON_VAR, i);
     MY_SET_OPT(nd_configs_[i].efis_airport_on, has_arpt_on);
     MY_SET_OPT(nd_configs_[i].efis_station_on, has_sta_on);
     MY_SET_OPT(nd_configs_[i].efis_waypoint_on, has_wpt_on);
     auto mode = env_map_->Get<std::int64_t>(
-      fms_environment::ND_MODE, i);
+      fms_environment::ND_MODE_VAR, i);
     if(mode) {
       std::int64_t val = *mode;
       if(val >= 0 && val < 
@@ -604,16 +649,19 @@ void NDData::update_configs() noexcept {
       }
     }
     auto range_idx = env_map_->Get<std::int64_t>(
-      fms_environment::ND_RANGE_IDX, i);
+      fms_environment::ND_RANGE_IDX_VAR, i);
     if(range_idx) {
       std::int64_t val = *range_idx;
       if(val >= 0 && val < (std::int64_t)ND_RANGES_NM.size()) {
         nd_configs_[i].range_idx = val;
       }
     }
-    nd_configs_[i].has_dep_rwy = has_dep_rwy_;
-    nd_configs_[i].has_arr_rwy = has_arr_rwy_;
   }
+}
+
+void NDData::update_configs() noexcept {
+  update_global_config();
+  update_local_configs();
 }
 
 double NDData::get_range_impl(std::size_t sd_idx) const noexcept {
@@ -621,8 +669,14 @@ double NDData::get_range_impl(std::size_t sd_idx) const noexcept {
 }
 
 double NDData::get_cr_rot() const noexcept {
-  if (nd_configs_[0].is_track_up) {
+  if (nd_all_config_.is_track_up) {
+    if(nd_all_config_.hdg_ref_true) {
+      return -heading_data_.brng_tru_rad;
+    }
     return -(heading_data_.brng_tru_rad + heading_data_.magvar_rad);
+  }
+  if(nd_all_config_.hdg_ref_true) {
+    return -(heading_data_.brng_tru_rad + heading_data_.slip_rad);
   }
   return -(heading_data_.brng_tru_rad + heading_data_.magvar_rad +
            heading_data_.slip_rad);
@@ -886,7 +940,8 @@ NDDisplay::NDDisplay(util::OpaquePointer<NDData> data,
                     size_{sz}, side_idx_{sd_idx} {
   textures_.init(mngr);
 
-  config_ = data->get_config(side_idx_);
+  all_config_ = data->get_global_config();
+  config_ = data->get_local_config(side_idx_);
 }
 
 std::pair<double, double> NDDisplay::GetDrawSize() const noexcept {
@@ -894,7 +949,8 @@ std::pair<double, double> NDDisplay::GetDrawSize() const noexcept {
 }
 
 void NDDisplay::draw(cairo_t* cr) {
-  config_ = nd_data_->get_config(side_idx_);
+  all_config_ = nd_data_->get_global_config();
+  config_ = nd_data_->get_local_config(side_idx_);
   hdg_data_ = nd_data_->get_hdg_data();
   update_map_params();
 
@@ -943,6 +999,20 @@ void NDDisplay::nd_textures_t::init(
   assert(vordme != nullptr);
   waypoint = tex_manager->GetTexture(ND_WAYPOINT_POI_NAME);
   assert(waypoint != nullptr);
+  excess_data_msg = tex_manager->GetTexture(ND_EXCESS_DATA_MSG_NAME);
+  assert(excess_data_msg != nullptr);
+  hdg_sel_box = tex_manager->GetTexture(ND_AP_HDG_SEL_BOX_NAME);
+  assert(hdg_sel_box != nullptr);
+  trk_sel_box = tex_manager->GetTexture(ND_AP_TRK_SEL_BOX_NAME);
+  assert(trk_sel_box != nullptr);
+  arpt_efis_filter = tex_manager->GetTexture(ND_EFIS_ARPT_FILTER_NAME);
+  assert(arpt_efis_filter != nullptr);
+  sta_efis_filter = tex_manager->GetTexture(ND_EFIS_STA_FILTER_NAME);
+  assert(sta_efis_filter != nullptr);
+  wpt_efis_filter = tex_manager->GetTexture(ND_EFIS_WPT_FILTER_NAME);
+  assert(wpt_efis_filter != nullptr);
+  tfc_efis_filter = tex_manager->GetTexture(ND_EFIS_TFC_FILTER_NAME);
+  assert(tfc_efis_filter != nullptr);
 
   font_face = tex_manager->GetFontData(fms_display_fonts::MAIN_FONT_NAME)->cairo_face;
 }
@@ -962,11 +1032,43 @@ void NDDisplay::update_map_params() {
     ).scdiv(curr_rng_);
 }
 
-geom::vect2_t NDDisplay::get_screen_coords(geom::vect2_t src) {
+bool NDDisplay::is_in_bounds(geom::vect2_t src) const noexcept {
+  geom::vect2_t upper = scr_pos_;
+  geom::vect2_t lower = scr_pos_ + size_;
+  if(src.x > lower.x || src.x < upper.x || src.y > lower.y || src.y < upper.y) {
+    return false;
+  }
+  return true;
+} 
+
+geom::vect2_t NDDisplay::get_screen_coords(geom::vect2_t src) const noexcept {
   src.y *= -1;
   geom::vect2_t out = src * scale_factor_ + map_ctr_ + scr_pos_;
 
   return out;
+}
+
+std::optional<geom::vect2_t> NDDisplay::strict_get_screen_coords(
+  geom::vect2_t src) const noexcept {
+  geom::vect2_t res = get_screen_coords(src);
+  if(is_in_bounds(res)) {
+    return res;
+  }
+  return std::nullopt;
+}
+
+void NDDisplay::draw_heading_trk_rotary(cairo_t* cr, texture_type tex, 
+  geom::vect2_t scale, double rot_rad, double radius, bool flip) const noexcept {
+  geom::vect2_t wpt_scale = size_.scmul(1 / WPT_SCALE_FACT);
+  geom::vect2_t sc_act = wpt_scale * scale;
+  geom::vect2_t tr_vec = {sin(rot_rad), cos(rot_rad)};
+  geom::vect2_t pos =
+      scr_pos_ + map_ctr_ - tr_vec.scmul(size_.x * radius);
+  if(flip) {
+    cairo_utils::draw_rotated_image(cr, tex, pos, sc_act, -rot_rad);
+  } else {
+    cairo_utils::draw_rotated_image(cr, tex, pos, sc_act, 1.0 / M_1_PI - rot_rad);
+  }
 }
 
 void NDDisplay::draw_line_joint(cairo_t* cr, geom::line_joint_t lj,
@@ -1126,11 +1228,11 @@ void NDDisplay::draw_runways(cairo_t* cr, size_t idx) {
   size_t buf_size = nd_data_->get_proj_legs(&buf, side_idx_, idx);
   UNUSED(buf_size);
 
-  if (config_.has_dep_rwy[idx]) {
+  if (all_config_.has_dep_rwy[idx]) {
     draw_runway(cr, buf[DEP_RWY_PROJ_IDX]);
   }
 
-  if (config_.has_dep_rwy[idx]) {
+  if (all_config_.has_dep_rwy[idx]) {
     draw_runway(cr, buf[ARR_RWY_PROJ_IDX]);
   }
 }
@@ -1183,14 +1285,18 @@ void NDDisplay::draw_htrk(cairo_t* cr) {
   geom::vect2_t pos_tmg =
       geom::vect2_t{0.5 + MAP_HTRK_STG_TXT_LOFFS, MAP_HTRK_STG_TXT_VOFFS};
   std::string htk_st_txt = "";
-  if (config_.is_track_up)
+  if (all_config_.is_track_up)
     htk_st_txt = ND_TRKUP;
   else
     htk_st_txt = ND_HDGUP;
   fms_display_fonts::draw_centered_text(cr, textures_.font_face, htk_st_txt,
                                   scr_pos_ + size_ * pos_htk, cairo_utils::GREEN,
                                   MAP_HTRK_STG_FONT_SZ, size_);
-  fms_display_fonts::draw_centered_text(cr, textures_.font_face, "MAG",
+  std::string hdg_ref = "MAG";
+  if(all_config_.hdg_ref_true) {
+    hdg_ref = "TRU";
+  }
+  fms_display_fonts::draw_centered_text(cr, textures_.font_face, hdg_ref,
                                   scr_pos_ + size_ * pos_tmg, cairo_utils::GREEN,
                                   MAP_HTRK_STG_FONT_SZ, size_);
 }
@@ -1198,20 +1304,29 @@ void NDDisplay::draw_htrk(cairo_t* cr) {
 void NDDisplay::draw_hdg_tri(cairo_t* cr) {
   if (config_.mode == fms_core::NDMode::MAP) {
     double rot_rad = 0;
-    if (config_.is_track_up) rot_rad = hdg_data_.slip_rad;
-    geom::vect2_t wpt_scale = size_.scmul(1 / WPT_SCALE_FACT);
-    geom::vect2_t sc_act = wpt_scale * MAP_HDG_TRI_SC;
-    geom::vect2_t tr_vec = {sin(rot_rad), cos(rot_rad)};
-    geom::vect2_t pos =
-        scr_pos_ + map_ctr_ - tr_vec.scmul(size_.x * MAP_HDG_TRI_VOFFS);
-    cairo_surface_t* tgt = textures_.map_ac_ico;
-    cairo_utils::draw_rotated_image(cr, tgt, pos, sc_act, 1 / M_1_PI - rot_rad);
+    if (all_config_.is_track_up) rot_rad = -hdg_data_.slip_rad;
+    draw_heading_trk_rotary(cr, textures_.map_ac_ico, MAP_HDG_TRI_SC, 
+      rot_rad, MAP_HDG_TRI_VOFFS);
+  }
+}
+
+void NDDisplay::draw_mcp_heading(cairo_t* cr) {
+  if (config_.mode == fms_core::NDMode::MAP) {
+    double rot_rad = -static_cast<double>(all_config_.hdg_sel_deg) * geom::DEG_TO_RAD -
+      nd_data_->get_hdg_trk();
+    if(all_config_.hdg_sel_is_trk) {
+      draw_heading_trk_rotary(cr, textures_.trk_sel_box, MCP_TRK_DIAL_SC, 
+        rot_rad, MAP_TRK_DIAL_VOFFS, true);
+    } else {
+      draw_heading_trk_rotary(cr, textures_.hdg_sel_box, MCP_HDG_DIAL_SC, 
+        rot_rad, MAP_HDG_DIAL_VOFFS, true);
+    }
   }
 }
 
 void NDDisplay::draw_trk_line(cairo_t* cr, bool is_inn) {
   double rot_rad = 0;
-  if (!config_.is_track_up) rot_rad = -hdg_data_.slip_rad;
+  if (!all_config_.is_track_up) rot_rad = -hdg_data_.slip_rad;
   geom::vect2_t dir = {size_.x * sin(rot_rad), -size_.x * cos(rot_rad)};
   geom::vect2_t dir_nml = {dir.y, -dir.x};  // Facing right
   geom::vect2_t ln_end_inn = map_ctr_ + dir.scmul(MAP_TRK_LN_LN_INN);
@@ -1280,6 +1395,7 @@ void NDDisplay::draw_background(cairo_t* cr, bool draw_inner) {
       cairo_utils::draw_image(cr, htrk_box, box_pos, scale_box, true);
       draw_htrk(cr);
       draw_hdg_tri(cr);
+      draw_mcp_heading(cr);
     } else {
       draw_tfc_arcs(cr);
     }
@@ -1402,11 +1518,10 @@ std::size_t NDDisplay::draw_airports(cairo_t* cr) {
       break;
     }
     if (i < N_EFIS_MAP_ALTN_APTS) {
-      draw_labeled_point(cr, surf_altn, cr_point.point, EFIS_ARPT_SC);
+      cnt += draw_labeled_point(cr, surf_altn, cr_point.point, EFIS_ARPT_SC);
     } else {
-      draw_labeled_point(cr, surf_norm, cr_point.point, EFIS_ARPT_SC);
+      cnt += draw_labeled_point(cr, surf_norm, cr_point.point, EFIS_ARPT_SC);
     }
-    cnt++;
   }
   return cnt;
 }
@@ -1419,8 +1534,7 @@ std::size_t NDDisplay::draw_vordmes(cairo_t* cr) {
     if (cr_point.dist_ctr > curr_rng_) {
       break;
     }
-    draw_labeled_point(cr, tgt_surf, cr_point.point, EFIS_VHF_SC);
-    cnt++;
+    cnt += draw_labeled_point(cr, tgt_surf, cr_point.point, EFIS_VHF_SC);
   }
   return cnt;
 }
@@ -1433,8 +1547,7 @@ std::size_t NDDisplay::draw_vors_dmes(cairo_t* cr) {
     if (cr_point.dist_ctr > curr_rng_) {
       break;
     }
-    draw_labeled_point(cr, tgt_surf, cr_point.point, EFIS_VHF_SC);
-    cnt++;
+    cnt += draw_labeled_point(cr, tgt_surf, cr_point.point, EFIS_VHF_SC);
   }
   return cnt;
 }
@@ -1447,31 +1560,73 @@ std::size_t NDDisplay::draw_waypoints(cairo_t* cr) {
     if (cr_point.dist_ctr > curr_rng_) {
       break;
     }
-    draw_labeled_point(cr, tgt_surf, cr_point.point, EFIS_WAYPT_SC);
-    cnt++;
+    cnt += draw_labeled_point(cr, tgt_surf, cr_point.point, EFIS_WAYPT_SC);
   }
   return cnt;
 }
 
-void NDDisplay::draw_efis_filters(cairo_t* cr) {
-  if (config_.mode == fms_core::NDMode::MAP) {
-    if (config_.efis_airport_on) {
-      draw_airports(cr);
-    }
-    if (config_.efis_station_on) {
-      draw_vordmes(cr);
-      draw_vors_dmes(cr);
-    }
-    if(config_.efis_waypoint_on) {
-      draw_waypoints(cr);
-    }
+void NDDisplay::draw_efis_excess_data(cairo_t* cr) {
+  geom::vect2_t pos_local = scr_pos_ + size_ * EXCESS_DATA_MSG_POS;
+  geom::vect2_t scale_fact_vec = (size_ * EXCESS_DATA_MSG_SCALE).scdiv(WPT_SCALE_FACT);
+  cairo_utils::draw_image(cr, textures_.excess_data_msg, pos_local, 
+    scale_fact_vec, false);
+}
+
+void NDDisplay::draw_efis_modes(cairo_t* cr) const noexcept {
+  if(!config_.efis_airport_on && !config_.efis_waypoint_on && 
+    !config_.efis_station_on) {
+    return;
+  }
+  geom::vect2_t bounding_rect_pos = scr_pos_ + EFIS_MODES_BOUNDING_RECT_POS * size_;
+  geom::vect2_t bounding_rect_size = EFIS_MODES_BOUNDING_RECT_SIZE * size_;
+  cairo_utils::draw_rect(cr, bounding_rect_pos, bounding_rect_size, 
+    cairo_utils::BLACK);
+  geom::vect2_t scale_fact_vec = (size_.scmul(EFIS_MODE_SCALE)).scdiv(WPT_SCALE_FACT);
+  if(config_.efis_airport_on) {
+    geom::vect2_t pos_local = scr_pos_ + size_ * EFIS_ARPT_MODE_POS;
+    cairo_utils::draw_image(cr, textures_.arpt_efis_filter, pos_local, 
+      scale_fact_vec, false);
+  }
+  if(config_.efis_waypoint_on) {
+    geom::vect2_t pos_local = scr_pos_ + size_ * EFIS_WPT_MODE_POS;
+    cairo_utils::draw_image(cr, textures_.wpt_efis_filter, pos_local, 
+      scale_fact_vec, false);
+  }
+  if(config_.efis_station_on) {
+    geom::vect2_t pos_local = scr_pos_ + size_ * EFIS_STA_MODE_POS;
+    cairo_utils::draw_image(cr, textures_.sta_efis_filter, pos_local, 
+      scale_fact_vec, false);
   }
 }
 
-void NDDisplay::draw_labeled_point(cairo_t* cr, cairo_surface_t* img,
+void NDDisplay::draw_efis_filters(cairo_t* cr) {
+  std::size_t n_drawn = 0;
+  if (config_.mode == fms_core::NDMode::MAP) {
+    if (config_.efis_airport_on) {
+      n_drawn += draw_airports(cr);
+    }
+    if (config_.efis_station_on) {
+      n_drawn += draw_vordmes(cr);
+      n_drawn += draw_vors_dmes(cr);
+    }
+    if(config_.efis_waypoint_on) {
+      n_drawn += draw_waypoints(cr);
+    }
+  }
+  if(n_drawn > EXCESS_DATA_CNT_THRESH) {
+    draw_efis_excess_data(cr);
+  }
+  draw_efis_modes(cr);
+}
+
+bool NDDisplay::draw_labeled_point(cairo_t* cr, cairo_surface_t* img,
                                    labeled_point_t& src_point,
-                                   double img_scale) {
-  geom::vect2_t pos_local = get_screen_coords(src_point.pos);
+                                   double img_scale) const noexcept {
+  auto pos_local_data = strict_get_screen_coords(src_point.pos);
+  if(!pos_local_data) {
+    return false;
+  }
+  geom::vect2_t pos_local = *pos_local_data;
   geom::vect2_t scale_fact_vec = size_.scmul(img_scale).scdiv(WPT_SCALE_FACT);
   geom::vect2_t img_sz = cairo_utils::get_surf_sz(img) * scale_fact_vec;
   geom::vect2_t pos_text = pos_local + img_sz * EFIS_POI_TEXT_OFFSET;
@@ -1480,5 +1635,6 @@ void NDDisplay::draw_labeled_point(cairo_t* cr, cairo_surface_t* img,
                               cairo_utils::ND_CYAN,
                               EFIS_POI_NAME_FNT_SZ, size_, 
                               fms_display_fonts::kSmallTextSlope);
+  return true;
 }
 }  // namespace fms_displays

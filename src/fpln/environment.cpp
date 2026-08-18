@@ -4,10 +4,11 @@
 #include <charconv>
 #include <cstdint>
 
-#include <optional>
 #include <mutex>
+#include <optional>
 #include <shared_mutex>
 #include <string>
+#include <type_traits>
 
 namespace {
 
@@ -31,11 +32,20 @@ std::optional<T> StrToNumber(const std::string& str) noexcept {
 template <typename T>
 bool SetNumeric(value_type& dst, const std::string& val) noexcept {
   assert(std::holds_alternative<T>(dst));
-  auto res = StrToNumber<T>(val);
-  if (res) {
-    dst = *res;
-    return true;
+  if constexpr (std::is_same_v<T, bool>) {
+    auto res = StrToNumber<std::int64_t>(val);
+    if (res) {
+      dst = static_cast<bool>(*res);
+      return true;
+    }
+  } else {
+    auto res = StrToNumber<T>(val);
+    if (res) {
+      dst = *res;
+      return true;
+    }
   }
+  
   return false;
 }
 
@@ -52,10 +62,18 @@ std::optional<std::string> GetNumeric(const value_type& val) noexcept {
       return std::string{out_buff, ptr};
     }
   } else {
-    auto [ptr, ec] =
-        std::to_chars(out_buff, out_buff + kConvertBuffLength, num);
-    if (ec == std::errc()) {
-      return std::string{out_buff, ptr};
+    if constexpr (std::is_same_v<bool, T>) {
+      auto [ptr, ec] =
+          std::to_chars(out_buff, out_buff + kConvertBuffLength, static_cast<std::int64_t>(num));
+      if (ec == std::errc()) {
+        return std::string{out_buff, ptr};
+      }
+    } else {
+      auto [ptr, ec] =
+          std::to_chars(out_buff, out_buff + kConvertBuffLength, num);
+      if (ec == std::errc()) {
+        return std::string{out_buff, ptr};
+      }
     }
   }
   return std::nullopt;
@@ -76,6 +94,8 @@ bool EnvDataRefMap::SetFromString(const str_type& key,
     return true;
   } else if (std::holds_alternative<std::int64_t>(it->second)) {
     return SetNumeric<std::int64_t>(it->second, val);
+  } else if (std::holds_alternative<bool>(it->second)) {
+    return SetNumeric<bool>(it->second, val);
   }
   return SetNumeric<double>(it->second, val);
 }
@@ -91,6 +111,8 @@ std::optional<std::string> EnvDataRefMap::GetString(
     return std::get<std::string>(it->second);
   } else if (std::holds_alternative<std::int64_t>(it->second)) {
     return GetNumeric<std::int64_t>(it->second);
+  } else if (std::holds_alternative<bool>(it->second)) {
+    return GetNumeric<bool>(it->second);
   }
   return GetNumeric<double>(it->second);
 }

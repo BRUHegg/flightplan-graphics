@@ -49,7 +49,7 @@ bool glob_trans_filter = false;
 
 std::size_t get_cmd_fpln_idx(
   const fms_commands::command_res_t& cmd_resources) {
-  auto res = cmd_resources.env_map->Get<std::int64_t>(fms_environment::FPL_SEL);
+  auto res = cmd_resources.env_map->Get<std::int64_t>(fms_environment::FPL_SEL_VAR);
   assert(res);
   return static_cast<std::size_t>(*res);
 }

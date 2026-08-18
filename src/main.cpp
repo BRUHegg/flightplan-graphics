@@ -39,11 +39,11 @@ gboolean keypress_handler(GtkWidget* widget, GdkEventKey* event,
   } else if (event->keyval == GDK_KEY_p || event->keyval == GDK_KEY_P) {
     cmdint->set_nd_mode(fms_core::NDMode::PLAN, 0);
   } else if (event->keyval == GDK_KEY_a || event->keyval == GDK_KEY_A) {
-    cmdint->toggle_bool_dr(fms_environment::ND_EFIS_AIRPORT_ON, 0);
+    cmdint->toggle_bool_dr(fms_environment::ND_EFIS_AIRPORT_ON_VAR, 0);
   } else if (event->keyval == GDK_KEY_s || event->keyval == GDK_KEY_S) {
-    cmdint->toggle_bool_dr(fms_environment::ND_EFIS_STATION_ON, 0);
+    cmdint->toggle_bool_dr(fms_environment::ND_EFIS_STATION_ON_VAR, 0);
   } else if (event->keyval == GDK_KEY_w || event->keyval == GDK_KEY_W) {
-    cmdint->toggle_bool_dr(fms_environment::ND_EFIS_WAYPOINT_ON, 0);
+    cmdint->toggle_bool_dr(fms_environment::ND_EFIS_WAYPOINT_ON_VAR, 0);
   } else if (event->keyval == GDK_KEY_z || event->keyval == GDK_KEY_Z) {
     cmdint->switch_trk_hdg_up();
   }

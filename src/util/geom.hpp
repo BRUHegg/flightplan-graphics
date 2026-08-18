@@ -28,25 +28,25 @@ constexpr double RAD_TO_DEG = 180.0 / M_PI;
 struct vect2_t {
   double x, y;
 
-  double absval() { return sqrt(x * x + y * y); }
+  double absval() const noexcept { return sqrt(x * x + y * y); }
 
-  vect2_t get_unit() {
+  vect2_t get_unit() const noexcept {
     double av = absval();
     if (av == 0) return {};
     return {x / av, y / av};
   }
 
-  double dist_to(vect2_t other) {
+  double dist_to(vect2_t other) const noexcept {
     return sqrt((x - other.x) * (x - other.x) + (y - other.y) * (y - other.y));
   }
 
-  double cross_prod(vect2_t other) { return x * other.y - y * other.x; }
+  double cross_prod(vect2_t other) const noexcept { return x * other.y - y * other.x; }
 
-  double dot_prod(vect2_t other) { return x * other.x + y * other.y; }
+  double dot_prod(vect2_t other) const noexcept { return x * other.x + y * other.y; }
 
-  vect2_t scmul(double num) { return {x * num, y * num}; }
+  vect2_t scmul(double num) const noexcept { return {x * num, y * num}; }
 
-  vect2_t scdiv(double num) {
+  vect2_t scdiv(double num) const noexcept {
     if (num == 0) return {};
     return {x / num, y / num};
   }

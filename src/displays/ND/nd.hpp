@@ -16,6 +16,7 @@
 
 #include <bitset>
 #include <memory>
+#include <optional>
 #include <shared_mutex>
 #include <string>
 #include <vector>
@@ -126,23 +127,26 @@ struct map_data_t {
   void destroy();
 };
 
-struct efis_selection_t {
-  bool arpt_on = false;
-  bool sta_on = false;
+
+struct nd_global_config_t {
+  bool is_track_up = false;
+  bool hdg_ref_true = false;
+  std::bitset<fms_core::N_FPL_SYS_RTES> has_dep_rwy;
+  std::bitset<fms_core::N_FPL_SYS_RTES> has_arr_rwy;
+  double nm_mcp_alt_to_go = 0.0;
+  std::int64_t hdg_sel_deg = 0.0;
+  bool hdg_sel_is_trk = false;
+
+  nd_global_config_t();
 };
 
-struct nd_config_t {
-  bool is_track_up = false;
+struct nd_local_config_t {
   bool efis_airport_on = false;
   bool efis_station_on = false;
   bool efis_waypoint_on = false;
   bool mode_is_ctr = false;
   fms_core::NDMode mode = fms_core::NDMode::MAP;
-  std::bitset<fms_core::N_FPL_SYS_RTES> has_dep_rwy;
-  std::bitset<fms_core::N_FPL_SYS_RTES> has_arr_rwy;
   std::size_t range_idx = 0;
-
-  nd_config_t();
 };
 
 class NDData final {
@@ -154,7 +158,9 @@ class NDData final {
 
   bool init();
 
-  nd_config_t get_config(std::size_t sd_idx) const noexcept;
+  nd_global_config_t get_global_config() const noexcept;
+
+  nd_local_config_t get_local_config(std::size_t sd_idx) const noexcept;
 
   std::vector<int> get_rte_draw_seq(size_t sd_idx);
 
@@ -197,7 +203,8 @@ class NDData final {
  private:
   mutable std::shared_mutex main_mutex_;
 
-  nd_config_t nd_configs_[N_ND_SDS];
+  nd_global_config_t nd_all_config_;
+  nd_local_config_t nd_configs_[N_ND_SDS];
 
   util::OpaquePointer<fms_environment::EnvDataRefMap> env_map_;
 
@@ -234,6 +241,10 @@ class NDData final {
   static bool bound_check(double x1, double x2, double rng) noexcept;
 
   static nd_util_idx_t get_util_idx(std::size_t gn_idx) noexcept;
+
+  void update_global_config() noexcept;
+
+  void update_local_configs() noexcept;
 
   void update_configs() noexcept;
 
@@ -290,6 +301,14 @@ class NDDisplay final {
     texture_type dme;
     texture_type vordme;
     texture_type waypoint;
+    texture_type excess_data_msg;
+    texture_type hdg_sel_box;
+    texture_type trk_sel_box;
+    texture_type arpt_efis_filter;
+    texture_type sta_efis_filter;
+    texture_type wpt_efis_filter;
+    texture_type tfc_efis_filter;
+
     cairo_font_face_t* font_face;
 
     void init(util::OpaquePointer<TextureManager> tex_manager);
@@ -297,7 +316,8 @@ class NDDisplay final {
 
   util::OpaquePointer<NDData> nd_data_;
 
-  nd_config_t config_;
+  nd_global_config_t all_config_;
+  nd_local_config_t config_;
   bool has_tfc_ = false;
 
   nd_textures_t textures_;
@@ -312,7 +332,15 @@ class NDDisplay final {
 
   void update_map_params();
 
-  geom::vect2_t get_screen_coords(geom::vect2_t src);
+  bool is_in_bounds(geom::vect2_t src) const noexcept;
+
+  geom::vect2_t get_screen_coords(geom::vect2_t src) const noexcept;
+
+  std::optional<geom::vect2_t> strict_get_screen_coords(
+    geom::vect2_t src) const noexcept;
+
+  void draw_heading_trk_rotary(cairo_t* cr, texture_type tex, geom::vect2_t scale,
+    double rot_rad, double radius, bool flip=false) const noexcept;
 
   void draw_line_joint(cairo_t* cr, geom::line_joint_t lj,
                        geom::vect3_t ln_clr);
@@ -334,6 +362,8 @@ class NDDisplay final {
 
   void draw_hdg_tri(cairo_t* cr);
 
+  void draw_mcp_heading(cairo_t* cr);
+
   void draw_trk_line(cairo_t* cr, bool is_inn);
 
   void draw_tfc_arcs(cairo_t* cr);
@@ -354,9 +384,13 @@ class NDDisplay final {
 
   std::size_t draw_waypoints(cairo_t* cr);
 
+  void draw_efis_excess_data(cairo_t* cr);
+
+  void draw_efis_modes(cairo_t* cr) const noexcept;
+
   void draw_efis_filters(cairo_t* cr);
 
-  void draw_labeled_point(cairo_t* cr, cairo_surface_t* img,
-                          labeled_point_t& src_point, double img_scale);
+  bool draw_labeled_point(cairo_t* cr, cairo_surface_t* img,
+                          labeled_point_t& src_point, double img_scale) const noexcept;
 };
 }  // namespace fms_displays
