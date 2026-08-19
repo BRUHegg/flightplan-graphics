@@ -3,6 +3,7 @@
 #include <chrono>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <queue>
 #include <shared_mutex>
 #include <stack>
@@ -84,6 +85,8 @@ class CDU final {
   mutable std::shared_mutex main_mutex_;
 
   std::size_t act_sd_idx_;
+
+  fms_core::NDMode nd_mode_; // Obtained from fpl_sys_
 
   util::OpaquePointer<fms_core::FPLSys> fpl_sys_;
   util::OpaquePointer<flightplan_type> fpln_;
@@ -343,9 +346,16 @@ class CDUDisplay final {
   using event_type = int;
   using texture_type = typename TextureManager::texture_t;
 
+  static std::optional<event_type> get_event_from_str(
+    const std::string& str);
+
   CDUDisplay(geom::vect2_t pos, geom::vect2_t sz, 
              util::OpaquePointer<TextureManager> tm, 
              util::OpaquePointer<CDU> cdu, bool is_free);
+
+  friend void Swap(CDUDisplay& d_a, CDUDisplay& d_b);
+
+  CDUDisplay(CDUDisplay&& other);
 
   std::pair<double, double> GetDrawSize() const noexcept;
 

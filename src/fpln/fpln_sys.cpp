@@ -17,6 +17,7 @@
 #include <cassert>
 #include <cstdint>
 
+#include <algorithm>
 #include <mutex>
 #include <optional>
 #include <shared_mutex>
@@ -51,17 +52,7 @@ FPLSys::FPLSys(util::OpaquePointer<libnav::ArptDB> arpt_db,
   leg_sel_cdu_r_ = {0, 0};
 
   fpl_datas_ = std::vector<fpln_data_t>(N_FPL_SYS_RTES);
-
-  for (size_t i = 0; i < N_FPL_SYS_RTES; i++) {
-    fpl_datas_[i].leg_list_id = -1;
-    fpl_datas_[i].seg_list_id = -1;
-
-    fpl_datas_[i].cap_ctr_idx = 1;
-    fpl_datas_[i].fo_ctr_idx = 1;
-
-    fpl_datas_[i].fpl_id_last = -1;
-    fpl_datas_[i].act_leg_idx = -1;
-  }
+  std::fill(rte_ids_, rte_ids_ + MY_ARRAY_SIZE(rte_ids_), -1.0);
 
   cdu_rte_idx_ = std::vector<size_t>(2);
   act_rte_idx_ = N_FPL_SYS_RTES;
@@ -71,7 +62,7 @@ FPLSys::FPLSys(util::OpaquePointer<libnav::ArptDB> arpt_db,
   flight_ident_ = "";
   fnb_dep_icao_ = {"", ""};
 
-  nd_modes_ = std::vector<NDMode>(N_INTFCS, DFLT_ND_MODE);
+  nd_modes_ = std::vector<NDMode>(N_INTFCS, fms_core::NDMode::MAX);
   cdu_sel_fpl_ = std::vector<size_t>(N_INTFCS);
 
   double_values_ = position_.get_val_pointers();
@@ -229,6 +220,11 @@ bool FPLSys::get_ctr(geo::point* out, std::size_t sd_idx) const noexcept {
   return false;
 }
 
+double FPLSys::get_rte_id(std::size_t sd_idx) const noexcept {
+  std::shared_lock lk(main_mutex_);
+  return rte_ids_[sd_idx];
+}
+
 geo::point FPLSys::get_ac_pos() const noexcept {
   std::shared_lock lk(main_mutex_);
   return {position_.ac_lat_deg * geo::DEG_TO_RAD, 
@@ -341,12 +337,25 @@ void FPLSys::step_ctr(bool bwd, std::size_t sd_idx) {
   }
 }
 
+void FPLSys::reset_ctr(std::size_t sd_idx) {
+  std::unique_lock lk(main_mutex_);
+  std::size_t idx = cdu_sel_fpl_[sd_idx];
+  if (!fpl_datas_[idx].leg_list.size()) return;
+  std::size_t* curr_idx = &fpl_datas_[idx].cap_ctr_idx;
+
+  if (sd_idx) curr_idx = &fpl_datas_[idx].fo_ctr_idx;
+  if(fpl_datas_[idx].leg_list.size() <= 2) {
+    *curr_idx = 1;
+  } else {
+    *curr_idx = 2;
+  }
+}
+
 void FPLSys::rte_activate(size_t idx) {
   assert(idx && idx < N_FPL_SYS_RTES);
   std::unique_lock lk(main_mutex_);
   if (!fpl_vec_[idx]->can_activate()) return;
   act_rte_idx_ = idx;
-  update_flight_plans();
 }
 
 void FPLSys::set_flt_nbr(std::string str) { flight_ident_ = str; }
@@ -378,7 +387,6 @@ void FPLSys::copy_act() {
     double id2 = fpl_vec_[RTE2_IDX]->get_id();
     copy_ids_[0] = id1;
     copy_ids_[1] = id2;
-    update_flight_plans();
   }
 }
 
@@ -388,7 +396,6 @@ void FPLSys::execute() {
     fpl_vec_[0]->copy_from_other(*fpl_vec_[act_rte_idx_]);
     execute_status_ = false;
     act_rte_id_ = fpl_vec_[act_rte_idx_]->get_id();
-    update_flight_plans();
   }
 }
 
@@ -402,7 +409,6 @@ void FPLSys::erase() {
     }
     fpl_vec_[act_rte_idx_]->copy_from_other(*fpl_vec_[0]);
     act_rte_id_ = fpl_vec_[act_rte_idx_]->get_id();
-    update_flight_plans();
   }
 }
 
@@ -446,6 +452,7 @@ void FPLSys::update_flight_plans() noexcept {
     update_lists(i);
 
     update_flt_nbr(i);
+    rte_ids_[i] = fpl_vec_[i]->get_id();
   }
 
   if (act_rte_idx_ < N_FPL_SYS_RTES &&

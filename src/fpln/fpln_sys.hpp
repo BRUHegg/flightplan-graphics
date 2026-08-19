@@ -58,12 +58,13 @@ struct act_leg_info_t {
 };
 
 struct fpln_info_t {
-  double leg_list_id;
-  double seg_list_id;
+  double leg_list_id = -1.0;
+  double seg_list_id = -1.0;
 
-  size_t cap_ctr_idx, fo_ctr_idx;
-  double fpl_id_last;
-  int act_leg_idx;
+  std::size_t cap_ctr_idx = 2; 
+  std::size_t fo_ctr_idx = 2;
+  double fpl_id_last = -1.0;
+  int act_leg_idx = -1;
 };
 
 struct fpln_data_t : fpln_info_t {
@@ -124,6 +125,8 @@ class FPLSys final {
 
   bool get_ctr(geo::point* out, std::size_t sd_idx) const noexcept;
 
+  double get_rte_id(std::size_t sd_idx) const noexcept;
+
   geo::point get_ac_pos() const noexcept;
 
   hdg_info_t get_hdg_info() const noexcept;
@@ -134,7 +137,9 @@ class FPLSys final {
 
   act_leg_info_t get_act_leg_info(size_t idx = 0) const noexcept;
 
-  void step_ctr(bool bwd, size_t sd_idx);
+  void step_ctr(bool bwd, std::size_t sd_idx);
+
+  void reset_ctr(std::size_t sd_idx);
 
   void rte_activate(size_t idx);
 
@@ -195,6 +200,7 @@ class FPLSys final {
   std::size_t act_rte_idx_;
   double act_rte_id_;
   std::vector<double> copy_ids_;
+  double rte_ids_[N_FPL_SYS_RTES];
   std::vector<std::size_t> cdu_rte_idx_;
   std::string flight_ident_;
   std::vector<std::string> fnb_dep_icao_;  // Departure icaos used to reset flight number

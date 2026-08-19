@@ -145,7 +145,7 @@ struct nd_local_config_t {
   bool efis_station_on = false;
   bool efis_waypoint_on = false;
   bool mode_is_ctr = false;
-  fms_core::NDMode mode = fms_core::NDMode::MAP;
+  fms_core::NDMode mode = fms_core::NDMode::MAX;
   std::size_t range_idx = 0;
 };
 

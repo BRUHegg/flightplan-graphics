@@ -46,6 +46,8 @@ gboolean keypress_handler(GtkWidget* widget, GdkEventKey* event,
     cmdint->toggle_bool_dr(fms_environment::ND_EFIS_WAYPOINT_ON_VAR, 0);
   } else if (event->keyval == GDK_KEY_z || event->keyval == GDK_KEY_Z) {
     cmdint->switch_trk_hdg_up();
+  } else if (event->keyval == GDK_KEY_r || event->keyval == GDK_KEY_R) {
+    cmdint->avncs->fpl_sys->reset_ctr(0);
   }
   return FALSE;
 }

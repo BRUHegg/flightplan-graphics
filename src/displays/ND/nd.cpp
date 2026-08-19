@@ -645,7 +645,11 @@ void NDData::update_local_configs() noexcept {
       std::int64_t val = *mode;
       if(val >= 0 && val < 
         static_cast<std::int64_t>(fms_core::NDMode::MAX)) {
-        nd_configs_[i].mode = static_cast<fms_core::NDMode>(val);
+        fms_core::NDMode tgt_mode = static_cast<fms_core::NDMode>(val);
+        if(tgt_mode != nd_configs_[i].mode) {
+          fpl_sys_ptr_->set_nd_mode(tgt_mode, i);
+          nd_configs_[i].mode = tgt_mode;
+        }
       }
     }
     auto range_idx = env_map_->Get<std::int64_t>(
@@ -915,7 +919,7 @@ void NDData::fetch_legs(std::size_t dt_idx) {
 }
 
 void NDData::update_fpl(std::size_t idx) {
-  double id_curr = fpl_vec_[idx]->get_id();
+  double id_curr = fpl_sys_ptr_->get_rte_id(idx);
 
   if (id_curr != fpl_id_last_[idx]) {
     fetch_legs(idx);
