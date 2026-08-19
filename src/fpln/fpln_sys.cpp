@@ -25,7 +25,19 @@
 #include "environment.hpp"
 #include <util/util.hpp>
 
+namespace {
+
+constexpr std::size_t DEFAULT_MAP_CTR_IDX = 2;
+} // namespace
+
 namespace fms_core {
+
+
+fpln_info_t::fpln_info_t() {
+  for(std::size_t i = 0; i < MY_ARRAY_SIZE(map_ctr_idx); ++i) {
+    map_ctr_idx[i] = DEFAULT_MAP_CTR_IDX;
+  }
+}
 // FPLSys member function definitions:
 
 // Public member functions:
@@ -68,6 +80,16 @@ FPLSys::FPLSys(util::OpaquePointer<libnav::ArptDB> arpt_db,
   double_values_ = position_.get_val_pointers();
 
   update_hot_env_vars();
+}
+
+void FPLSys::set_aircraft_info(const aircraft_info_t& a_inf) noexcept {
+  std::unique_lock lk(main_mutex_);
+  aircraft_info_ = a_inf;
+}
+
+aircraft_info_t FPLSys::get_aircraft_info() const noexcept {
+  std::shared_lock lk(main_mutex_);
+  return aircraft_info_;
 }
 
 std::size_t FPLSys::get_cnt_flplns() const noexcept { 
@@ -204,9 +226,7 @@ NDMode FPLSys::get_nd_mode(std::size_t sd_idx) const noexcept {
 bool FPLSys::get_ctr(geo::point* out, std::size_t sd_idx) const noexcept {
   std::shared_lock lk(main_mutex_);
   std::size_t idx = cdu_sel_fpl_[sd_idx];
-  std::size_t curr_idx = fpl_datas_[idx].cap_ctr_idx;
-
-  if (sd_idx) curr_idx = fpl_datas_[idx].fo_ctr_idx;
+  std::size_t curr_idx = fpl_datas_[idx].map_ctr_idx[sd_idx];
 
   if (curr_idx + 1 < fpl_datas_[idx].leg_list.size()) {
     bool has_pos =
@@ -287,8 +307,9 @@ fpln_info_t FPLSys::get_fpl_info(size_t idx) const noexcept {
   out.leg_list_id = fpl_datas_[idx].leg_list_id;
   out.seg_list_id = fpl_datas_[idx].seg_list_id;
 
-  out.cap_ctr_idx = fpl_datas_[idx].cap_ctr_idx;
-  out.fo_ctr_idx = fpl_datas_[idx].fo_ctr_idx;
+  for(std::size_t i = 0; i < N_INTFCS; ++i)  {
+    out.map_ctr_idx[i] = fpl_datas_[idx].map_ctr_idx[i];
+  }
   out.fpl_id_last = fpl_datas_[idx].fpl_id_last;
   out.act_leg_idx = fpl_datas_[idx].act_leg_idx;
 
@@ -300,9 +321,7 @@ void FPLSys::step_ctr(bool bwd, std::size_t sd_idx) {
   std::size_t idx = cdu_sel_fpl_[sd_idx];
   if (!fpl_datas_[idx].leg_list.size()) return;
 
-  std::size_t* curr_idx = &fpl_datas_[idx].cap_ctr_idx;
-
-  if (sd_idx) curr_idx = &fpl_datas_[idx].fo_ctr_idx;
+  std::size_t* curr_idx = &fpl_datas_[idx].map_ctr_idx[sd_idx];
 
   if (bwd) {
     if ((*curr_idx) - 1)
@@ -341,9 +360,9 @@ void FPLSys::reset_ctr(std::size_t sd_idx) {
   std::unique_lock lk(main_mutex_);
   std::size_t idx = cdu_sel_fpl_[sd_idx];
   if (!fpl_datas_[idx].leg_list.size()) return;
-  std::size_t* curr_idx = &fpl_datas_[idx].cap_ctr_idx;
 
-  if (sd_idx) curr_idx = &fpl_datas_[idx].fo_ctr_idx;
+  std::size_t* curr_idx = &fpl_datas_[idx].map_ctr_idx[sd_idx];
+
   if(fpl_datas_[idx].leg_list.size() <= 2) {
     *curr_idx = 1;
   } else {
@@ -482,14 +501,11 @@ void FPLSys::update_leg_list(std::size_t idx) {
   fpl_datas_[idx].leg_list_id = fpl_vec_[idx]->get_ll_seg(
       0, sz, &fpl_datas_[idx].leg_list, &fpl_datas_[idx].act_leg_idx);
 
-  if (fpl_datas_[idx].cap_ctr_idx >= fpl_datas_[idx].leg_list.size() &&
-      fpl_datas_[idx].leg_list.size() != 0) {
-    fpl_datas_[idx].cap_ctr_idx = fpl_datas_[idx].leg_list.size() - 1;
-  }
-
-  if (fpl_datas_[idx].fo_ctr_idx >= fpl_datas_[idx].leg_list.size() &&
-      fpl_datas_[idx].leg_list.size() != 0) {
-    fpl_datas_[idx].fo_ctr_idx = fpl_datas_[idx].leg_list.size() - 1;
+  for(std::size_t i = 0; i < N_INTFCS; ++i) {
+    if (fpl_datas_[idx].map_ctr_idx[i] >= fpl_datas_[idx].leg_list.size() &&
+        fpl_datas_[idx].leg_list.size() != 0) {
+      fpl_datas_[idx].map_ctr_idx[i] = fpl_datas_[idx].leg_list.size() - 1;
+    }
   }
 }
 

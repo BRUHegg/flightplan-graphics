@@ -41,6 +41,9 @@ enum class CDUPage {
   FMC_COMM,
   PROG,
   MENU,
+  IDENT,
+  POS_INIT,
+  INIT_REF_INDEX,
   NAV_RAD,
   PREV_PAGE,
   NEXT_PAGE
@@ -99,6 +102,10 @@ class CDU final {
   CDUPage curr_page_ = CDUPage::RTE;
   int n_subpg_ = 1;
   int curr_subpg_ = 1;
+
+  // IDENT data:
+  fms_core::aircraft_info_t aircraft_info_;
+  unsigned airac_cycle_;
 
   // RTE data
   fms_core::RTECopySts rte_copy_ = fms_core::RTECopySts::UNAVAIL;
@@ -279,6 +286,13 @@ class CDU final {
 
   // Per-page event handling:
 
+  std::string handle_menu(int event_key, const std::string& scratchpad);
+
+  std::string handle_ident(int event_key, const std::string& scratchpad);
+
+  std::string handle_init_ref_index(
+    int event_key, const std::string& scratchpad);
+
   std::string handle_sel_des(int event_key);
 
   std::string handle_rte(int event_key, std::string scratchpad,
@@ -290,9 +304,13 @@ class CDU final {
 
   std::string handle_arr(int event_key, bool rte2);
 
-  size_t get_leg_stt_idx() const noexcept;
+  std::size_t get_leg_start_idx() const noexcept;
 
-  size_t get_leg_end_idx() const noexcept;
+  std::size_t get_leg_end_idx() const noexcept;
+
+  std::size_t get_seg_start_idx() const noexcept;
+
+  std::size_t get_seg_end_idx() const noexcept;
 
   // reset_leg_dto_sel resets selection when user exits legs page
 
@@ -318,11 +336,19 @@ class CDU final {
 
   std::string handle_legs_cstr_mod(size_t usr_idx, std::string& scratchpad);
 
+  void handle_legs_map_ctr_advance();
+
   std::string handle_legs(int event_key, std::string scratchpad,
                           std::string* s_out);
 
   // Per-page content fetching. The CDU displays exactly what these functions
   // output:
+
+  cdu_scr_data_t get_menu_page() const noexcept;
+
+  cdu_scr_data_t get_ident_page() const noexcept;
+
+  cdu_scr_data_t get_init_ref_index_page() const noexcept;
 
   cdu_scr_data_t get_sel_des_page() const noexcept;
 

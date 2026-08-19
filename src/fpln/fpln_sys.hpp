@@ -61,15 +61,21 @@ struct fpln_info_t {
   double leg_list_id = -1.0;
   double seg_list_id = -1.0;
 
-  std::size_t cap_ctr_idx = 2; 
-  std::size_t fo_ctr_idx = 2;
+  std::size_t map_ctr_idx[N_INTFCS];
   double fpl_id_last = -1.0;
   int act_leg_idx = -1;
+
+  fpln_info_t();
 };
 
 struct fpln_data_t : fpln_info_t {
   std::vector<list_node_ref_t<fpl_seg_t>> seg_list;
   std::vector<list_node_ref_t<leg_list_data_t>> leg_list;
+};
+
+struct aircraft_info_t {
+  std::string model;
+  std::string engine_model;
 };
 
 class FPLSys final {
@@ -83,6 +89,10 @@ class FPLSys final {
          util::OpaquePointer<fms_environment::EnvDataRefMap> env_map,
          path_type cifp_path,
          path_type fpl_path);
+
+  void set_aircraft_info(const aircraft_info_t& a_inf) noexcept;
+
+  aircraft_info_t get_aircraft_info() const noexcept;
 
   std::size_t get_cnt_flplns() const noexcept;
 
@@ -176,6 +186,8 @@ class FPLSys final {
 
     std::unordered_map<str_type, double*> get_val_pointers();
   };
+
+  aircraft_info_t aircraft_info_;
 
   std::unordered_map<fms_environment::val_ref_t, double*> double_values_;
 

@@ -270,6 +270,7 @@ class CMDInterface {
  private:
   struct json_data_t {
     nlohmann::json tex_names;
+    nlohmann::json aircraft_data;
 
     bool init(const pathlib::Path& path, 
       const json_require::RequirementTree& config_tree) noexcept {
@@ -285,6 +286,7 @@ class CMDInterface {
           return false;
         }
         tex_names = js["textures"];
+        aircraft_data = js["aircraft_info"];
       } catch (const nlohmann::json::parse_error& e) {
         return false;
       }
@@ -311,6 +313,11 @@ class CMDInterface {
     auto p6 = tr.Add(p3, "file_name", nlohmann::json::value_t::string, false, true);
     auto p7 = tr.Add(p6, "type", nlohmann::json::value_t::string, false, true);
     p7.SetPredicate(fms_displays::TextureManager::CheckTextureType, true);
+    json_require::RequirementTree ac_config_tr;
+    ac_config_tr.Add("model", nlohmann::json::value_t::string);
+    ac_config_tr.Add("engine_model", nlohmann::json::value_t::string);
+    auto p8 = tr.Add("aircraft_info", nlohmann::json::value_t::object);
+    tr.Add(p8, ac_config_tr);
     return tr;
   }
 
@@ -324,6 +331,13 @@ class CMDInterface {
       }
     }
     return true;
+  }
+
+  void set_aircraft_info(const nlohmann::json& js) {
+    fms_core::aircraft_info_t ac_info;
+    ac_info.model = js["model"];
+    ac_info.engine_model = js["engine_model"];
+    avncs->fpl_sys->set_aircraft_info(ac_info);
   }
 
   void fetch_prefs_data() {
@@ -443,6 +457,7 @@ class CMDInterface {
     if (!nd_data->init()) {
       throw "Failed to allocate nd_data\n";
     }
+    set_aircraft_info(json_data_.aircraft_data);
     nd_display = new fms_displays::NDDisplay{
         util::OpaquePointer{nd_data}, util::OpaquePointer{tex_manager_}, 
         ND_POS, ND_SZ, 0};
@@ -458,8 +473,6 @@ class CMDInterface {
 
     std::cout << "Avionics loaded\n";
   }
-
-  
 
   void pre_execute_cmds() {
     for (size_t i = 0; i < pre_exec.size(); i++) {

@@ -1,5 +1,6 @@
 #include "cdu.hpp"
 
+#include <charconv>
 #include <cstddef>
 #include <displays/common/font_names.hpp>
 #include <displays/common/texture_manager.hpp>
@@ -8,6 +9,7 @@
 #include <mutex>
 #include <shared_mutex>
 #include <string>
+#include <util/date_time.hpp>
 #include <utility>
 #include <util/geom.hpp>
 #include <util/util.hpp>
@@ -17,6 +19,7 @@ namespace {
 constexpr int N_CDU_DATA_LINES = 6;
 constexpr int N_CDU_DATA_COLS = 24;
 constexpr int N_DEP_ARR_ROW_DSP = 5;
+constexpr int CNT_CDU_SELECT_KEYS = 6;
 
 // CDU keys:
 using cdu_event_type = typename fms_displays::CDUDisplay::event_type;
@@ -209,6 +212,8 @@ constexpr std::size_t N_CDU_RTES = 2;
 constexpr std::size_t N_FLT_NBR_CHR_MAX =
     10;  // Maximum number of characters for flight number
 
+constexpr std::size_t LEGS_BASE_IDX = 2;
+
 constexpr std::size_t N_LEG_PROP_ROWS = 14;
 constexpr std::size_t N_LEG_CRS_ROWS = 5;
 constexpr std::size_t N_LEG_CSTR_ROWS = 11;
@@ -255,6 +260,7 @@ constexpr geom::vect2_t DISPLAY_SZ = {0.717, 0.378};
 constexpr geom::vect2_t CDU_SMALL_TEXT_SZ = {0.7, 0.7};
 constexpr geom::vect2_t CDU_BIG_TEXT_SZ = {0.84, 0.87};
 
+const std::string NAV_DATA_EXPIRED_MSG = "NAV DATA OUT OF DATE";
 const std::string INVALID_ENTRY_MSG = "INVALID ENTRY";
 const std::string NOT_IN_DB_MSG = "NOT IN DATA BASE";
 const std::string INVALID_DELETE_MSG = "INVALID DELETE";
@@ -264,6 +270,34 @@ const std::string DELETE_MSG = "DELETE";
 const std::string DISCO_AFTER_SEG = "-- ROUTE DISCONTINUITY -";
 const std::string SEG_LAST = "-------            -----";
 const std::string SEL_DES_WPT_HDG = " SELECT DESIRED WPT";
+// MENU page:
+const char MENU_PAGE_HEADING[] = "          MENU";
+const char MENU_LINE_1[] = "                EFIS CTL";
+const char MENU_LINE_2[] = "<FMC";
+const char MENU_LINE_4[] = "<DLNK";
+const char MENU_LINE_5[] = "                 DSP CTL";
+const char MENU_LINE_6[] = "<SAT";
+// IDENT page:
+const char IDENT_PAGE_HEADING[] = "         IDENT";
+const char IDENT_LINE_1[] = " MODEL        ENG RATING";
+const char IDENT_LINE_3[] = " NAV DATA         ACTIVE";
+const char IDENT_LINE_9[] = "                 DRAG/FF";
+const char IDENT_LINE_12[] = "<INDEX         POS INIT>";
+// INIT REF INDEX
+const char INIT_REF_INDEX_HEADING[] = "    INIT/REF INDEX";
+const char* INIT_REF_INDEX_LINES[] = {
+  "",
+  "<IDENT         NAV DATA>",
+  "",
+  "<POS               ALTN>",
+  "",
+  "<PERF                  >",
+  "",
+  "<THRUST LIM            >",
+  "",
+  "<TAKEOFF                ",
+  "",
+  "<APPROACH         MAINT>"};
 // DEP ARR page:
 const std::string DEP_ARR_HDG = "DEP/ARR INDEX";
 const std::string DEP_ARR_IDX_DASH_L = std::string(8, '-');
@@ -286,6 +320,7 @@ const std::string ARR_RWYS_STARS1 = " STARS   RTE 1   RUNWAYS";
 const std::string ARR_RWYS_STARS2 = " STARS   RTE 2   RUNWAYS";
 const std::string ARR_RWYS = std::string(17, ' ') + "RUNWAYS";
 // LEGS page:
+const char LEG_MAP_CTR[] = "<CTR> ";
 const std::string LEGS_BTM_ACT = " LEGS    RTE DATA>";
 const std::string LEGS_BTM_MOD = "<ERASE         RTE DATA>";
 const std::string LEGS_BTM_INACT = " LEGS    ACTIVATE>";
@@ -312,6 +347,22 @@ const std::string MOD = "MOD";
 const std::string RTE_COPY = "RTE COPY";
 const std::string COMPLETE = "COMPLETE";
 
+// Months for Ident page:
+const char* MONTH_NAMES[] = {
+  "JAN",
+  "FEB",
+  "MAR",
+  "APR",
+  "MAY",
+  "JUN",
+  "JUL",
+  "AUG",
+  "SEP",
+  "OCT",
+  "NOV",
+  "DEC"
+};
+
 // Texture names:
 const char CDU_WHITE_TEXT_NAME[] = "cdu_big_white";
 const char CDU_GREEN_TEXT_NAME[] = "cdu_big_green";
@@ -320,6 +371,82 @@ const char CDU_MAGENTA_TEXT_NAME[] = "cdu_big_magenta";
 
 const char* CDU_TEXTURE_ARRAY[] = {CDU_WHITE_TEXT_NAME, CDU_GREEN_TEXT_NAME,
                                    CDU_CYAN_TEXT_NAME, CDU_MAGENTA_TEXT_NAME};
+
+std::string month_date_to_str(std::chrono::month_day md) {
+  if(!md.ok()) {
+    return "";
+  }
+  char day[3];
+  day[1] = '\0'; day[2] = '\0';
+  unsigned day_num = static_cast<unsigned>(md.day());
+  if(day_num > 9) {
+    day[0] = '0' + (day_num / 10);
+    day[1] = '0' + (day_num % 10);
+  } else {
+    day[0] = '0' + day_num;
+  }
+  unsigned month_num = static_cast<unsigned>(md.month());
+  return std::string{MONTH_NAMES[month_num - 1]} + std::string{day};
+}
+
+std::string get_ident_date_airac_string(unsigned airac) {
+  util::airac_dates_t airac_dates = util::get_airac_dates(airac);
+  char out_year[3];
+  out_year[2] = '\0'; out_year[0] = '0' + (airac / 1000); 
+  out_year[1] = '0' + ((airac / 100) % 10);
+  std::string base_md = month_date_to_str(util::ymd_to_md(airac_dates.base));
+  std::string exp_md = month_date_to_str(util::ymd_to_md(airac_dates.expiry));
+  return base_md + exp_md + std::string{"/"} + std::string{out_year};
+}
+
+std::string get_ident_aircraft_string(
+  const fms_core::aircraft_info_t& ac_inf) {
+  if(ac_inf.model.size() + ac_inf.engine_model.size() >= 
+    std::size_t{N_CDU_DATA_COLS}) {
+    std::string raw = ac_inf.model + " " + ac_inf.engine_model;
+    return raw.substr(0, std::size_t{N_CDU_DATA_COLS});
+  }
+  std::size_t n_spaces = std::size_t{N_CDU_DATA_COLS} - 
+    ac_inf.model.size() - ac_inf.engine_model.size();
+  return ac_inf.model + std::string(n_spaces, ' ') + ac_inf.engine_model;
+}
+
+std::string get_ident_airac_string(unsigned airac) {
+  char out_buff[5];
+  auto [ptr, ec] = std::to_chars(out_buff, out_buff + MY_ARRAY_SIZE(out_buff), 
+    airac);
+  if(ec != std::errc{}) {
+    return {};
+  }
+  *ptr = '\0';
+  std::string date_str = get_ident_date_airac_string(airac);
+  std::string airac_str = std::string{"AIRAC-"} + std::string{out_buff};
+  std::size_t cnt_spaces = std::size_t{24} - date_str.size() - airac_str.size();
+  return airac_str + std::string(cnt_spaces, ' ') + date_str;
+}
+
+bool check_event_select_key(cdu_event_type event) {
+  if(event >= CDU_KEY_LSK_TOP && 
+    event < CDU_KEY_LSK_TOP + CNT_CDU_SELECT_KEYS) {
+    return true;
+  }
+  if(event >= CDU_KEY_RSK_TOP && 
+    event < CDU_KEY_RSK_TOP + CNT_CDU_SELECT_KEYS) {
+    return true;
+  }
+  return false;
+}
+
+std::pair<std::string, std::string> get_segment_endpoint_names(
+  const fms_core::list_node_ref_t<fms_core::fpl_seg_t>& node) {
+  std::pair<std::string, std::string> out;
+  out.first = node.data.name;
+  fms_core::leg_list_node_t* end_leg = node.data.end;
+  if(end_leg != nullptr) {
+    out.second = end_leg->data.leg.main_fix.id;
+  }
+  return out;
+}
 }  // namespace
 
 namespace fms_displays {
@@ -342,6 +469,9 @@ cdu_scr_data_t::cdu_scr_data_t() {
 CDU::CDU(util::OpaquePointer<fms_core::FPLSys> fs, size_t sd_idx) : 
   nd_mode_{fms_core::NDMode::MAX} {
   act_sd_idx_ = sd_idx;
+
+  aircraft_info_ = fs->get_aircraft_info();
+  airac_cycle_ = static_cast<unsigned>(fs->get_awy_db_ptr()->get_airac());
 
   fpl_sys_ = fs;
   sel_fpl_idx_ = fms_core::RTE1_IDX;
@@ -445,7 +575,13 @@ std::string CDU::on_event(int event_key, std::string scratchpad,
   if (sel_des_) return handle_sel_des(event_key);
 
   std::string msg = "";
-  if (curr_page_ == CDUPage::RTE) {
+  if(curr_page_ == CDUPage::MENU) {
+    msg = handle_menu(event_key, scratchpad);
+  } else if(curr_page_ == CDUPage::IDENT) {
+    msg = handle_ident(event_key, scratchpad);
+  } else if (curr_page_ == CDUPage::INIT_REF_INDEX) {
+    msg = handle_init_ref_index(event_key, scratchpad);
+  } else if (curr_page_ == CDUPage::RTE) {
     msg = handle_rte(event_key, scratchpad, s_out);
   } else if (curr_page_ == CDUPage::DEP_ARR_INTRO) {
     msg = handle_dep_arr(event_key);
@@ -470,19 +606,25 @@ cdu_scr_data_t CDU::get_screen_data() const noexcept {
 
   if (sel_des_) return get_sel_des_page();
 
-  if (curr_page_ == CDUPage::RTE) return get_rte_page();
+  if (curr_page_ == CDUPage::MENU) { return get_menu_page(); }
 
-  if (curr_page_ == CDUPage::DEP_ARR_INTRO) return get_dep_arr_page();
+  if(curr_page_ == CDUPage::IDENT) { return get_ident_page(); }
 
-  if (curr_page_ == CDUPage::DEP1) return get_dep_page(false);
+  if(curr_page_ == CDUPage::INIT_REF_INDEX) { return get_init_ref_index_page(); }
 
-  if (curr_page_ == CDUPage::ARR1) return get_arr_page(false);
+  if (curr_page_ == CDUPage::RTE) { return get_rte_page(); }
 
-  if (curr_page_ == CDUPage::DEP2) return get_dep_page(true);
+  if (curr_page_ == CDUPage::DEP_ARR_INTRO) { return get_dep_arr_page(); }
 
-  if (curr_page_ == CDUPage::ARR2) return get_arr_page(true);
+  if (curr_page_ == CDUPage::DEP1) { return get_dep_page(false); }
 
-  if (curr_page_ == CDUPage::LEGS) return get_legs_page();
+  if (curr_page_ == CDUPage::ARR1) { return get_arr_page(false); }
+
+  if (curr_page_ == CDUPage::DEP2) { return get_dep_page(true); }
+
+  if (curr_page_ == CDUPage::ARR2) { return get_arr_page(true); }
+
+  if (curr_page_ == CDUPage::LEGS) { return get_legs_page(); }
 
   return {};
 }
@@ -899,17 +1041,12 @@ void CDU::get_seg_page(cdu_scr_data_t* in) const noexcept {
   std::string via_to = " VIA" + std::string(N_CDU_DATA_COLS - 6, ' ') + "TO";
   in->data_lines.push_back(via_to);
 
-  size_t i_start = 1 + N_CDU_ITM_PP * size_t(curr_subpg_ - 2);
-  size_t i_end = std::min(seg_list_.size() - 1, i_start + N_CDU_ITM_PP);
+  size_t i_start = get_seg_start_idx();
+  size_t i_end = get_seg_end_idx();
 
   for (size_t i = i_start; i < i_end; i++) {
     auto curr_sg = seg_list_[i];
-    fms_core::leg_list_node_t* end_leg = curr_sg.data.end;
-    std::string end_nm = "";
-    std::string seg_nm = curr_sg.data.name;
-    if (end_leg != nullptr) {
-      end_nm = end_leg->data.leg.main_fix.id;
-    }
+    auto[seg_nm, end_nm] = get_segment_endpoint_names(curr_sg);
 
     if (seg_nm == fms_core::DISCON_SEG_NAME) {
       seg_nm = std::string(7, '-');
@@ -1249,6 +1386,47 @@ int CDU::get_n_legs_subpg() const noexcept {
   return (n_leg_act / N_CDU_ITM_PP) + bool(n_leg_act % N_CDU_ITM_PP);
 }
 
+std::string CDU::handle_menu(int event_key, const std::string& scratchpad) {
+  if(scratchpad_has_delete(scratchpad)) {
+    return INVALID_DELETE_MSG;
+  }
+  if(event_key == CDU_KEY_LSK_TOP) {
+    set_page(CDUPage::IDENT);
+    return "";
+  }
+  if(!scratchpad.empty()) {
+    return INVALID_ENTRY_MSG;
+  }
+  return "";
+}
+
+std::string CDU::handle_ident(int event_key, const std::string& scratchpad) {
+  if(scratchpad_has_delete(scratchpad)) {
+    return INVALID_DELETE_MSG;
+  }
+  if(event_key == CDU_KEY_LSK_TOP + 5) {
+    set_page(CDUPage::INIT_REF_INDEX);
+  } else if(event_key == CDU_KEY_RSK_TOP + 5) {
+    set_page(CDUPage::POS_INIT);
+  }
+  return "";
+}
+
+std::string CDU::handle_init_ref_index(
+    int event_key, const std::string& scratchpad) {
+  if(scratchpad_has_delete(scratchpad)) {
+    return INVALID_DELETE_MSG;
+  }
+  if(event_key == CDU_KEY_LSK_TOP) {
+    set_page(CDUPage::IDENT);
+  } else if(event_key == CDU_KEY_LSK_TOP + 1) {
+    set_page(CDUPage::POS_INIT);
+  } else if(event_key == CDU_KEY_LSK_TOP + 2) {
+    set_page(CDUPage::INIT_REF);
+  }
+  return "";
+}
+
 std::string CDU::handle_sel_des(int event_key) {
   int i_start = (curr_subpg_ - 1) * 6;
   int i_end = std::min(int(sel_des_data_.size()), i_start + 6) - 1;
@@ -1305,15 +1483,20 @@ std::string CDU::handle_rte(int event_key, std::string scratchpad,
       return save_rte();
     }
   } else {
-    size_t i_start = 1 + N_CDU_ITM_PP * size_t(curr_subpg_ - 2);
-    size_t i_end = std::min(n_seg_list_sz_ - 1, i_start + N_CDU_ITM_PP);
+    size_t i_start = get_seg_start_idx();
+    size_t i_end = get_seg_end_idx();
     size_t i_event = i_start + size_t(event_key - 1) % 6;
     if (i_event > i_end || (i_event == i_end && i_event < n_seg_list_sz_ - 1)) {
       return INVALID_ENTRY_MSG;
     } else {
       if (event_key >= CDU_KEY_RSK_TOP) {
-        if (!scratchpad_has_delete(scratchpad)) {
+        if (!scratchpad_has_delete(scratchpad) && scratchpad.size()) {
           return add_to(i_event + 1, scratchpad);
+        } else if(scratchpad.empty()) {
+          auto[seg_via, seg_to] = get_segment_endpoint_names(
+            seg_list_[i_event]);
+          *s_out = seg_to;
+          return "";
         }
 
         return delete_to(i_event);
@@ -1426,13 +1609,23 @@ std::string CDU::handle_arr(int event_key, bool rte2) {
   return "";
 }
 
-std::size_t CDU::get_leg_stt_idx() const noexcept {
-  return 2 + N_CDU_ITM_PP * std::size_t(curr_subpg_ - 1);
+std::size_t CDU::get_leg_start_idx() const noexcept {
+  return LEGS_BASE_IDX + N_CDU_ITM_PP * std::size_t(curr_subpg_ - 1);
 }
 
 std::size_t CDU::get_leg_end_idx() const noexcept {
-  std::size_t stt_idx = get_leg_stt_idx();
+  std::size_t stt_idx = get_leg_start_idx();
   return std::min(leg_list_.size() - 1, stt_idx + N_CDU_ITM_PP);
+}
+
+std::size_t CDU::get_seg_start_idx() const noexcept {
+  assert(curr_subpg_ >= 2);
+  return LEGS_BASE_IDX + N_CDU_ITM_PP * std::size_t(curr_subpg_ - 2);
+}
+
+std::size_t CDU::get_seg_end_idx() const noexcept {
+  std::size_t stt_idx = get_seg_start_idx();
+  return std::min(n_seg_list_sz_ - 1, stt_idx + N_CDU_ITM_PP);
 }
 
 void CDU::reset_leg_dto_sel(std::size_t fp_idx) {
@@ -1548,6 +1741,22 @@ std::string CDU::handle_legs_cstr_mod(size_t usr_idx, std::string& scratchpad) {
   return "";
 }
 
+void CDU::handle_legs_map_ctr_advance() {
+  fpl_sys_->step_ctr(false, act_sd_idx_);
+  fms_core::fpln_info_t sel_data = fpl_sys_->get_fpl_info(sel_fpl_idx_);
+  std::size_t map_ctr_idx = 0;
+  if(sel_data.map_ctr_idx[act_sd_idx_] < LEGS_BASE_IDX) {
+    return;
+  }
+  map_ctr_idx = sel_data.map_ctr_idx[act_sd_idx_] - LEGS_BASE_IDX;
+  std::size_t tgt_page = 1 + map_ctr_idx / N_CDU_ITM_PP;
+  if((int)tgt_page > n_subpg_ || (int)tgt_page <= 0) {
+    curr_subpg_ = 1;
+  } else {
+    curr_subpg_ = tgt_page;
+  }
+}
+
 std::string CDU::handle_legs(int event_key, std::string scratchpad,
                              std::string* s_out) {
   if (event_key == CDU_KEY_LSK_TOP + 5) {
@@ -1562,7 +1771,7 @@ std::string CDU::handle_legs(int event_key, std::string scratchpad,
     }
   } else if (event_key == CDU_KEY_RSK_TOP + 5) {
     if(nd_mode_ == fms_core::NDMode::PLAN) {
-      fpl_sys_->step_ctr(false, act_sd_idx_);
+      handle_legs_map_ctr_advance();
       return "";
     }
     bool exec_lt = fpl_sys_->get_exec();
@@ -1572,7 +1781,7 @@ std::string CDU::handle_legs(int event_key, std::string scratchpad,
     }
     return "";
   } else if (event_key >= CDU_KEY_LSK_TOP && event_key <= CDU_KEY_LSK_TOP + 5) {
-    size_t i_start = get_leg_stt_idx();
+    size_t i_start = get_leg_start_idx();
     size_t i_end = get_leg_end_idx();
     size_t usr_idx = i_start + size_t(event_key - CDU_KEY_LSK_TOP);
     bool scr_is_del = scratchpad_has_delete(scratchpad);
@@ -1592,7 +1801,7 @@ std::string CDU::handle_legs(int event_key, std::string scratchpad,
       return handle_legs_insert(usr_idx, scratchpad);
     }
   } else if (event_key >= CDU_KEY_RSK_TOP && event_key <= CDU_KEY_RSK_TOP + 5) {
-    size_t usr_idx = get_leg_stt_idx() + size_t(event_key - CDU_KEY_RSK_TOP);
+    size_t usr_idx = get_leg_start_idx() + size_t(event_key - CDU_KEY_RSK_TOP);
     size_t i_end = get_leg_end_idx();
     if (usr_idx >= i_end) {
       if (scratchpad != "") {
@@ -1604,6 +1813,50 @@ std::string CDU::handle_legs(int event_key, std::string scratchpad,
     return handle_legs_cstr_mod(usr_idx, scratchpad);
   }
   return "";
+}
+
+cdu_scr_data_t CDU::get_menu_page() const noexcept {
+  cdu_scr_data_t out = {};
+  fill_char_state_buf(out);
+  out.heading_big = std::string{MENU_PAGE_HEADING};
+  out.data_lines.push_back(MENU_LINE_1);
+  out.data_lines.push_back(MENU_LINE_2);
+  out.data_lines.push_back("");
+  out.data_lines.push_back(MENU_LINE_4);
+  out.data_lines.push_back(MENU_LINE_5);
+  out.data_lines.push_back(MENU_LINE_6);
+  return out;
+}
+
+cdu_scr_data_t CDU::get_ident_page() const noexcept {
+  cdu_scr_data_t out = {};
+  fill_char_state_buf(out);
+  out.heading_big = IDENT_PAGE_HEADING;
+  out.heading_color = CDUColor::WHITE;
+  out.data_lines.push_back(IDENT_LINE_1);
+  out.data_lines.push_back(get_ident_aircraft_string(aircraft_info_));
+  out.data_lines.push_back(IDENT_LINE_3);
+  out.data_lines.push_back(get_ident_airac_string(airac_cycle_));
+  out.data_lines.push_back("");
+  out.data_lines.push_back("");
+  out.data_lines.push_back("");
+  out.data_lines.push_back("");
+  out.data_lines.push_back(IDENT_LINE_9);
+  out.data_lines.push_back("");
+  out.data_lines.push_back(ALL_DASH);
+  out.data_lines.push_back(IDENT_LINE_12);
+  return out;
+}
+
+cdu_scr_data_t CDU::get_init_ref_index_page() const noexcept {
+  cdu_scr_data_t out = {};
+  fill_char_state_buf(out);
+  out.heading_big = INIT_REF_INDEX_HEADING;
+  out.heading_color = CDUColor::WHITE;
+  for(std::size_t i = 0; i < MY_ARRAY_SIZE(INIT_REF_INDEX_LINES); ++i) {
+    out.data_lines.push_back(std::string{INIT_REF_INDEX_LINES[i]});
+  }
+  return out;
 }
 
 cdu_scr_data_t CDU::get_sel_des_page() const noexcept {
@@ -1921,12 +2174,13 @@ cdu_scr_data_t CDU::get_legs_page() const noexcept {
   out.heading_big = "  " + act_sts + c_legs_top;
 
   assert(leg_list_.size());
-  size_t i_start = get_leg_stt_idx();
+  size_t i_start = get_leg_start_idx();
   size_t i_end = get_leg_end_idx();
   bool disc_pr = false;
   size_t sts_idx = 1;
 
   fms_core::act_leg_info_t act_info = fpl_sys_->get_act_leg_info();
+  std::size_t map_ctr_idx = fpl_infos_[sel_fpl_idx_].map_ctr_idx[act_sd_idx_];
 
   for (size_t i = i_start; i < i_end; i++) {
     if (!disc_pr) out.data_lines.push_back(get_cdu_leg_prop(leg_list_[i]));
@@ -1947,6 +2201,10 @@ cdu_scr_data_t CDU::get_legs_page() const noexcept {
       if (vcstr.size() < N_LEG_VCSTR_ROWS)
         vcstr = std::string(N_LEG_VCSTR_ROWS - vcstr.size(), ' ') + vcstr;
       std::string cstr = spdcstr + "/" + vcstr;
+      
+      if(i == map_ctr_idx && nd_mode_ == fms_core::NDMode::PLAN) {
+        cstr = std::string{LEG_MAP_CTR} + cstr;
+      }
 
       cr_name =
           cr_name +
