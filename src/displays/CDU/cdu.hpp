@@ -85,11 +85,28 @@ class CDU final {
   cdu_scr_data_t get_screen_data() const noexcept;
 
  private:
+  struct ident_info_t {
+    unsigned airac_cycle;
+    fms_core::aircraft_info_t ac_info;
+    int drag = 0;
+    int fuel_flow = 0;
+    bool is_armed = false;
+  };
+
+  struct pos_info_t {
+    geo::point last_pos;
+    std::optional<libnav::airport_t> ref_airport;
+    std::optional<geo::point> inertial_pos;
+  };
+
   mutable std::shared_mutex main_mutex_;
 
   std::size_t act_sd_idx_;
 
   fms_core::NDMode nd_mode_; // Obtained from fpl_sys_
+
+  util::OpaquePointer<libnav::ArptDB> airport_db_;
+  util::OpaquePointer<libnav::NavaidDB> navaid_db_;
 
   util::OpaquePointer<fms_core::FPLSys> fpl_sys_;
   util::OpaquePointer<flightplan_type> fpln_;
@@ -99,13 +116,14 @@ class CDU final {
   std::size_t sel_fpl_idx_;  // [0;3]
   std::size_t act_fpl_idx_;  // [0;3]
 
-  CDUPage curr_page_ = CDUPage::RTE;
+  CDUPage curr_page_ = CDUPage::MENU;
   int n_subpg_ = 1;
   int curr_subpg_ = 1;
 
   // IDENT data:
-  fms_core::aircraft_info_t aircraft_info_;
-  unsigned airac_cycle_;
+  ident_info_t ident_info_;
+
+  pos_info_t pos_init_info_;
 
   // RTE data
   fms_core::RTECopySts rte_copy_ = fms_core::RTECopySts::UNAVAIL;
@@ -164,6 +182,8 @@ class CDU final {
   std::vector<libnav::waypoint_entry_t> sel_des_data_;
   std::string sel_des_nm_ = "";
 
+  static std::string str_align_right(const std::string& str);
+
   static std::string get_cdu_line(std::string in, std::string line,
                                   bool align_right = false);
 
@@ -179,6 +199,12 @@ class CDU final {
 
   static std::string get_cdu_leg_prop(
       const fms_core::list_node_ref_t<fms_core::leg_list_data_t>& src);
+
+  static void fill_drag_ff_num(int num, char out_buff[5]) noexcept;
+
+  static std::string get_displayed_pos(geo::point pos) noexcept;
+
+  static std::string get_scratchpad_pos(geo::point pos) noexcept;
 
   /*
       Function: get_leg_alt
@@ -274,6 +300,16 @@ class CDU final {
 
   bool arr_has_rwys(std::string& cr_appr, bool rte2) const noexcept;
 
+  std::string get_ident_drag_ff() const noexcept;
+
+  std::optional<int> get_ident_entry_number(const std::string& scratchpad);
+
+  std::string get_pos_init_airport_str() const noexcept;
+
+  std::string get_pos_init_gps_pos_str() const noexcept;
+
+  std::string get_pos_init_inertial_pos_str() const noexcept;
+
   // Per-page fetching of the number of subpages:
 
   int get_n_sel_des_subpg() const noexcept;
@@ -289,6 +325,9 @@ class CDU final {
   std::string handle_menu(int event_key, const std::string& scratchpad);
 
   std::string handle_ident(int event_key, const std::string& scratchpad);
+
+  std::string handle_pos_init(int event_key, std::string scratchpad,
+                         std::string* s_out);
 
   std::string handle_init_ref_index(
     int event_key, const std::string& scratchpad);
@@ -347,6 +386,8 @@ class CDU final {
   cdu_scr_data_t get_menu_page() const noexcept;
 
   cdu_scr_data_t get_ident_page() const noexcept;
+
+  cdu_scr_data_t get_pos_init_page() const noexcept;
 
   cdu_scr_data_t get_init_ref_index_page() const noexcept;
 

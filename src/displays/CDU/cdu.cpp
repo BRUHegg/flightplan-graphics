@@ -1,11 +1,14 @@
 #include "cdu.hpp"
 
 #include <charconv>
+#include <chrono>
 #include <cstddef>
 #include <displays/common/font_names.hpp>
 #include <displays/common/texture_manager.hpp>
+#include <format>
 #include <fpln/flightpln_int.hpp>
 #include <libnav/cifp_parser.hpp>
+#include <libnav/str_utils.hpp>
 #include <mutex>
 #include <shared_mutex>
 #include <string>
@@ -20,6 +23,7 @@ constexpr int N_CDU_DATA_LINES = 6;
 constexpr int N_CDU_DATA_COLS = 24;
 constexpr int N_DEP_ARR_ROW_DSP = 5;
 constexpr int CNT_CDU_SELECT_KEYS = 6;
+constexpr unsigned CNT_CDU_IDENT_NUMBER_LETTERS = 4;
 
 // CDU keys:
 using cdu_event_type = typename fms_displays::CDUDisplay::event_type;
@@ -282,7 +286,21 @@ const char IDENT_PAGE_HEADING[] = "         IDENT";
 const char IDENT_LINE_1[] = " MODEL        ENG RATING";
 const char IDENT_LINE_3[] = " NAV DATA         ACTIVE";
 const char IDENT_LINE_9[] = "                 DRAG/FF";
+const char ARM_IDENT_LINE_9[] = "             ARM DRAG/FF";
 const char IDENT_LINE_12[] = "<INDEX         POS INIT>";
+const char IDENT_ARM_CHANGE_STR[] = "ARM";
+// POS INIT page:
+const char POS_INIT_HEADING[] = "      POS INIT";
+const char POS_INIT_LINE_1[] = "                LAST POS";
+const char POS_INIT_LINE_3[] = " REF AIRPORT";
+const char POS_INIT_LINE_5[] = " GATE";
+const char POS_INIT_LINE_7[] = " UTC             GPS POS";
+const char POS_INIT_LINE_9[] = "        SET INERTIAL POS";
+const char POS_INIT_LINE_12[] = "<INDEX            ROUTE>";
+const char POS_INIT_INERTIAL_POS_BLANK_STR[] = {
+  '@', '@', '@', strutils::DEGREE_SYMBOL, '@', '@', '.', '@', ' ',
+  '@', '@', '@', '@', strutils::DEGREE_SYMBOL, '@', '@', '.', '@'
+};
 // INIT REF INDEX
 const char INIT_REF_INDEX_HEADING[] = "    INIT/REF INDEX";
 const char* INIT_REF_INDEX_LINES[] = {
@@ -291,9 +309,9 @@ const char* INIT_REF_INDEX_LINES[] = {
   "",
   "<POS               ALTN>",
   "",
-  "<PERF                  >",
+  "<PERF                   ",
   "",
-  "<THRUST LIM            >",
+  "<THRUST LIM             ",
   "",
   "<TAKEOFF                ",
   "",
@@ -470,8 +488,14 @@ CDU::CDU(util::OpaquePointer<fms_core::FPLSys> fs, size_t sd_idx) :
   nd_mode_{fms_core::NDMode::MAX} {
   act_sd_idx_ = sd_idx;
 
-  aircraft_info_ = fs->get_aircraft_info();
-  airac_cycle_ = static_cast<unsigned>(fs->get_awy_db_ptr()->get_airac());
+  airport_db_ = fs->get_arpt_db_ptr();
+  navaid_db_ = fs->get_navaid_db_ptr();
+
+  ident_info_.ac_info = fs->get_aircraft_info();
+  ident_info_.airac_cycle = static_cast<unsigned>(
+    fs->get_awy_db_ptr()->get_airac());
+
+  pos_init_info_.last_pos = fs->get_ac_pos();
 
   fpl_sys_ = fs;
   sel_fpl_idx_ = fms_core::RTE1_IDX;
@@ -579,6 +603,8 @@ std::string CDU::on_event(int event_key, std::string scratchpad,
     msg = handle_menu(event_key, scratchpad);
   } else if(curr_page_ == CDUPage::IDENT) {
     msg = handle_ident(event_key, scratchpad);
+  } else if(curr_page_ == CDUPage::POS_INIT) {
+    msg = handle_pos_init(event_key, scratchpad, s_out);
   } else if (curr_page_ == CDUPage::INIT_REF_INDEX) {
     msg = handle_init_ref_index(event_key, scratchpad);
   } else if (curr_page_ == CDUPage::RTE) {
@@ -610,6 +636,8 @@ cdu_scr_data_t CDU::get_screen_data() const noexcept {
 
   if(curr_page_ == CDUPage::IDENT) { return get_ident_page(); }
 
+  if(curr_page_ == CDUPage::POS_INIT) { return get_pos_init_page(); }
+
   if(curr_page_ == CDUPage::INIT_REF_INDEX) { return get_init_ref_index_page(); }
 
   if (curr_page_ == CDUPage::RTE) { return get_rte_page(); }
@@ -630,6 +658,16 @@ cdu_scr_data_t CDU::get_screen_data() const noexcept {
 }
 
 // Private member functions:
+
+std::string CDU::str_align_right(const std::string& str) {
+  if(str.size() > N_CDU_DATA_COLS) {
+    std::size_t diff = str.size() - N_CDU_DATA_COLS;
+    return str.substr(diff);
+  }
+  std::size_t diff = N_CDU_DATA_COLS - str.size();
+  std::string out = std::string(diff, ' ') + str;
+  return out;
+}
 
 std::string CDU::get_cdu_line(std::string in, std::string line,
                               bool align_right) {
@@ -679,6 +717,36 @@ std::string CDU::get_cdu_leg_prop(
   }
 
   return out;
+}
+
+void CDU::fill_drag_ff_num(int num, char out_buff[5]) noexcept {
+  out_buff[4] = '\0';
+  out_buff[2] = '.';
+  if(num < 0) {
+    out_buff[0] = '-';
+  } else {
+    out_buff[0] = '+';
+  }
+  out_buff[3] = '0' + abs(num % 10);
+  num /= 10;
+  out_buff[1] = '0' + abs(num % 10);
+}
+
+std::string CDU::get_displayed_pos(geo::point pos) noexcept {
+  return strutils::lat_to_str(pos.lat_rad * geom::RAD_TO_DEG) + " " + 
+    strutils::lon_to_str(pos.lon_rad * geom::RAD_TO_DEG);
+}
+
+std::string CDU::get_scratchpad_pos(geo::point pos) noexcept {
+  std::string tmp = strutils::lat_to_str(pos.lat_rad * geom::RAD_TO_DEG) 
+    + strutils::lon_to_str(pos.lon_rad * geom::RAD_TO_DEG);
+  std::string res;
+  for(std::size_t i = 0; i < tmp.size(); ++i) {
+    if(tmp[i] != strutils::DEGREE_SYMBOL) {
+      res.push_back(tmp[i]);
+    }
+  }
+  return res;
 }
 
 std::string CDU::get_leg_alt(
@@ -873,8 +941,7 @@ libnav::waypoint_t CDU::get_wpt_from_user(std::string name, double seg_id,
       return {};
     }
     std::vector<libnav::waypoint_entry_t> wpt_entr;
-    size_t n_found =
-        fpl_sys_->get_navaid_db_ptr()->get_wpt_data(name, &wpt_entr);
+    size_t n_found = navaid_db_->get_wpt_data(name, &wpt_entr);
 
     if (n_found == 0) {
       *not_in_db = 1;
@@ -1335,6 +1402,76 @@ bool CDU::arr_has_rwys(std::string& cr_appr, bool rte2) const noexcept {
   return true;
 }
 
+std::string CDU::get_ident_drag_ff() const noexcept {
+  char drag[5];
+  char ff[5];
+  fill_drag_ff_num(ident_info_.drag, drag);
+  fill_drag_ff_num(ident_info_.fuel_flow, ff);
+  return std::string{drag} + "/" + std::string{ff};
+}
+
+std::optional<int> CDU::get_ident_entry_number(const std::string& scratchpad) {
+  if(scratchpad.size() != CNT_CDU_IDENT_NUMBER_LETTERS &&  
+    scratchpad.size() != CNT_CDU_IDENT_NUMBER_LETTERS + 1) {
+    return std::nullopt;
+  }
+  std::string entry;
+  if(scratchpad.size() == CNT_CDU_IDENT_NUMBER_LETTERS + 1) {
+    if(scratchpad[0] == '/') {
+      entry = scratchpad.substr(1);
+    } else if(scratchpad[CNT_CDU_IDENT_NUMBER_LETTERS] == '/') {
+      entry = scratchpad.substr(0, CNT_CDU_IDENT_NUMBER_LETTERS);
+    } else {
+      return std::nullopt;
+    }
+  } else {
+    entry = scratchpad;
+  }
+  
+  bool is_positive = true;
+  if(entry[0] == '-') {
+    is_positive = false;
+  } else if(entry[0] != '+') {
+    return std::nullopt;
+  }
+  if(entry[1] > '9' || entry[1] < '0' || 
+    entry[3] > '9' || entry[3] < '0' || 
+    entry[2] != '.') {
+    return std::nullopt;
+  }
+  int res = (entry[1] - '0') * 10 + (entry[3] - '0');
+  if(!is_positive) {
+    res *= -1;
+  }
+  return res;
+}
+
+std::string CDU::get_pos_init_airport_str() const noexcept {
+  if(!pos_init_info_.ref_airport) {
+    return "----";
+  }
+  std::string res_icao = pos_init_info_.ref_airport->icao;
+  std::string res_pos = get_displayed_pos(
+    pos_init_info_.ref_airport->data.pos);
+  assert(res_icao.size() + res_pos.size() <= N_CDU_DATA_COLS);
+  std::size_t diff = N_CDU_DATA_COLS - res_icao.size() - res_pos.size();
+  std::string spaces(diff, ' ');
+  return res_icao + spaces + res_pos;
+}
+
+std::string CDU::get_pos_init_gps_pos_str() const noexcept {
+  auto now_utc = std::chrono::utc_clock::now();
+  std::string utc_str = std::format("{:%H%M}", now_utc);
+  std::string pos_str = get_displayed_pos(fpl_sys_->get_ac_pos());
+  assert(N_CDU_DATA_COLS >= utc_str.size() + pos_str.size());
+  std::size_t cnt_spaces = N_CDU_DATA_COLS - utc_str.size() - pos_str.size();
+  return utc_str + std::string(cnt_spaces, ' ') + pos_str;
+}
+
+std::string CDU::get_pos_init_inertial_pos_str() const noexcept {
+  return str_align_right(std::string{POS_INIT_INERTIAL_POS_BLANK_STR});
+}
+
 int CDU::get_n_sel_des_subpg() const noexcept {
   return int(sel_des_data_.size()) / 6 + bool(int(sel_des_data_.size()) % 6);
 }
@@ -1408,7 +1545,72 @@ std::string CDU::handle_ident(int event_key, const std::string& scratchpad) {
     set_page(CDUPage::INIT_REF_INDEX);
   } else if(event_key == CDU_KEY_RSK_TOP + 5) {
     set_page(CDUPage::POS_INIT);
+  } else if(event_key == CDU_KEY_RSK_TOP + 4 && !scratchpad.empty()) {
+    if(scratchpad == std::string{IDENT_ARM_CHANGE_STR}) {
+      ident_info_.is_armed = !ident_info_.is_armed;
+    } else {
+      if(!ident_info_.is_armed) {
+        if(!scratchpad.empty()) {
+          return INVALID_ENTRY_MSG;
+        }
+        return "";
+      }
+      auto res = get_ident_entry_number(scratchpad);
+      if(!res) {
+        return INVALID_ENTRY_MSG;
+      }
+      int num = *res;
+      if(scratchpad.size() == CNT_CDU_IDENT_NUMBER_LETTERS || 
+        scratchpad.back() == '/') {
+        ident_info_.drag = num;
+      } else {
+        ident_info_.fuel_flow = num;
+      }
+    }
   }
+  return "";
+}
+
+std::string CDU::handle_pos_init(int event_key, std::string scratchpad,
+                         std::string* s_out) {
+  if(scratchpad_has_delete(scratchpad)) {
+    return INVALID_DELETE_MSG;
+  }
+  if(event_key == CDU_KEY_LSK_TOP + 5) {
+    set_page(CDUPage::INIT_REF_INDEX);
+  } else if(event_key == CDU_KEY_RSK_TOP + 5) {
+    set_page(CDUPage::RTE);
+  } else if(event_key == CDU_KEY_LSK_TOP + 1) {
+    libnav::airport_t tmp;
+    tmp.icao = scratchpad;
+    bool is_airport = airport_db_->get_airport_data(tmp.icao, &tmp.data);
+    if(!is_airport) {
+      return NOT_IN_DB_MSG;
+    }
+    pos_init_info_.ref_airport = tmp;
+    return "";
+  } else if(event_key == CDU_KEY_RSK_TOP) {
+    if(!scratchpad.empty()) {
+      return INVALID_ENTRY_MSG;
+    }
+    *s_out = get_scratchpad_pos(pos_init_info_.last_pos);
+    return "";
+  } else if(event_key == CDU_KEY_RSK_TOP + 1) {
+    if(!scratchpad.empty()) {
+      return INVALID_ENTRY_MSG;
+    }
+    if(pos_init_info_.ref_airport) {
+      *s_out = get_scratchpad_pos(pos_init_info_.ref_airport->data.pos);
+      return "";
+    }
+  } else if(event_key == CDU_KEY_RSK_TOP + 3) {
+    if(!scratchpad.empty()) {
+      return INVALID_ENTRY_MSG;
+    }
+    *s_out = get_scratchpad_pos(fpl_sys_->get_ac_pos());
+    return "";
+  }
+  *s_out = scratchpad;
   return "";
 }
 
@@ -1834,17 +2036,46 @@ cdu_scr_data_t CDU::get_ident_page() const noexcept {
   out.heading_big = IDENT_PAGE_HEADING;
   out.heading_color = CDUColor::WHITE;
   out.data_lines.push_back(IDENT_LINE_1);
-  out.data_lines.push_back(get_ident_aircraft_string(aircraft_info_));
+  out.data_lines.push_back(get_ident_aircraft_string(ident_info_.ac_info));
   out.data_lines.push_back(IDENT_LINE_3);
-  out.data_lines.push_back(get_ident_airac_string(airac_cycle_));
+  out.data_lines.push_back(get_ident_airac_string(ident_info_.airac_cycle));
   out.data_lines.push_back("");
   out.data_lines.push_back("");
   out.data_lines.push_back("");
   out.data_lines.push_back("");
-  out.data_lines.push_back(IDENT_LINE_9);
-  out.data_lines.push_back("");
+  if(ident_info_.is_armed) {
+    out.data_lines.push_back(ARM_IDENT_LINE_9);
+  } else {
+    out.data_lines.push_back(IDENT_LINE_9);
+  }
+  std::string drag_ff = get_ident_drag_ff();
+  assert(drag_ff.size() < N_CDU_DATA_COLS);
+  std::string drag_offset = std::string(
+    N_CDU_DATA_COLS - drag_ff.size(), ' ');
+  out.data_lines.push_back(drag_offset + drag_ff);
   out.data_lines.push_back(ALL_DASH);
   out.data_lines.push_back(IDENT_LINE_12);
+  return out;
+}
+
+cdu_scr_data_t CDU::get_pos_init_page() const noexcept {
+  cdu_scr_data_t out = {};
+  fill_char_state_buf(out);
+  out.heading_big = POS_INIT_HEADING;
+  out.heading_color = CDUColor::WHITE;
+  out.data_lines.push_back(POS_INIT_LINE_1);
+  out.data_lines.push_back(str_align_right(
+    get_displayed_pos(pos_init_info_.last_pos)));
+  out.data_lines.push_back(POS_INIT_LINE_3);
+  out.data_lines.push_back(get_pos_init_airport_str());
+  out.data_lines.push_back(POS_INIT_LINE_5);
+  out.data_lines.push_back("");
+  out.data_lines.push_back(POS_INIT_LINE_7);
+  out.data_lines.push_back(get_pos_init_gps_pos_str());
+  out.data_lines.push_back(POS_INIT_LINE_9);
+  out.data_lines.push_back(get_pos_init_inertial_pos_str());
+  out.data_lines.push_back(ALL_DASH);
+  out.data_lines.push_back(POS_INIT_LINE_12);
   return out;
 }
 
