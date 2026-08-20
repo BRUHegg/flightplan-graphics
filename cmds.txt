@@ -9,4 +9,8 @@ plegs 2
 set ac_lat_deg 50.780810
 set ac_lon_deg -1.837745
 set ac_brng_tru_deg 276
-set ac_slip_deg 5
+set ac_slip_deg 0
+set ac_gs_kts 160
+set ac_tas_kts 140
+#set ap_hdg_is_track 1
+set ap_hdg_sel_deg 300
