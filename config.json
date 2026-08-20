@@ -1,7 +1,40 @@
 {
+  "aircraft_info" : {
+    "model" : "B777-200.1",
+    "engine_model": "TRENT 892"
+  },
+    
   "textures":
   [
     {"name": "main_font", "file_name": "BoeingFont.ttf", "type": "font"},
-    {"name": "airplane", "file_name": "airplane.png", "type": "texture"}
+    
+    {"name": "cdu_big_white", "file_name": "cdu_big_white.png", "type": "texture"},
+    {"name": "cdu_big_green", "file_name": "cdu_big_green.png", "type": "texture"},
+    {"name": "cdu_big_cyan", "file_name": "cdu_big_cyan.png", "type": "texture"},
+    {"name": "cdu_big_magenta", "file_name": "cdu_big_magenta.png", "type": "texture"},
+
+    {"name": "cdu", "file_name": "cdu.png", "type": "texture"},
+
+    {"name": "wpt_inact", "file_name": "wpt_inact.png", "type": "texture"},
+    {"name": "wpt_act", "file_name": "wpt_act.png", "type": "texture"},
+    {"name": "airplane", "file_name": "airplane.png", "type": "texture"},
+    {"name": "pln_back_inner", "file_name": "pln_back_inner.png", "type": "texture"},
+    {"name": "pln_back_outer", "file_name": "pln_back_outer.png", "type": "texture"},
+    {"name": "map_back", "file_name": "map_back.png", "type": "texture"},
+    {"name": "map_hdg", "file_name": "map_hdg.png", "type": "texture"},
+    {"name": "map_ac_ico", "file_name": "map_ac_ico.png", "type": "texture"},
+    {"name": "hdg_trk_box", "file_name": "hdg_trk_box.png", "type": "texture"},
+    {"name": "normal_arpt_sign", "file_name": "normal_arpt_sign.png", "type": "texture"},
+    {"name": "altn_arpt_sign", "file_name": "altn_arpt_sign.png", "type": "texture"},
+    {"name": "dme", "file_name": "dme.png", "type": "texture"},
+    {"name": "vordme", "file_name": "vordme.png", "type": "texture"},
+    {"name": "waypoint", "file_name": "waypoint_triang.png", "type": "texture"},
+    {"name": "excess_data_msg", "file_name": "excess_data_msg.png", "type": "texture"},
+    {"name": "hdg_sel_box", "file_name": "hdg_sel_box.png", "type": "texture"},
+    {"name": "trk_sel_box", "file_name": "trk_sel_box.png", "type": "texture"},
+    {"name": "arpt_filter", "file_name": "arpt_filter.png", "type": "texture"},
+    {"name": "sta_filter", "file_name": "sta_filter.png", "type": "texture"},
+    {"name": "wpt_filter", "file_name": "wpt_filter.png", "type": "texture"},
+    {"name": "tfc_filter", "file_name": "tfc_filter.png", "type": "texture"}
   ]
 }
