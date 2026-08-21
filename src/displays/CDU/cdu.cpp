@@ -17,29 +17,14 @@
 #include <util/geom.hpp>
 #include <util/util.hpp>
 
+#include "common.hpp"
+
 namespace {
 
-constexpr int N_CDU_DATA_LINES = 6;
-constexpr int N_CDU_DATA_COLS = 24;
 constexpr int N_DEP_ARR_ROW_DSP = 5;
 constexpr int CNT_CDU_SELECT_KEYS = 6;
 constexpr unsigned CNT_CDU_IDENT_NUMBER_LETTERS = 4;
 
-// CDU keys:
-using cdu_event_type = typename fms_displays::CDUDisplay::event_type;
-constexpr cdu_event_type CDU_KEY_LSK_TOP = 1;
-constexpr cdu_event_type CDU_KEY_RSK_TOP = 7;
-constexpr cdu_event_type CDU_KEY_INIT_REF = 13;
-constexpr cdu_event_type CDU_KEY_A = 27;
-constexpr cdu_event_type CDU_KEY_SP = 53;
-constexpr cdu_event_type CDU_KEY_DELETE = 54;
-constexpr cdu_event_type CDU_KEY_SLASH = 55;
-constexpr cdu_event_type CDU_KEY_CLR = 56;
-constexpr cdu_event_type CDU_KEY_1 = 57;
-constexpr cdu_event_type CDU_KEY_DOT = 66;
-constexpr cdu_event_type CDU_KEY_0 = 67;
-constexpr cdu_event_type CDU_KEY_PM = 68;  // +/- key
-constexpr cdu_event_type CDU_KEY_EXEC = 69;
 // Event names:
 // LSK
 const char CDU_LSK_1_EVENT[] = "cdu_lsk_1"; // 1-6 from top to bottom
@@ -120,85 +105,85 @@ const char CDU_KEY_EXEC_EVENT[] = "cdu_key_exec";
 
 struct cdu_event_desc_t {
   const char* name;
-  cdu_event_type event;
+  fms_displays::cdu_event_type event;
 };
 
 cdu_event_desc_t CDU_EVENTS[] = {
-  {.name=CDU_LSK_1_EVENT, .event=CDU_KEY_LSK_TOP},
-  {.name=CDU_LSK_2_EVENT, .event=CDU_KEY_LSK_TOP + 1},
-  {.name=CDU_LSK_3_EVENT, .event=CDU_KEY_LSK_TOP + 2},
-  {.name=CDU_LSK_4_EVENT, .event=CDU_KEY_LSK_TOP + 3},
-  {.name=CDU_LSK_5_EVENT, .event=CDU_KEY_LSK_TOP + 4},
-  {.name=CDU_LSK_6_EVENT, .event=CDU_KEY_LSK_TOP + 5},
+  {.name=CDU_LSK_1_EVENT, .event=fms_displays::CDU_KEY_LSK_TOP},
+  {.name=CDU_LSK_2_EVENT, .event=fms_displays::CDU_KEY_LSK_TOP + 1},
+  {.name=CDU_LSK_3_EVENT, .event=fms_displays::CDU_KEY_LSK_TOP + 2},
+  {.name=CDU_LSK_4_EVENT, .event=fms_displays::CDU_KEY_LSK_TOP + 3},
+  {.name=CDU_LSK_5_EVENT, .event=fms_displays::CDU_KEY_LSK_TOP + 4},
+  {.name=CDU_LSK_6_EVENT, .event=fms_displays::CDU_KEY_LSK_TOP + 5},
 
-  {.name=CDU_RSK_1_EVENT, .event=CDU_KEY_RSK_TOP},
-  {.name=CDU_RSK_2_EVENT, .event=CDU_KEY_RSK_TOP + 1},
-  {.name=CDU_RSK_3_EVENT, .event=CDU_KEY_RSK_TOP + 2},
-  {.name=CDU_RSK_4_EVENT, .event=CDU_KEY_RSK_TOP + 3},
-  {.name=CDU_RSK_5_EVENT, .event=CDU_KEY_RSK_TOP + 4},
-  {.name=CDU_RSK_6_EVENT, .event=CDU_KEY_RSK_TOP + 5},
+  {.name=CDU_RSK_1_EVENT, .event=fms_displays::CDU_KEY_RSK_TOP},
+  {.name=CDU_RSK_2_EVENT, .event=fms_displays::CDU_KEY_RSK_TOP + 1},
+  {.name=CDU_RSK_3_EVENT, .event=fms_displays::CDU_KEY_RSK_TOP + 2},
+  {.name=CDU_RSK_4_EVENT, .event=fms_displays::CDU_KEY_RSK_TOP + 3},
+  {.name=CDU_RSK_5_EVENT, .event=fms_displays::CDU_KEY_RSK_TOP + 4},
+  {.name=CDU_RSK_6_EVENT, .event=fms_displays::CDU_KEY_RSK_TOP + 5},
 
-  {.name=CDU_INIT_REF_EVENT, .event=CDU_KEY_INIT_REF},
-  {.name=CDU_RTE_EVENT, .event=CDU_KEY_INIT_REF + 1},
-  {.name=CDU_DEP_ARR_EVENT, .event=CDU_KEY_INIT_REF + 2},
-  {.name=CDU_ALTN_EVENT, .event=CDU_KEY_INIT_REF + 3},
-  {.name=CDU_VNAV_EVENT, .event=CDU_KEY_INIT_REF + 4},
-  {.name=CDU_FIX_EVENT, .event=CDU_KEY_INIT_REF + 5},
-  {.name=CDU_LEGS_EVENT, .event=CDU_KEY_INIT_REF + 6},
-  {.name=CDU_HOLD_EVENT, .event=CDU_KEY_INIT_REF + 7},
-  {.name=CDU_FMC_COMM_EVENT, .event=CDU_KEY_INIT_REF + 8},
-  {.name=CDU_PROG_EVENT, .event=CDU_KEY_INIT_REF + 9},
-  {.name=CDU_MENU_EVENT, .event=CDU_KEY_INIT_REF + 10},
-  {.name=CDU_NAV_RAD_EVENT, .event=CDU_KEY_INIT_REF + 11},
-  {.name=CDU_PREV_PAGE_EVENT, .event=CDU_KEY_INIT_REF + 12},
-  {.name=CDU_NEXT_PAGE_EVENT, .event=CDU_KEY_INIT_REF + 13},
+  {.name=CDU_INIT_REF_EVENT, .event=fms_displays::CDU_KEY_INIT_REF},
+  {.name=CDU_RTE_EVENT, .event=fms_displays::CDU_KEY_INIT_REF + 1},
+  {.name=CDU_DEP_ARR_EVENT, .event=fms_displays::CDU_KEY_INIT_REF + 2},
+  {.name=CDU_ALTN_EVENT, .event=fms_displays::CDU_KEY_INIT_REF + 3},
+  {.name=CDU_VNAV_EVENT, .event=fms_displays::CDU_KEY_INIT_REF + 4},
+  {.name=CDU_FIX_EVENT, .event=fms_displays::CDU_KEY_INIT_REF + 5},
+  {.name=CDU_LEGS_EVENT, .event=fms_displays::CDU_KEY_INIT_REF + 6},
+  {.name=CDU_HOLD_EVENT, .event=fms_displays::CDU_KEY_INIT_REF + 7},
+  {.name=CDU_FMC_COMM_EVENT, .event=fms_displays::CDU_KEY_INIT_REF + 8},
+  {.name=CDU_PROG_EVENT, .event=fms_displays::CDU_KEY_INIT_REF + 9},
+  {.name=CDU_MENU_EVENT, .event=fms_displays::CDU_KEY_INIT_REF + 10},
+  {.name=CDU_NAV_RAD_EVENT, .event=fms_displays::CDU_KEY_INIT_REF + 11},
+  {.name=CDU_PREV_PAGE_EVENT, .event=fms_displays::CDU_KEY_INIT_REF + 12},
+  {.name=CDU_NEXT_PAGE_EVENT, .event=fms_displays::CDU_KEY_INIT_REF + 13},
 
-  {.name=CDU_KEY_A_EVENT, .event=CDU_KEY_A},
-  {.name=CDU_KEY_B_EVENT, .event=CDU_KEY_A + 1},
-  {.name=CDU_KEY_C_EVENT, .event=CDU_KEY_A + 2},
-  {.name=CDU_KEY_D_EVENT, .event=CDU_KEY_A + 3},
-  {.name=CDU_KEY_E_EVENT, .event=CDU_KEY_A + 4},
-  {.name=CDU_KEY_F_EVENT, .event=CDU_KEY_A + 5},
-  {.name=CDU_KEY_G_EVENT, .event=CDU_KEY_A + 6},
-  {.name=CDU_KEY_H_EVENT, .event=CDU_KEY_A + 7},
-  {.name=CDU_KEY_I_EVENT, .event=CDU_KEY_A + 8},
-  {.name=CDU_KEY_J_EVENT, .event=CDU_KEY_A + 9},
-  {.name=CDU_KEY_K_EVENT, .event=CDU_KEY_A + 10},
-  {.name=CDU_KEY_L_EVENT, .event=CDU_KEY_A + 11},
-  {.name=CDU_KEY_M_EVENT, .event=CDU_KEY_A + 12},
-  {.name=CDU_KEY_N_EVENT, .event=CDU_KEY_A + 13},
-  {.name=CDU_KEY_O_EVENT, .event=CDU_KEY_A + 14},
-  {.name=CDU_KEY_P_EVENT, .event=CDU_KEY_A + 15},
-  {.name=CDU_KEY_Q_EVENT, .event=CDU_KEY_A + 16},
-  {.name=CDU_KEY_R_EVENT, .event=CDU_KEY_A + 17},
-  {.name=CDU_KEY_S_EVENT, .event=CDU_KEY_A + 18},
-  {.name=CDU_KEY_T_EVENT, .event=CDU_KEY_A + 19},
-  {.name=CDU_KEY_U_EVENT, .event=CDU_KEY_A + 20},
-  {.name=CDU_KEY_V_EVENT, .event=CDU_KEY_A + 21},
-  {.name=CDU_KEY_W_EVENT, .event=CDU_KEY_A + 22},
-  {.name=CDU_KEY_X_EVENT, .event=CDU_KEY_A + 23},
-  {.name=CDU_KEY_Y_EVENT, .event=CDU_KEY_A + 24},
-  {.name=CDU_KEY_Z_EVENT, .event=CDU_KEY_A + 25},
+  {.name=CDU_KEY_A_EVENT, .event=fms_displays::CDU_KEY_A},
+  {.name=CDU_KEY_B_EVENT, .event=fms_displays::CDU_KEY_A + 1},
+  {.name=CDU_KEY_C_EVENT, .event=fms_displays::CDU_KEY_A + 2},
+  {.name=CDU_KEY_D_EVENT, .event=fms_displays::CDU_KEY_A + 3},
+  {.name=CDU_KEY_E_EVENT, .event=fms_displays::CDU_KEY_A + 4},
+  {.name=CDU_KEY_F_EVENT, .event=fms_displays::CDU_KEY_A + 5},
+  {.name=CDU_KEY_G_EVENT, .event=fms_displays::CDU_KEY_A + 6},
+  {.name=CDU_KEY_H_EVENT, .event=fms_displays::CDU_KEY_A + 7},
+  {.name=CDU_KEY_I_EVENT, .event=fms_displays::CDU_KEY_A + 8},
+  {.name=CDU_KEY_J_EVENT, .event=fms_displays::CDU_KEY_A + 9},
+  {.name=CDU_KEY_K_EVENT, .event=fms_displays::CDU_KEY_A + 10},
+  {.name=CDU_KEY_L_EVENT, .event=fms_displays::CDU_KEY_A + 11},
+  {.name=CDU_KEY_M_EVENT, .event=fms_displays::CDU_KEY_A + 12},
+  {.name=CDU_KEY_N_EVENT, .event=fms_displays::CDU_KEY_A + 13},
+  {.name=CDU_KEY_O_EVENT, .event=fms_displays::CDU_KEY_A + 14},
+  {.name=CDU_KEY_P_EVENT, .event=fms_displays::CDU_KEY_A + 15},
+  {.name=CDU_KEY_Q_EVENT, .event=fms_displays::CDU_KEY_A + 16},
+  {.name=CDU_KEY_R_EVENT, .event=fms_displays::CDU_KEY_A + 17},
+  {.name=CDU_KEY_S_EVENT, .event=fms_displays::CDU_KEY_A + 18},
+  {.name=CDU_KEY_T_EVENT, .event=fms_displays::CDU_KEY_A + 19},
+  {.name=CDU_KEY_U_EVENT, .event=fms_displays::CDU_KEY_A + 20},
+  {.name=CDU_KEY_V_EVENT, .event=fms_displays::CDU_KEY_A + 21},
+  {.name=CDU_KEY_W_EVENT, .event=fms_displays::CDU_KEY_A + 22},
+  {.name=CDU_KEY_X_EVENT, .event=fms_displays::CDU_KEY_A + 23},
+  {.name=CDU_KEY_Y_EVENT, .event=fms_displays::CDU_KEY_A + 24},
+  {.name=CDU_KEY_Z_EVENT, .event=fms_displays::CDU_KEY_A + 25},
 
-  {.name=CDU_KEY_SP_EVENT, .event=CDU_KEY_SP},
-  {.name=CDU_KEY_DELETE_EVENT, .event=CDU_KEY_DELETE},
-  {.name=CDU_KEY_SLASH_EVENT, .event=CDU_KEY_SLASH},
-  {.name=CDU_KEY_CLR_EVENT, .event=CDU_KEY_CLR},
+  {.name=CDU_KEY_SP_EVENT, .event=fms_displays::CDU_KEY_SP},
+  {.name=CDU_KEY_DELETE_EVENT, .event=fms_displays::CDU_KEY_DELETE},
+  {.name=CDU_KEY_SLASH_EVENT, .event=fms_displays::CDU_KEY_SLASH},
+  {.name=CDU_KEY_CLR_EVENT, .event=fms_displays::CDU_KEY_CLR},
 
-  {.name=CDU_KEY_1_EVENT, .event=CDU_KEY_1},
-  {.name=CDU_KEY_2_EVENT, .event=CDU_KEY_1 + 1},
-  {.name=CDU_KEY_3_EVENT, .event=CDU_KEY_1 + 2},
-  {.name=CDU_KEY_4_EVENT, .event=CDU_KEY_1 + 3},
-  {.name=CDU_KEY_5_EVENT, .event=CDU_KEY_1 + 4},
-  {.name=CDU_KEY_6_EVENT, .event=CDU_KEY_1 + 5},
-  {.name=CDU_KEY_7_EVENT, .event=CDU_KEY_1 + 6},
-  {.name=CDU_KEY_8_EVENT, .event=CDU_KEY_1 + 7},
-  {.name=CDU_KEY_9_EVENT, .event=CDU_KEY_1 + 8},
-  {.name=CDU_KEY_DOT_EVENT, .event=CDU_KEY_DOT},
-  {.name=CDU_KEY_0_EVENT, .event=CDU_KEY_0},
+  {.name=CDU_KEY_1_EVENT, .event=fms_displays::CDU_KEY_1},
+  {.name=CDU_KEY_2_EVENT, .event=fms_displays::CDU_KEY_1 + 1},
+  {.name=CDU_KEY_3_EVENT, .event=fms_displays::CDU_KEY_1 + 2},
+  {.name=CDU_KEY_4_EVENT, .event=fms_displays::CDU_KEY_1 + 3},
+  {.name=CDU_KEY_5_EVENT, .event=fms_displays::CDU_KEY_1 + 4},
+  {.name=CDU_KEY_6_EVENT, .event=fms_displays::CDU_KEY_1 + 5},
+  {.name=CDU_KEY_7_EVENT, .event=fms_displays::CDU_KEY_1 + 6},
+  {.name=CDU_KEY_8_EVENT, .event=fms_displays::CDU_KEY_1 + 7},
+  {.name=CDU_KEY_9_EVENT, .event=fms_displays::CDU_KEY_1 + 8},
+  {.name=CDU_KEY_DOT_EVENT, .event=fms_displays::CDU_KEY_DOT},
+  {.name=CDU_KEY_0_EVENT, .event=fms_displays::CDU_KEY_0},
 
-  {.name=CDU_KEY_PM_EVENT, .event=CDU_KEY_PM},
-  {.name=CDU_KEY_EXEC_EVENT, .event=CDU_KEY_EXEC}
+  {.name=CDU_KEY_PM_EVENT, .event=fms_displays::CDU_KEY_PM},
+  {.name=CDU_KEY_EXEC_EVENT, .event=fms_displays::CDU_KEY_EXEC}
 };
 
 // LEGS:
@@ -206,8 +191,6 @@ constexpr int SPDCSTR_MX_KT = 340;
 constexpr int SPDCSTR_MN_KT = 100;
 constexpr int ALTCSTR_MX_FT = 41000;
 constexpr int ALTCSTR_MN_FT = 100;
-
-constexpr char DELETE_SYMBOL = 'd';
 
 constexpr std::size_t N_CDU_ITM_PP =
     5;  // How many items can be drawn on 1 page
@@ -241,23 +224,10 @@ constexpr double CDU_TEXT_INTV = 0.041422;
 constexpr double CDU_LETTER_WIDTH = 21;
 constexpr double CDU_LETTER_HEIGHT = 39;
 
-// CDU char states:
-constexpr char CDU_S_WHITE = 'w';
-constexpr char CDU_B_WHITE = 'W';
-constexpr char CDU_S_CYAN = 'c';
-constexpr char CDU_B_CYAN = 'C';
-constexpr char CDU_S_GREEN = 'g';
-constexpr char CDU_B_GREEN = 'G';
-constexpr char CDU_S_MAGENTA = 'm';
-constexpr char CDU_B_MAGENTA = 'M';
-
 // Constraint designations used on LEGS page
 constexpr char LEGS_CSTR_ABV = 'A';
 constexpr char LEGS_CSTR_BLW = 'B';
 constexpr char LEGS_CSTR_SEP = '/';
-
-const std::string CDU_ALL_S_WHITE = std::string(N_CDU_DATA_COLS, CDU_S_WHITE);
-const std::string CDU_ALL_B_WHITE = std::string(N_CDU_DATA_COLS, CDU_B_WHITE);
 
 constexpr geom::vect2_t DISPLAY_OFFS = {0.14, 0.068};
 constexpr geom::vect2_t DISPLAY_SZ = {0.717, 0.378};
@@ -324,7 +294,7 @@ const std::string DEP_ARR_DEP_OPT = "<DEP" + std::string(6, ' ');
 const std::string DEP_ARR_ARR_OPT = std::string(6, ' ') + "ARR>";
 const std::string DEP_ARR_IDX_OTHER = " DEP      OTHER      ARR";
 const std::string DEP_ARR_ARROWS =
-    "<----" + std::string(N_CDU_DATA_COLS - 10, ' ') + "---->";
+    "<----" + std::string(fms_displays::N_CDU_DATA_COLS - 10, ' ') + "---->";
 const std::string DEP_ARR_BOTTOM_INACT = "<INDEX            ROUTE>";
 const std::string DEP_ARR_BOTTOM_ACT = "<ERASE            ROUTE>";
 const std::string DEP_ARR_NO_PROC = "-NONE-";
@@ -357,7 +327,7 @@ const std::string HOLD_DESC = " HOLD AT";
 const std::string NAUT_MILES = "NM";
 const std::string LEG_BYPASS = "BYPASS";
 // MISC:
-const std::string ALL_DASH = std::string(N_CDU_DATA_COLS, '-');
+const std::string ALL_DASH = std::string(fms_displays::N_CDU_DATA_COLS, '-');
 const std::string ERASE_NML = "<ERASE";
 const std::string ACT = "ACT";
 const std::string SEL = "SEL";
@@ -420,11 +390,11 @@ std::string get_ident_date_airac_string(unsigned airac) {
 std::string get_ident_aircraft_string(
   const fms_core::aircraft_info_t& ac_inf) {
   if(ac_inf.model.size() + ac_inf.engine_model.size() >= 
-    std::size_t{N_CDU_DATA_COLS}) {
+    std::size_t{fms_displays::N_CDU_DATA_COLS}) {
     std::string raw = ac_inf.model + " " + ac_inf.engine_model;
-    return raw.substr(0, std::size_t{N_CDU_DATA_COLS});
+    return raw.substr(0, std::size_t{fms_displays::N_CDU_DATA_COLS});
   }
-  std::size_t n_spaces = std::size_t{N_CDU_DATA_COLS} - 
+  std::size_t n_spaces = std::size_t{fms_displays::N_CDU_DATA_COLS} - 
     ac_inf.model.size() - ac_inf.engine_model.size();
   return ac_inf.model + std::string(n_spaces, ' ') + ac_inf.engine_model;
 }
@@ -443,13 +413,13 @@ std::string get_ident_airac_string(unsigned airac) {
   return airac_str + std::string(cnt_spaces, ' ') + date_str;
 }
 
-bool check_event_select_key(cdu_event_type event) {
-  if(event >= CDU_KEY_LSK_TOP && 
-    event < CDU_KEY_LSK_TOP + CNT_CDU_SELECT_KEYS) {
+bool check_event_select_key(fms_displays::cdu_event_type event) {
+  if(event >= fms_displays::CDU_KEY_LSK_TOP && 
+    event < fms_displays::CDU_KEY_LSK_TOP + CNT_CDU_SELECT_KEYS) {
     return true;
   }
-  if(event >= CDU_KEY_RSK_TOP && 
-    event < CDU_KEY_RSK_TOP + CNT_CDU_SELECT_KEYS) {
+  if(event >= fms_displays::CDU_KEY_RSK_TOP && 
+    event < fms_displays::CDU_KEY_RSK_TOP + CNT_CDU_SELECT_KEYS) {
     return true;
   }
   return false;
@@ -474,18 +444,11 @@ util::const_str_data_t GetCduTextureNames() {
                                 .size = MY_ARRAY_SIZE(CDU_TEXTURE_ARRAY)};
 }
 
-// cdu_scr_data_t definitions:
-
-cdu_scr_data_t::cdu_scr_data_t() {
-  data_lines.reserve(2 * N_CDU_DATA_LINES);
-  chr_sts.reserve(2 * N_CDU_DATA_LINES);
-}
-
 // CDU definitions:
 // Public member functions:
 
 CDU::CDU(util::OpaquePointer<fms_core::FPLSys> fs, size_t sd_idx) : 
-  nd_mode_{fms_core::NDMode::MAX} {
+  nd_mode_{fms_core::NDMode::MAX}, fpl_sys_{fs}, pos_init_{fs} {
   act_sd_idx_ = sd_idx;
 
   airport_db_ = fs->get_arpt_db_ptr();
@@ -494,8 +457,6 @@ CDU::CDU(util::OpaquePointer<fms_core::FPLSys> fs, size_t sd_idx) :
   ident_info_.ac_info = fs->get_aircraft_info();
   ident_info_.airac_cycle = static_cast<unsigned>(
     fs->get_awy_db_ptr()->get_airac());
-
-  pos_init_info_.last_pos = fs->get_ac_pos();
 
   fpl_sys_ = fs;
   sel_fpl_idx_ = fms_core::RTE1_IDX;
@@ -530,6 +491,7 @@ void CDU::update() noexcept {
   leg_list_ = fpl_sys_->get_leg_list(&n_leg_list_sz_, sel_fpl_idx_);
   fpln_ = fpl_sys_->get_fpln_ptr(sel_fpl_idx_);
   act_fpl_idx_ = fpl_sys_->get_act_idx();
+  pos_init_.update();
 
   if (sel_des_) {
     n_subpg_ = get_n_sel_des_subpg();
@@ -604,7 +566,12 @@ std::string CDU::on_event(int event_key, std::string scratchpad,
   } else if(curr_page_ == CDUPage::IDENT) {
     msg = handle_ident(event_key, scratchpad);
   } else if(curr_page_ == CDUPage::POS_INIT) {
-    msg = handle_pos_init(event_key, scratchpad, s_out);
+    auto[err, page] = pos_init_.on_event(event_key, scratchpad, *s_out);
+    if(err != fms_displays::CDUError::NONE) {
+      msg = cdu_pages::string_from_error(err);
+    } else if(page != pos_init_.get_page_number()) {
+      set_page(page);
+    }
   } else if (curr_page_ == CDUPage::INIT_REF_INDEX) {
     msg = handle_init_ref_index(event_key, scratchpad);
   } else if (curr_page_ == CDUPage::RTE) {
@@ -627,7 +594,7 @@ std::string CDU::on_event(int event_key, std::string scratchpad,
   return msg;
 }
 
-cdu_scr_data_t CDU::get_screen_data() const noexcept {
+cdu_pages::cdu_scr_data_t CDU::get_screen_data() const noexcept {
   std::shared_lock lk(main_mutex_);
 
   if (sel_des_) return get_sel_des_page();
@@ -636,7 +603,7 @@ cdu_scr_data_t CDU::get_screen_data() const noexcept {
 
   if(curr_page_ == CDUPage::IDENT) { return get_ident_page(); }
 
-  if(curr_page_ == CDUPage::POS_INIT) { return get_pos_init_page(); }
+  if(curr_page_ == CDUPage::POS_INIT) { return pos_init_.get_screen_data(); }
 
   if(curr_page_ == CDUPage::INIT_REF_INDEX) { return get_init_ref_index_page(); }
 
@@ -677,13 +644,6 @@ std::string CDU::get_cdu_line(std::string in, std::string line,
   } else {
     size_t n_sp = N_CDU_DATA_COLS - in.size() - line.size();
     return line + std::string(n_sp, ' ') + in;
-  }
-}
-
-void CDU::fill_char_state_buf(cdu_scr_data_t& src) {
-  for (int i = 0; i < N_CDU_DATA_LINES; i++) {
-    src.chr_sts.push_back(CDU_ALL_S_WHITE);
-    src.chr_sts.push_back(CDU_ALL_B_WHITE);
   }
 }
 
@@ -1104,7 +1064,7 @@ std::string CDU::delete_to(size_t next_idx) {
   return "";
 }
 
-void CDU::get_seg_page(cdu_scr_data_t* in) const noexcept {
+void CDU::get_seg_page(cdu_pages::cdu_scr_data_t* in) const noexcept {
   std::string via_to = " VIA" + std::string(N_CDU_DATA_COLS - 6, ' ') + "TO";
   in->data_lines.push_back(via_to);
 
@@ -1150,7 +1110,7 @@ std::string CDU::get_sts(std::string& cr, std::string& act) const noexcept {
   return sts;
 }
 
-void CDU::get_procs(cdu_scr_data_t* in, std::string curr_proc,
+void CDU::get_procs(cdu_pages::cdu_scr_data_t* in, std::string curr_proc,
                     std::string curr_trans, std::string act_proc,
                     std::string act_trans, bool rte2) const noexcept {
   size_t start_idx = size_t((curr_subpg_ - 1) * 5);
@@ -1197,7 +1157,7 @@ void CDU::get_procs(cdu_scr_data_t* in, std::string curr_proc,
   }
 }
 
-void CDU::get_rwys(cdu_scr_data_t* in, std::string curr_rwy,
+void CDU::get_rwys(cdu_pages::cdu_scr_data_t* in, std::string curr_rwy,
                    std::string act_rwy, bool rte2, std::string curr_appr,
                    std::string curr_via, std::string act_appr,
                    std::string act_via, bool get_appr) const noexcept {
@@ -1361,7 +1321,7 @@ void CDU::set_fpl_proc(int event, fms_core::ProcType ptp, bool is_arr,
   }
 }
 
-void CDU::get_rte_dep_arr(cdu_scr_data_t& out, bool rte2) const noexcept {
+void CDU::get_rte_dep_arr(cdu_pages::cdu_scr_data_t& out, bool rte2) const noexcept {
   size_t v_idx = fms_core::RTE1_IDX;
   if (rte2) v_idx = fms_core::RTE2_IDX;
 
@@ -1444,32 +1404,6 @@ std::optional<int> CDU::get_ident_entry_number(const std::string& scratchpad) {
     res *= -1;
   }
   return res;
-}
-
-std::string CDU::get_pos_init_airport_str() const noexcept {
-  if(!pos_init_info_.ref_airport) {
-    return "----";
-  }
-  std::string res_icao = pos_init_info_.ref_airport->icao;
-  std::string res_pos = get_displayed_pos(
-    pos_init_info_.ref_airport->data.pos);
-  assert(res_icao.size() + res_pos.size() <= N_CDU_DATA_COLS);
-  std::size_t diff = N_CDU_DATA_COLS - res_icao.size() - res_pos.size();
-  std::string spaces(diff, ' ');
-  return res_icao + spaces + res_pos;
-}
-
-std::string CDU::get_pos_init_gps_pos_str() const noexcept {
-  auto now_utc = std::chrono::utc_clock::now();
-  std::string utc_str = std::format("{:%H%M}", now_utc);
-  std::string pos_str = get_displayed_pos(fpl_sys_->get_ac_pos());
-  assert(N_CDU_DATA_COLS >= utc_str.size() + pos_str.size());
-  std::size_t cnt_spaces = N_CDU_DATA_COLS - utc_str.size() - pos_str.size();
-  return utc_str + std::string(cnt_spaces, ' ') + pos_str;
-}
-
-std::string CDU::get_pos_init_inertial_pos_str() const noexcept {
-  return str_align_right(std::string{POS_INIT_INERTIAL_POS_BLANK_STR});
 }
 
 int CDU::get_n_sel_des_subpg() const noexcept {
@@ -1568,49 +1502,6 @@ std::string CDU::handle_ident(int event_key, const std::string& scratchpad) {
       }
     }
   }
-  return "";
-}
-
-std::string CDU::handle_pos_init(int event_key, std::string scratchpad,
-                         std::string* s_out) {
-  if(scratchpad_has_delete(scratchpad)) {
-    return INVALID_DELETE_MSG;
-  }
-  if(event_key == CDU_KEY_LSK_TOP + 5) {
-    set_page(CDUPage::INIT_REF_INDEX);
-  } else if(event_key == CDU_KEY_RSK_TOP + 5) {
-    set_page(CDUPage::RTE);
-  } else if(event_key == CDU_KEY_LSK_TOP + 1) {
-    libnav::airport_t tmp;
-    tmp.icao = scratchpad;
-    bool is_airport = airport_db_->get_airport_data(tmp.icao, &tmp.data);
-    if(!is_airport) {
-      return NOT_IN_DB_MSG;
-    }
-    pos_init_info_.ref_airport = tmp;
-    return "";
-  } else if(event_key == CDU_KEY_RSK_TOP) {
-    if(!scratchpad.empty()) {
-      return INVALID_ENTRY_MSG;
-    }
-    *s_out = get_scratchpad_pos(pos_init_info_.last_pos);
-    return "";
-  } else if(event_key == CDU_KEY_RSK_TOP + 1) {
-    if(!scratchpad.empty()) {
-      return INVALID_ENTRY_MSG;
-    }
-    if(pos_init_info_.ref_airport) {
-      *s_out = get_scratchpad_pos(pos_init_info_.ref_airport->data.pos);
-      return "";
-    }
-  } else if(event_key == CDU_KEY_RSK_TOP + 3) {
-    if(!scratchpad.empty()) {
-      return INVALID_ENTRY_MSG;
-    }
-    *s_out = get_scratchpad_pos(fpl_sys_->get_ac_pos());
-    return "";
-  }
-  *s_out = scratchpad;
   return "";
 }
 
@@ -2017,9 +1908,8 @@ std::string CDU::handle_legs(int event_key, std::string scratchpad,
   return "";
 }
 
-cdu_scr_data_t CDU::get_menu_page() const noexcept {
-  cdu_scr_data_t out = {};
-  fill_char_state_buf(out);
+cdu_pages::cdu_scr_data_t CDU::get_menu_page() const noexcept {
+  cdu_pages::cdu_scr_data_t out = {};
   out.heading_big = std::string{MENU_PAGE_HEADING};
   out.data_lines.push_back(MENU_LINE_1);
   out.data_lines.push_back(MENU_LINE_2);
@@ -2030,9 +1920,8 @@ cdu_scr_data_t CDU::get_menu_page() const noexcept {
   return out;
 }
 
-cdu_scr_data_t CDU::get_ident_page() const noexcept {
-  cdu_scr_data_t out = {};
-  fill_char_state_buf(out);
+cdu_pages::cdu_scr_data_t CDU::get_ident_page() const noexcept {
+  cdu_pages::cdu_scr_data_t out = {};
   out.heading_big = IDENT_PAGE_HEADING;
   out.heading_color = CDUColor::WHITE;
   out.data_lines.push_back(IDENT_LINE_1);
@@ -2058,30 +1947,8 @@ cdu_scr_data_t CDU::get_ident_page() const noexcept {
   return out;
 }
 
-cdu_scr_data_t CDU::get_pos_init_page() const noexcept {
-  cdu_scr_data_t out = {};
-  fill_char_state_buf(out);
-  out.heading_big = POS_INIT_HEADING;
-  out.heading_color = CDUColor::WHITE;
-  out.data_lines.push_back(POS_INIT_LINE_1);
-  out.data_lines.push_back(str_align_right(
-    get_displayed_pos(pos_init_info_.last_pos)));
-  out.data_lines.push_back(POS_INIT_LINE_3);
-  out.data_lines.push_back(get_pos_init_airport_str());
-  out.data_lines.push_back(POS_INIT_LINE_5);
-  out.data_lines.push_back("");
-  out.data_lines.push_back(POS_INIT_LINE_7);
-  out.data_lines.push_back(get_pos_init_gps_pos_str());
-  out.data_lines.push_back(POS_INIT_LINE_9);
-  out.data_lines.push_back(get_pos_init_inertial_pos_str());
-  out.data_lines.push_back(ALL_DASH);
-  out.data_lines.push_back(POS_INIT_LINE_12);
-  return out;
-}
-
-cdu_scr_data_t CDU::get_init_ref_index_page() const noexcept {
-  cdu_scr_data_t out = {};
-  fill_char_state_buf(out);
+cdu_pages::cdu_scr_data_t CDU::get_init_ref_index_page() const noexcept {
+  cdu_pages::cdu_scr_data_t out = {};
   out.heading_big = INIT_REF_INDEX_HEADING;
   out.heading_color = CDUColor::WHITE;
   for(std::size_t i = 0; i < MY_ARRAY_SIZE(INIT_REF_INDEX_LINES); ++i) {
@@ -2090,9 +1957,8 @@ cdu_scr_data_t CDU::get_init_ref_index_page() const noexcept {
   return out;
 }
 
-cdu_scr_data_t CDU::get_sel_des_page() const noexcept {
-  cdu_scr_data_t out = {};
-  fill_char_state_buf(out);
+cdu_pages::cdu_scr_data_t CDU::get_sel_des_page() const noexcept {
+  cdu_pages::cdu_scr_data_t out = {};
 
   out.heading_small = get_small_heading();
   out.heading_big = SEL_DES_WPT_HDG;
@@ -2120,11 +1986,10 @@ cdu_scr_data_t CDU::get_sel_des_page() const noexcept {
   return out;
 }
 
-cdu_scr_data_t CDU::get_rte_page() const noexcept {
+cdu_pages::cdu_scr_data_t CDU::get_rte_page() const noexcept {
   bool exec_lt = fpl_sys_->get_exec();
 
-  cdu_scr_data_t out = {};
-  fill_char_state_buf(out);
+  cdu_pages::cdu_scr_data_t out = {};
 
   out.heading_small = get_small_heading();
   std::string rte_offs = std::string(2, ' ');
@@ -2242,9 +2107,8 @@ cdu_scr_data_t CDU::get_rte_page() const noexcept {
   return out;
 }
 
-cdu_scr_data_t CDU::get_dep_arr_page() const noexcept {
-  cdu_scr_data_t out = {};
-  fill_char_state_buf(out);
+cdu_pages::cdu_scr_data_t CDU::get_dep_arr_page() const noexcept {
+  cdu_pages::cdu_scr_data_t out = {};
 
   out.heading_small = get_small_heading();
   std::string hdg_offs =
@@ -2263,7 +2127,7 @@ cdu_scr_data_t CDU::get_dep_arr_page() const noexcept {
   return out;
 }
 
-void CDU::dep_arr_set_bottom(cdu_scr_data_t& out) const noexcept {
+void CDU::dep_arr_set_bottom(cdu_pages::cdu_scr_data_t& out) const noexcept {
   out.data_lines[10] = std::string(N_CDU_DATA_COLS, '-');
 
   bool exec_lt = fpl_sys_->get_exec();
@@ -2274,15 +2138,14 @@ void CDU::dep_arr_set_bottom(cdu_scr_data_t& out) const noexcept {
   }
 }
 
-cdu_scr_data_t CDU::get_dep_page(bool rte2) const noexcept {
+cdu_pages::cdu_scr_data_t CDU::get_dep_page(bool rte2) const noexcept {
   util::OpaquePointer<flightplan_type> c_fpl = m_rte1_ptr_;
   if (rte2) {
     c_fpl = m_rte2_ptr_;
   }
 
   std::string dep = c_fpl->get_dep_icao();
-  cdu_scr_data_t out = {};
-  fill_char_state_buf(out);
+  cdu_pages::cdu_scr_data_t out = {};
   for (size_t i = 9; i < 14; i++) out.chr_sts[0][i] = CDU_B_WHITE;
 
   out.heading_small = get_small_heading();
@@ -2313,15 +2176,14 @@ cdu_scr_data_t CDU::get_dep_page(bool rte2) const noexcept {
   return out;
 }
 
-cdu_scr_data_t CDU::get_arr_page(bool rte2) const noexcept {
+cdu_pages::cdu_scr_data_t CDU::get_arr_page(bool rte2) const noexcept {
   util::OpaquePointer<flightplan_type> c_fpl = m_rte1_ptr_;
   if (rte2) {
     c_fpl = m_rte2_ptr_;
   }
 
   std::string arr = c_fpl->get_arr_icao();
-  cdu_scr_data_t out = {};
-  fill_char_state_buf(out);
+  cdu_pages::cdu_scr_data_t out = {};
   for (size_t i = 9; i < 14; i++) out.chr_sts[0][i] = CDU_B_WHITE;
 
   out.heading_small = get_small_heading();
@@ -2381,9 +2243,8 @@ std::string CDU::get_legs_btm() const noexcept {
   return c_legs_btm + LEGS_BTM_ACT;
 }
 
-cdu_scr_data_t CDU::get_legs_page() const noexcept {
-  cdu_scr_data_t out = {};
-  fill_char_state_buf(out);
+cdu_pages::cdu_scr_data_t CDU::get_legs_page() const noexcept {
+  cdu_pages::cdu_scr_data_t out = {};
 
   out.heading_small = get_small_heading();
   out.heading_color = CDUColor::WHITE;
@@ -2759,7 +2620,7 @@ void CDUDisplay::draw_screen(cairo_t* cr) {
       0, display_size_.y * (CDU_BIG_TEXT_OFFS + CDU_V_OFFS_FIRST_BIG)};
   geom::vect2_t pos_big = display_pos_ + big_offs;
 
-  cdu_scr_data_t curr_screen = cdu_ptr_->get_screen_data();
+  cdu_pages::cdu_scr_data_t curr_screen = cdu_ptr_->get_screen_data();
 
   // Clear the screen:
   cairo_utils::draw_rect(cr, display_pos_, display_size_, cairo_utils::BLACK);

@@ -17,6 +17,10 @@
 #include <util/geom.hpp>
 #include <util/util.hpp>
 
+#include "common.hpp"
+#include "pages/base.hpp"
+#include "pages/pos_init.hpp"
+
 #ifdef FPL_DEBUG
 #include <iostream>
 #endif
@@ -25,33 +29,7 @@ namespace fms_displays {
 
 util::const_str_data_t GetCduTextureNames();
 
-enum class CDUPage {
-  RTE,
-  DEP_ARR_INTRO,
-  DEP1,
-  ARR1,
-  DEP2,
-  ARR2,
-  LEGS,
-  INIT_REF,
-  ALTN,
-  VNAV,
-  FIX,
-  HOLD,
-  FMC_COMM,
-  PROG,
-  MENU,
-  IDENT,
-  POS_INIT,
-  INIT_REF_INDEX,
-  NAV_RAD,
-  PREV_PAGE,
-  NEXT_PAGE
-};
-
 constexpr double CDU_TEXTURE_ASPECT_RATIO = (488.0 / 751.0);
-
-enum class CDUColor { WHITE, GREEN, CYAN, MAGENTA };
 
 const std::vector<CDUPage> CDU_PAGE_FACES = {
     CDUPage::INIT_REF,  CDUPage::RTE,      CDUPage::DEP_ARR_INTRO,
@@ -59,15 +37,6 @@ const std::vector<CDUPage> CDU_PAGE_FACES = {
     CDUPage::LEGS,      CDUPage::HOLD,     CDUPage::FMC_COMM,
     CDUPage::PROG,      CDUPage::MENU,     CDUPage::NAV_RAD,
     CDUPage::PREV_PAGE, CDUPage::NEXT_PAGE};
-
-struct cdu_scr_data_t {
-  std::string heading_big, heading_small;
-  CDUColor heading_color;
-  std::vector<std::string> data_lines;
-  std::vector<std::string> chr_sts;
-
-  cdu_scr_data_t();
-};
 
 class CDU final {
  public:
@@ -82,7 +51,7 @@ class CDU final {
   std::string on_event(int event_key, std::string scratchpad,
                        std::string* s_out) noexcept;
 
-  cdu_scr_data_t get_screen_data() const noexcept;
+  cdu_pages::cdu_scr_data_t get_screen_data() const noexcept;
 
  private:
   struct ident_info_t {
@@ -91,12 +60,6 @@ class CDU final {
     int drag = 0;
     int fuel_flow = 0;
     bool is_armed = false;
-  };
-
-  struct pos_info_t {
-    geo::point last_pos;
-    std::optional<libnav::airport_t> ref_airport;
-    std::optional<geo::point> inertial_pos;
   };
 
   mutable std::shared_mutex main_mutex_;
@@ -122,8 +85,7 @@ class CDU final {
 
   // IDENT data:
   ident_info_t ident_info_;
-
-  pos_info_t pos_init_info_;
+  cdu_pages::PosInit pos_init_;
 
   // RTE data
   fms_core::RTECopySts rte_copy_ = fms_core::RTECopySts::UNAVAIL;
@@ -186,8 +148,6 @@ class CDU final {
 
   static std::string get_cdu_line(std::string in, std::string line,
                                   bool align_right = false);
-
-  static void fill_char_state_buf(cdu_scr_data_t& src);
 
   /*
       Function: get_cdu_leg_prop
@@ -277,15 +237,15 @@ class CDU final {
 
   std::string delete_to(size_t next_idx);
 
-  void get_seg_page(cdu_scr_data_t* in) const noexcept;
+  void get_seg_page(cdu_pages::cdu_scr_data_t* in) const noexcept;
 
   std::string get_sts(std::string& cr, std::string& act) const noexcept;
 
-  void get_procs(cdu_scr_data_t* in, std::string curr_proc,
+  void get_procs(cdu_pages::cdu_scr_data_t* in, std::string curr_proc,
                  std::string curr_trans, std::string act_proc,
                  std::string act_trans, bool rte2) const noexcept;
 
-  void get_rwys(cdu_scr_data_t* in, std::string curr_rwy, std::string act_rwy,
+  void get_rwys(cdu_pages::cdu_scr_data_t* in, std::string curr_rwy, std::string act_rwy,
                 bool rte2, std::string curr_appr = "",
                 std::string curr_via = "", std::string act_appr = "",
                 std::string act_via = "", bool get_appr = false) const noexcept;
@@ -296,19 +256,13 @@ class CDU final {
 
   void set_fpl_proc(int event, fms_core::ProcType ptp, bool is_arr, bool rte2);
 
-  void get_rte_dep_arr(cdu_scr_data_t& out, bool rte2) const noexcept;
+  void get_rte_dep_arr(cdu_pages::cdu_scr_data_t& out, bool rte2) const noexcept;
 
   bool arr_has_rwys(std::string& cr_appr, bool rte2) const noexcept;
 
   std::string get_ident_drag_ff() const noexcept;
 
   std::optional<int> get_ident_entry_number(const std::string& scratchpad);
-
-  std::string get_pos_init_airport_str() const noexcept;
-
-  std::string get_pos_init_gps_pos_str() const noexcept;
-
-  std::string get_pos_init_inertial_pos_str() const noexcept;
 
   // Per-page fetching of the number of subpages:
 
@@ -325,9 +279,6 @@ class CDU final {
   std::string handle_menu(int event_key, const std::string& scratchpad);
 
   std::string handle_ident(int event_key, const std::string& scratchpad);
-
-  std::string handle_pos_init(int event_key, std::string scratchpad,
-                         std::string* s_out);
 
   std::string handle_init_ref_index(
     int event_key, const std::string& scratchpad);
@@ -383,34 +334,32 @@ class CDU final {
   // Per-page content fetching. The CDU displays exactly what these functions
   // output:
 
-  cdu_scr_data_t get_menu_page() const noexcept;
+  cdu_pages::cdu_scr_data_t get_menu_page() const noexcept;
 
-  cdu_scr_data_t get_ident_page() const noexcept;
+  cdu_pages::cdu_scr_data_t get_ident_page() const noexcept;
 
-  cdu_scr_data_t get_pos_init_page() const noexcept;
+  cdu_pages::cdu_scr_data_t get_init_ref_index_page() const noexcept;
 
-  cdu_scr_data_t get_init_ref_index_page() const noexcept;
+  cdu_pages::cdu_scr_data_t get_sel_des_page() const noexcept;
 
-  cdu_scr_data_t get_sel_des_page() const noexcept;
+  cdu_pages::cdu_scr_data_t get_rte_page() const noexcept;
 
-  cdu_scr_data_t get_rte_page() const noexcept;
+  cdu_pages::cdu_scr_data_t get_dep_arr_page() const noexcept;
 
-  cdu_scr_data_t get_dep_arr_page() const noexcept;
+  void dep_arr_set_bottom(cdu_pages::cdu_scr_data_t& out) const noexcept;
 
-  void dep_arr_set_bottom(cdu_scr_data_t& out) const noexcept;
+  cdu_pages::cdu_scr_data_t get_dep_page(bool rte2) const noexcept;
 
-  cdu_scr_data_t get_dep_page(bool rte2) const noexcept;
-
-  cdu_scr_data_t get_arr_page(bool rte2) const noexcept;
+  cdu_pages::cdu_scr_data_t get_arr_page(bool rte2) const noexcept;
 
   std::string get_legs_btm() const noexcept;
 
-  cdu_scr_data_t get_legs_page() const noexcept;
+  cdu_pages::cdu_scr_data_t get_legs_page() const noexcept;
 };
 
 class CDUDisplay final {
  public:
-  using event_type = int;
+  using event_type = fms_displays::cdu_event_type;
   using texture_type = typename TextureManager::texture_t;
 
   static std::optional<event_type> get_event_from_str(
