@@ -27,7 +27,7 @@ class PosInit final : public PageBase {
 
   std::string get_pos_init_inertial_pos_str() const noexcept;
 public:
-  PosInit(util::OpaquePointer<fms_core::FPLSys> fpl_sys);
+  explicit PosInit(util::OpaquePointer<fms_core::FPLSys> fpl_sys);
 
   fms_displays::CDUPage get_page_number() const noexcept override;
 

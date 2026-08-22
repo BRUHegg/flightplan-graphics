@@ -17,9 +17,10 @@
 #include <util/geom.hpp>
 #include <util/util.hpp>
 
+#include "cdu_context.hpp"
 #include "common.hpp"
 #include "pages/base.hpp"
-#include "pages/pos_init.hpp"
+#include "pages/pages.hpp"
 
 #ifdef FPL_DEBUG
 #include <iostream>
@@ -54,14 +55,6 @@ class CDU final {
   cdu_pages::cdu_scr_data_t get_screen_data() const noexcept;
 
  private:
-  struct ident_info_t {
-    unsigned airac_cycle;
-    fms_core::aircraft_info_t ac_info;
-    int drag = 0;
-    int fuel_flow = 0;
-    bool is_armed = false;
-  };
-
   mutable std::shared_mutex main_mutex_;
 
   std::size_t act_sd_idx_;
@@ -76,16 +69,17 @@ class CDU final {
   util::OpaquePointer<flightplan_type> m_rte1_ptr_;
   util::OpaquePointer<flightplan_type> m_rte2_ptr_;
   util::OpaquePointer<flightplan_type> m_act_ptr_;
-  std::size_t sel_fpl_idx_;  // [0;3]
-  std::size_t act_fpl_idx_;  // [0;3]
+  cdu_context_t cntx_;
 
   CDUPage curr_page_ = CDUPage::MENU;
   int n_subpg_ = 1;
   int curr_subpg_ = 1;
 
-  // IDENT data:
-  ident_info_t ident_info_;
+  cdu_pages::Ident ident_;
   cdu_pages::PosInit pos_init_;
+  cdu_pages::Menu menu_;
+  cdu_pages::InitRefIndex init_ref_index_;
+  cdu_pages::Legs legs_;
 
   // RTE data
   fms_core::RTECopySts rte_copy_ = fms_core::RTECopySts::UNAVAIL;
@@ -149,63 +143,12 @@ class CDU final {
   static std::string get_cdu_line(std::string in, std::string line,
                                   bool align_right = false);
 
-  /*
-      Function: get_cdu_leg_prop
-      @desc:
-      Returns heading and distance data for a leg entry
-      @param src: reference to leg in question
-      @return string for CDU to display.
-  */
-
-  static std::string get_cdu_leg_prop(
-      const fms_core::list_node_ref_t<fms_core::leg_list_data_t>& src);
-
-  static void fill_drag_ff_num(int num, char out_buff[5]) noexcept;
-
-  static std::string get_displayed_pos(geo::point pos) noexcept;
-
-  static std::string get_scratchpad_pos(geo::point pos) noexcept;
-
-  /*
-      Function: get_leg_alt
-      @desc:
-      Returns value in alt1 or alt2 of a leg. Altitudes greater than transition
-      altitude are returned as FLXXX.
-      @param src: reference to leg in question
-      @param alt2: set to true to return alt2
-      @param fl: true if the altitude needs to be shortened for a altitude
-     within constraint
-      @return string for CDU to display.
-  */
-
-  static std::string get_leg_alt(const
-      fms_core::list_node_ref_t<fms_core::leg_list_data_t>& src, bool alt2 = false,
-      bool fl = false);
-
-  /*
-      Function: get_cdu_leg_vcstr
-      @desc:
-      Returns vertical constraint for a leg entry
-      @param src: reference to leg in question
-      @return string for CDU to display.
-  */
-
-  static std::string get_cdu_leg_vcstr(const
-      fms_core::list_node_ref_t<fms_core::leg_list_data_t>& src);
-
-  static std::string get_cdu_leg_spdcstr(const
-      fms_core::list_node_ref_t<fms_core::leg_list_data_t>& src);
-
-  static std::string get_cdu_leg_nm(const
-      fms_core::list_node_ref_t<fms_core::leg_list_data_t>& src);
-
   static bool scratchpad_has_delete(const std::string& scratchpad);
 
-  static fms_core::spd_cstr_t get_spd_cstr(const std::string& str);
+  std::string on_event_impl(int event_key, std::string scratchpad,
+                       std::string* s_out) noexcept;
 
-  static fms_core::alt_cstr_t get_alt_cstr(const std::string& str);
-
-  void update_fpl_infos();
+  void update_fpl_infos() noexcept;
 
   void set_page(CDUPage pg);
 
@@ -260,10 +203,6 @@ class CDU final {
 
   bool arr_has_rwys(std::string& cr_appr, bool rte2) const noexcept;
 
-  std::string get_ident_drag_ff() const noexcept;
-
-  std::optional<int> get_ident_entry_number(const std::string& scratchpad);
-
   // Per-page fetching of the number of subpages:
 
   int get_n_sel_des_subpg() const noexcept;
@@ -272,16 +211,7 @@ class CDU final {
 
   int get_n_dep_arr_subpg(bool rte2) noexcept;
 
-  int get_n_legs_subpg() const noexcept;
-
   // Per-page event handling:
-
-  std::string handle_menu(int event_key, const std::string& scratchpad);
-
-  std::string handle_ident(int event_key, const std::string& scratchpad);
-
-  std::string handle_init_ref_index(
-    int event_key, const std::string& scratchpad);
 
   std::string handle_sel_des(int event_key);
 
@@ -294,51 +224,12 @@ class CDU final {
 
   std::string handle_arr(int event_key, bool rte2);
 
-  std::size_t get_leg_start_idx() const noexcept;
-
-  std::size_t get_leg_end_idx() const noexcept;
-
   std::size_t get_seg_start_idx() const noexcept;
 
   std::size_t get_seg_end_idx() const noexcept;
 
-  // reset_leg_dto_sel resets selection when user exits legs page
-
-  void reset_leg_dto_sel(size_t fp_idx);
-
-  void reset_leg_all_sel();
-
-  /*
-      Function: handle_legs_dto
-      @desc:
-      Handles legs direct from-to scenario
-      @param usr_idx: index to a valid item in leg_list that the user has
-     selected
-      @return: 1 if we need to handle this event as an insertion. Otherwise 0.
-  */
-
-  bool handle_legs_dto(size_t usr_idx, std::string scratchpad,
-                       std::string* s_out);
-
-  std::string handle_legs_insert(size_t usr_idx, std::string scratchpad);
-
-  std::string handle_legs_delete(size_t usr_idx);
-
-  std::string handle_legs_cstr_mod(size_t usr_idx, std::string& scratchpad);
-
-  void handle_legs_map_ctr_advance();
-
-  std::string handle_legs(int event_key, std::string scratchpad,
-                          std::string* s_out);
-
   // Per-page content fetching. The CDU displays exactly what these functions
   // output:
-
-  cdu_pages::cdu_scr_data_t get_menu_page() const noexcept;
-
-  cdu_pages::cdu_scr_data_t get_ident_page() const noexcept;
-
-  cdu_pages::cdu_scr_data_t get_init_ref_index_page() const noexcept;
 
   cdu_pages::cdu_scr_data_t get_sel_des_page() const noexcept;
 
@@ -351,10 +242,6 @@ class CDU final {
   cdu_pages::cdu_scr_data_t get_dep_page(bool rte2) const noexcept;
 
   cdu_pages::cdu_scr_data_t get_arr_page(bool rte2) const noexcept;
-
-  std::string get_legs_btm() const noexcept;
-
-  cdu_pages::cdu_scr_data_t get_legs_page() const noexcept;
 };
 
 class CDUDisplay final {

@@ -66,6 +66,17 @@ std::string get_displayed_pos(geo::point pos) noexcept {
     strutils::lon_to_str(pos.lon_rad * geo::RAD_TO_DEG);
 }
 
+std::string get_small_heading(
+  unsigned subpage, unsigned cnt_subpages) noexcept {
+  std::string curr_spg = std::to_string(subpage);
+  std::string n_spg = std::to_string(cnt_subpages);
+  std::string out = curr_spg + "/" + n_spg + " ";
+  out = std::string(std::size_t(fms_displays::N_CDU_DATA_COLS) - out.size(), 
+    ' ') + out;
+  return out;
+}
+
+
 cdu_scr_data_t::cdu_scr_data_t() {
   data_lines.reserve(fms_displays::N_CDU_DATA_LINES * 2);
   chr_sts.reserve(fms_displays::N_CDU_DATA_LINES * 2);
@@ -74,4 +85,8 @@ cdu_scr_data_t::cdu_scr_data_t() {
     chr_sts.push_back(CDU_ALL_B_WHITE);
   }
 }
+
+void PageBase::update() noexcept {}
+
+void PageBase::on_page_change(fms_displays::CDUPage) noexcept {}
 } // namespace cdu_pages

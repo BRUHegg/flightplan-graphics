@@ -1,10 +1,15 @@
 #pragma once
 
+#include <cstddef>
+
 namespace fms_displays {
 
 constexpr char DELETE_SYMBOL = 'd';
 constexpr unsigned N_CDU_DATA_LINES = 6;
 constexpr int N_CDU_DATA_COLS = 24;
+constexpr std::size_t N_CDU_ITM_PP =
+    5;  // How many items can be drawn on 1 page
+constexpr std::size_t N_CDU_RTES = 2;
 
 enum class CDUColor { WHITE, GREEN, CYAN, MAGENTA };
 
@@ -36,6 +41,7 @@ enum class CDUPage {
   POS_INIT,
   INIT_REF_INDEX,
   NAV_RAD,
+  SELECT_DESIRED,
   PREV_PAGE,
   NEXT_PAGE
 };

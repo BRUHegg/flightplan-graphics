@@ -18,6 +18,9 @@ std::string str_align_right(const std::string& str);
 
 std::string get_displayed_pos(geo::point pos) noexcept;
 
+std::string get_small_heading(unsigned subpage, 
+  unsigned cnt_subpages) noexcept;
+
 struct cdu_scr_data_t {
   std::string heading_big, heading_small;
   fms_displays::CDUColor heading_color;
@@ -36,10 +39,15 @@ class PageBase {
 public:
   virtual fms_displays::CDUPage get_page_number() const noexcept = 0;
 
-  virtual void update() noexcept = 0;
+  virtual void update() noexcept;
 
+  // Case: event is a select key
   virtual cdu_event_res_t on_event(fms_displays::cdu_event_type event, 
     const std::string& scratchpad, std::string& s_out) noexcept = 0;
+
+  // Case: event is a page key. Some pages(e.g. with subpages) or 
+  // with select desired need to override this.
+  virtual void on_page_change(fms_displays::CDUPage) noexcept;
 
   virtual cdu_scr_data_t get_screen_data() const noexcept = 0;
 
